@@ -1,7 +1,7 @@
 from copy import deepcopy
 from typing import ClassVar
 
-from sirenity import SirenContext, SirenRelationship, SirenResponseContext, siren
+from sirenity import SirenContext, SirenRelationship, SirenResponseContext, SirenScope, siren
 
 
 class TestTitles:
@@ -423,11 +423,13 @@ class TestTitles:
                     SirenRelationship(
                         rel=("author",),
                         resource="author",
+                        scope=SirenScope.ENTITY,
                         value={"author_id": "7"},
                     ),
                     SirenRelationship(
                         rel=("https://rels.example.com/editor",),
                         resource="author",
+                        scope=SirenScope.ENTITY,
                         title="Editor profile",
                         value={"author_id": "8"},
                         embedded=True,

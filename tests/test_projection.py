@@ -1,5 +1,6 @@
 import pytest
 from openapi_documents import SCHEMA
+from pydantic import ValidationError
 
 from sirenity import (
     ModwireSirenError,
@@ -8,6 +9,7 @@ from sirenity import (
     SirenEmbeddedRepresentation,
     SirenRelationship,
     SirenResponseContext,
+    SirenScope,
     siren,
 )
 
@@ -32,12 +34,15 @@ class TestProjection:
             },
         }
 
-        document = siren(schema).project(
+        engine = siren(schema)
+        document = engine.project(
             SirenContext(
                 base_url="https://api.example.com",
                 resource="record",
                 value={"record_id": "42"},
-                relationships=(SirenRelationship(rel=("author",), resource="user", value={"user_id": "7"}),),
+                relationships=(SirenRelationship(
+                    rel=("author",), resource="user", scope=SirenScope.ENTITY, value={"user_id": "7"}
+                ),),
             )
         ).model_dump(by_alias=True, mode="json", exclude_none=True)
 
@@ -52,7 +57,9 @@ class TestProjection:
                 scope="collection",
                 resource="record",
                 items=({"record_id": "42"},),
-                relationships=(SirenRelationship(rel=("related",), resource="user", value={"user_id": "7"}),),
+                relationships=(SirenRelationship(
+                    rel=("related",), resource="user", scope=SirenScope.ENTITY, value={"user_id": "7"}
+                ),),
             )
         ).model_dump(by_alias=True, mode="json", exclude_none=True)
 
@@ -60,6 +67,153 @@ class TestProjection:
             {"rel": ["self"], "href": "https://api.example.com/records"},
             {"rel": ["related"], "href": "https://api.example.com/users/7"},
         ]
+
+    def test_public_facade_projects_a_nested_collection_relationship(self):
+        schema = {
+            "openapi": "3.1.1",
+            "info": {"title": "Relationships", "version": "1"},
+            "paths": {
+                "/diagram-sets/{diagram_set_id}": {
+                    "parameters": [
+                        {
+                            "name": "diagram_set_id",
+                            "in": "path",
+                            "required": True,
+                            "schema": {"type": "string"},
+                        }
+                    ],
+                    "get": {"operationId": "get_diagram_set", "responses": {"200": {"description": "OK"}}},
+                },
+                "/diagrams": {
+                    "get": {"operationId": "list_diagrams", "responses": {"200": {"description": "OK"}}},
+                },
+                "/diagram-sets/{diagram_set_id}/diagrams": {
+                    "parameters": [
+                        {
+                            "name": "diagram_set_id",
+                            "in": "path",
+                            "required": True,
+                            "schema": {"type": "string"},
+                        }
+                    ],
+                    "get": {
+                        "operationId": "list_diagram_set_diagrams",
+                        "responses": {
+                            "200": {
+                                "description": "OK",
+                                "content": {
+                                    "application/json": {
+                                        "schema": {
+                                            "type": "array",
+                                            "title": "Diagrams",
+                                            "items": {"type": "object"},
+                                        },
+                                    }
+                                },
+                            }
+                        },
+                    },
+                },
+            },
+        }
+
+        engine = siren(schema)
+        document = engine.project(
+            SirenContext(
+                base_url="https://api.example.com",
+                resource="diagram_set",
+                value={"diagram_set_id": "set-7"},
+                relationships=(
+                    SirenRelationship(
+                        rel=("collection",),
+                        resource="diagram",
+                        scope=SirenScope.COLLECTION,
+                        path_values={"diagram_set_id": "set-7"},
+                        capabilities=frozenset({"list_diagram_set_diagrams"}),
+                    ),
+                ),
+            )
+        ).model_dump(by_alias=True, mode="json", exclude_none=True)
+
+        assert document["links"] == [
+            {"rel": ["self"], "href": "https://api.example.com/diagram-sets/set-7"},
+            {
+                "rel": ["collection"],
+                "title": "Diagrams",
+                "href": "https://api.example.com/diagram-sets/set-7/diagrams",
+            },
+        ]
+
+        with pytest.raises(ModwireSirenError, match="Siren projection failed"):
+            engine.project(
+                SirenContext(
+                    base_url="https://api.example.com",
+                    resource="diagram_set",
+                    value={"diagram_set_id": "set-7"},
+                    relationships=(
+                        SirenRelationship(
+                            rel=("collection",),
+                            resource="diagram",
+                            scope=SirenScope.ENTITY,
+                            path_values={"diagram_set_id": "set-7"},
+                            capabilities=frozenset({"list_diagram_set_diagrams"}),
+                        ),
+                    ),
+                )
+            )
+
+    def test_public_facade_rejects_invalid_collection_relationships(self):
+        with pytest.raises(ValidationError, match="scope"):
+            SirenRelationship(rel=("collection",), resource="diagram")
+        with pytest.raises(ModwireSirenError, match="Siren collection relationships cannot be embedded"):
+            SirenRelationship(rel=("collection",), resource="diagram", scope=SirenScope.COLLECTION, embedded=True)
+        with pytest.raises(ModwireSirenError, match="Siren relationship scope must be entity or collection"):
+            SirenRelationship(rel=("collection",), resource="diagram", scope=SirenScope.ROOT)
+
+    def test_public_facade_requires_nested_collection_relationship_path_values(self):
+        schema = {
+            "openapi": "3.1.1",
+            "info": {"title": "Relationships", "version": "1"},
+            "paths": {
+                "/diagram-sets/{diagram_set_id}": {
+                    "parameters": [
+                        {
+                            "name": "diagram_set_id",
+                            "in": "path",
+                            "required": True,
+                            "schema": {"type": "string"},
+                        }
+                    ],
+                    "get": {"operationId": "get_diagram_set", "responses": {"200": {"description": "OK"}}},
+                },
+                "/diagram-sets/{diagram_set_id}/diagrams": {
+                    "parameters": [
+                        {
+                            "name": "diagram_set_id",
+                            "in": "path",
+                            "required": True,
+                            "schema": {"type": "string"},
+                        }
+                    ],
+                    "get": {
+                        "operationId": "list_diagram_set_diagrams",
+                        "responses": {"200": {"description": "OK"}},
+                    },
+                },
+            },
+        }
+
+        with pytest.raises(ModwireSirenError, match="Siren projection failed: Siren link requires path value"):
+            siren(schema).project(
+                SirenContext(
+                    base_url="https://api.example.com",
+                    resource="diagram_set",
+                    value={"diagram_set_id": "set-7"},
+                    relationships=(
+                        SirenRelationship(rel=("collection",), resource="diagram", scope=SirenScope.COLLECTION),
+                    ),
+                )
+            )
 
     def test_public_facade_projects_an_embedded_relationship_representation(self):
         schema = {
@@ -86,6 +240,7 @@ class TestProjection:
                     SirenRelationship(
                         rel=("author",),
                         resource="user",
+                        scope=SirenScope.ENTITY,
                         value={"user_id": "7", "name": "Ada"},
                         capabilities=frozenset({"get_user"}),
                         embedded=True,
@@ -111,7 +266,9 @@ class TestProjection:
                     base_url="https://api.example.com",
                     resource="record",
                     value={"id": "42"},
-                    relationships=(SirenRelationship(rel=("author",), resource="user", value={"id": "7"}),),
+                    relationships=(SirenRelationship(
+                        rel=("author",), resource="user", scope=SirenScope.ENTITY, value={"id": "7"}
+                    ),),
                 )
             )
 

@@ -30,7 +30,7 @@ class SirenDefaultRelationshipDocumentService(SirenRelationshipDocumentService):
     ) -> SirenLink | SirenEmbeddedRepresentation:
         related_context = context.model_copy(
             update={
-                "scope": SirenScope.ENTITY,
+                "scope": relationship.scope,
                 "resource": relationship.resource,
                 "title": relationship.title,
                 "value": relationship.value,
@@ -44,13 +44,21 @@ class SirenDefaultRelationshipDocumentService(SirenRelationshipDocumentService):
             }
         )
         resource = self.resources.resolve(api, related_context)
-        self.capabilities.validate(resource, related_context)
-        path = resource.entity.path if resource.entity else resource.collection.path
+        self.capabilities.validate(resource, related_context, relationship.scope)
+        path = (
+            resource.collection.path
+            if relationship.scope == SirenScope.COLLECTION or resource.entity is None
+            else resource.entity.path
+        )
         if not relationship.embedded:
             return SirenLink(
                 rel=relationship.rel,
                 href=self.hrefs.href(path, related_context, resource),
-                title=relationship.title or resource.title,
+                title=relationship.title or (
+                    resource.collection_title or resource.title
+                    if relationship.scope == SirenScope.COLLECTION
+                    else resource.title
+                ),
             )
         if resource.entity is None:
             raise ModwireSirenError(f"Siren embedded relationship requires an entity resource: {resource.name}")
