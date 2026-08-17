@@ -17,7 +17,7 @@ class SirenEngine(BaseState):
         try:
             return self.projection.project(self.api, context)
         except Exception as error:
-            raise ModwireSirenError("Siren projection failed") from error
+            raise ModwireSirenError(f"Siren projection failed: {error}") from error
 
     def project_response(self, context: SirenResponseContext) -> SirenDocument:
         try:

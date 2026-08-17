@@ -383,6 +383,10 @@ Object and array controls use the `/object/v1` and `/array/v1` control URIs. Ope
 use `/json/v1`. Only delegated inputs are emitted, so ordinary official Siren fields are never
 duplicated. The profile walks actions recursively through embedded representations.
 
+### `SirenScope`
+
+Enum where members are also (and must be) strings
+
 ### `SirenResponseContext`
 
 Supply an executed OpenAPI operation and result for operation-aware projection.
@@ -400,9 +404,25 @@ result item.
 
 Describe a runtime relationship to another OpenAPI resource.
 
-A relationship projects as a navigational link by default. Set `embedded` when the related
-resource values should be included as a Siren embedded representation instead. `title`
-overrides the compiled resource title for this link or embedded representation.
+A relationship targets either an entity or a collection through its required `scope`. Set
+`embedded` only for an entity relationship when related values should be included as a Siren
+embedded representation instead. `title` overrides the compiled title for this link or
+embedded representation.
+
+Use `path_values` to select and render a nested collection route. Capabilities must belong to
+the relationship's selected scope.
+
+```python
+from sirenity import SirenRelationship, SirenScope
+
+relationship = SirenRelationship(
+    rel=("collection",),
+    resource="diagram",
+    scope=SirenScope.COLLECTION,
+    path_values={"diagram_set_id": diagram_set_id},
+    capabilities=frozenset({"list_diagram_set_diagrams"}),
+)
+```
 
 ### `SirenOperationInput`
 
@@ -680,6 +700,7 @@ The supported root imports below are generated from `sirenity.__all__`.
 | `SirenOperationInput` | Expose normalized input metadata for one compiled OpenAPI operation. | — |
 | `SirenRelationship` | Describe a runtime relationship to another OpenAPI resource. | — |
 | `SirenResponseContext` | Supply an executed OpenAPI operation and result for operation-aware projection. | — |
+| `SirenScope` | Enum where members are also (and must be) strings | — |
 | `SirenStructuredFormProfile` | Emit the versioned Modwire structured-form extension for delegated inputs. | `apply(operation_id: <class 'str'>, operation_input: sirenity.contexts.runtime.operation_input.values.operation.SirenOperationInput | None, operation_inputs: collections.abc.Mapping[str, sirenity.contexts.runtime.operation_input.values.operation.SirenOperationInput | None], document: collections.abc.Mapping[str, JsonValue], context: <class 'sirenity.contexts.runtime.request.values.response.SirenResponseContext'>) -> collections.abc.Mapping[str, JsonValue]`<br>`enrich(entity: collections.abc.Mapping[str, JsonValue], operation_inputs: collections.abc.Mapping[str, sirenity.contexts.runtime.operation_input.values.operation.SirenOperationInput | None]) -> collections.abc.Mapping[str, JsonValue]`<br>`control(delegated: <class 'sirenity.contexts.runtime.operation_input.values.delegated.SirenDelegatedInput'>) -> collections.abc.Mapping[str, JsonValue]` |
 | `audit` | Inspect a valid OpenAPI document against the current official-Siren support boundary. | — |
 | `siren` | Compile a complete OpenAPI 3.1 document into a reusable Siren engine. | — |

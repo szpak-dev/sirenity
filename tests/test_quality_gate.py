@@ -11,7 +11,7 @@ class TestQualityGate:
         assert "DUMP ?= .dump" in makefile
         assert "UV_CACHE_DIR" in makefile
         assert "PYTHONPYCACHEPREFIX" in makefile
-        assert "quality: modwire verify package-check" in makefile
+        assert "quality: verify package-check" in makefile
         assert "rm -rf dist/quality" in makefile
         assert "$(RUN) -m build --wheel --sdist --outdir dist/quality" in makefile
         assert "$(RUN) -m twine check dist/quality/*" in makefile

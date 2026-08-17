@@ -23,7 +23,7 @@ from .contexts.runtime.document import (
 )
 from .contexts.runtime.operation_input import SirenDelegatedInput, SirenOperationInput
 from .contexts.runtime.request import SirenContext, SirenRelationship, SirenResponseContext
-from .contexts.shared import ModwireSirenError
+from .contexts.shared import ModwireSirenError, SirenScope
 
 __all__ = [
     "ModwireSirenError",
@@ -51,6 +51,7 @@ __all__ = [
     "SirenOperationInput",
     "SirenRelationship",
     "SirenResponseContext",
+    "SirenScope",
     "SirenStructuredFormProfile",
     "audit",
     "siren",

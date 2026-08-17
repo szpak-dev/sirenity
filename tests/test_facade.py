@@ -32,6 +32,7 @@ from sirenity import (
     SirenOperationInput,
     SirenRelationship,
     SirenResponseContext,
+    SirenScope,
     SirenStructuredFormProfile,
     audit,
     siren,
@@ -81,6 +82,7 @@ class TestFacade:
             "SirenOperationInput",
             "SirenRelationship",
             "SirenResponseContext",
+            "SirenScope",
             "SirenStructuredFormProfile",
             "audit",
             "siren",
@@ -111,6 +113,7 @@ class TestFacade:
             SirenOperationInput,
             SirenRelationship,
             SirenResponseContext,
+            SirenScope,
             SirenStructuredFormProfile,
             audit,
         ) == (
@@ -138,6 +141,7 @@ class TestFacade:
             sirenity.SirenOperationInput,
             sirenity.SirenRelationship,
             sirenity.SirenResponseContext,
+            sirenity.SirenScope,
             sirenity.SirenStructuredFormProfile,
             sirenity.audit,
         )

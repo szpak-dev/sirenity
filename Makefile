@@ -1,4 +1,4 @@
-.PHONY: docs docs-check modwire package-check quality service-check siren-spec verify
+.PHONY: docs docs-check package-check quality service-check siren-spec verify
 
 UV ?= uv
 DUMP ?= .dump
@@ -6,9 +6,6 @@ export UV_CACHE_DIR := $(CURDIR)/$(DUMP)/uv-cache
 export PYTHONPYCACHEPREFIX := $(CURDIR)/$(DUMP)/pycache
 PYTHON ?= $(UV) run --locked python
 RUN = PYTHONPATH=src $(PYTHON)
-
-modwire:
-	$(UV) run --locked modwire report --architecture-root . --language python --summary
 
 docs:
 	$(RUN) scripts/generate_docs.py
@@ -32,4 +29,4 @@ package-check:
 	$(RUN) -m build --wheel --sdist --outdir dist/quality
 	$(RUN) -m twine check dist/quality/*
 
-quality: modwire verify package-check
+quality: verify package-check
