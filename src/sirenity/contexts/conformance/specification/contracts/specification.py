@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 
-from sirenity.contexts.shared import ModwireSirenError
+from sirenity.contexts.shared import SirenityError
 
 from ..values import SirenRequirement
 
@@ -8,4 +8,4 @@ from ..values import SirenRequirement
 class SirenSpecification(ABC):
     @abstractmethod
     def requirements(self) -> tuple[SirenRequirement, ...]:
-        raise ModwireSirenError
+        raise SirenityError

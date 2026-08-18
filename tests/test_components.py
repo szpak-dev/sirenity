@@ -3,7 +3,7 @@ from copy import deepcopy
 import pytest
 from openapi_documents import REFERENCED_SCHEMA
 
-from sirenity import ModwireSirenError, SirenContext, siren
+from sirenity import SirenContext, SirenityError, siren
 
 
 class TestComponents:
@@ -11,7 +11,7 @@ class TestComponents:
         invalid = deepcopy(REFERENCED_SCHEMA)
         invalid["paths"]["/records/{record_id}"]["parameters"][0]["required"] = False
 
-        with pytest.raises(ModwireSirenError, match="Invalid or unsupported OpenAPI contract"):
+        with pytest.raises(SirenityError):
             siren(invalid)
 
         document = siren(REFERENCED_SCHEMA).project(
@@ -22,30 +22,32 @@ class TestComponents:
                 capabilities=frozenset({"list_records"}),
             )
         )
-        document = document.model_dump(by_alias=True, mode="json", exclude_none=True)
+        document = document.model_dump(
+            by_alias=True, mode="json", exclude_none=True)
 
-        assert document["actions"][0]["fields"] == [{"name": "page_size", "type": "number"}]
-
+        assert document["actions"][0]["fields"] == [
+            {"name": "page_size", "type": "number"}]
 
     @pytest.mark.parametrize(
         "reference",
-        ["#/components/parameters/Missing", "#/components/schemas/PageSize", "#/components/parameters"],
+        ["#/components/parameters/Missing",
+            "#/components/schemas/PageSize", "#/components/parameters"],
     )
     def test_public_facade_rejects_invalid_component_references(self, reference):
         invalid = deepcopy(REFERENCED_SCHEMA)
-        invalid["paths"]["/records"]["get"]["parameters"] = [{"$ref": reference}]
+        invalid["paths"]["/records"]["get"]["parameters"] = [
+            {"$ref": reference}]
 
-        with pytest.raises(ModwireSirenError, match="Invalid or unsupported OpenAPI contract"):
+        with pytest.raises(SirenityError):
             siren(invalid)
-
 
     def test_public_facade_rejects_a_cyclic_component_schema(self):
         cyclic = deepcopy(REFERENCED_SCHEMA)
-        cyclic["components"]["schemas"]["Title"] = {"$ref": "#/components/schemas/Title"}
+        cyclic["components"]["schemas"]["Title"] = {
+            "$ref": "#/components/schemas/Title"}
 
-        with pytest.raises(ModwireSirenError, match="Invalid or unsupported OpenAPI contract"):
+        with pytest.raises(SirenityError):
             siren(cyclic)
-
 
     def test_public_facade_projects_referenced_request_body_and_schema_siblings(self):
         document = siren(REFERENCED_SCHEMA).project(
@@ -56,7 +58,8 @@ class TestComponents:
                 capabilities=frozenset({"rename_record"}),
             )
         )
-        document = document.model_dump(by_alias=True, mode="json", exclude_none=True)
+        document = document.model_dump(
+            by_alias=True, mode="json", exclude_none=True)
 
         assert document["actions"][0] == {
             "name": "rename_record",

@@ -3,7 +3,7 @@ from typing import Any, ClassVar
 
 from pydantic_core import CoreSchema, core_schema
 
-from sirenity.contexts.shared import ModwireSirenError
+from sirenity.contexts.shared import SirenityError
 
 
 class SirenMediaType(str):
@@ -31,7 +31,7 @@ class SirenMediaType(str):
     def validate(cls, value: str) -> "SirenMediaType":
         if re.fullmatch(cls.schema()["pattern"], value) is None:
             message = "Siren media type must use the official media-type grammar."
-            raise ModwireSirenError(message)
+            raise SirenityError(message)
         return cls(value)
 
     @classmethod

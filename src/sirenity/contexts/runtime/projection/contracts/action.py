@@ -3,7 +3,7 @@ from collections.abc import Mapping
 from typing import Any
 
 from sirenity.contexts.graph import SirenApi, SirenOperation, SirenResource
-from sirenity.contexts.shared import ModwireSirenError, SirenScope
+from sirenity.contexts.shared import SirenityError, SirenScope
 
 from ...document import SirenAction
 from ...request import SirenContext
@@ -19,7 +19,7 @@ class SirenActionDocumentService(ABC):
         context: SirenContext,
         value: Mapping[str, Any],
     ) -> list[SirenAction]:
-        raise ModwireSirenError
+        raise SirenityError
 
     @abstractmethod
     def action(
@@ -30,4 +30,4 @@ class SirenActionDocumentService(ABC):
         value: Mapping[str, Any],
         include_query: bool = True,
     ) -> SirenAction:
-        raise ModwireSirenError
+        raise SirenityError

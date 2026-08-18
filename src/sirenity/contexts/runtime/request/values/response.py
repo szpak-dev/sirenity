@@ -3,7 +3,7 @@ from typing import Literal
 
 from pydantic import Field, JsonValue, model_validator
 
-from sirenity.contexts.shared import BaseValue, ModwireSirenError, SirenMediaType
+from sirenity.contexts.shared import BaseValue, SirenityError, SirenMediaType
 
 from .relationship import SirenRelationship
 
@@ -27,7 +27,8 @@ class SirenResponseContext(BaseValue):
     base_url: str
     title: str | None = None
     media_type: SirenMediaType | None = None
-    representation: Literal["root", "entity", "collection", "command"] | None = None
+    representation: Literal["root", "entity",
+                            "collection", "command"] | None = None
     path_values: Mapping[str, JsonValue] = Field(default_factory=dict)
     query: tuple[tuple[str, JsonValue], ...] = ()
     capabilities: frozenset[str] = frozenset()
@@ -38,15 +39,20 @@ class SirenResponseContext(BaseValue):
     @model_validator(mode="after")
     def validate_response(self) -> "SirenResponseContext":
         if not 100 <= self.status <= 599:
-            raise ModwireSirenError("Siren response status must be between 100 and 599")
+            raise SirenityError(
+                "Siren response status must be between 100 and 599")
         if any(isinstance(value, (dict, list)) for _, value in self.query):
-            raise ModwireSirenError("Siren query values must be scalar")
+            raise SirenityError("Siren query values must be scalar")
         if self.item_titles and (
-            not isinstance(self.result, list) or len(self.item_titles) != len(self.result)
+            not isinstance(self.result, list) or len(
+                self.item_titles) != len(self.result)
         ):
-            raise ModwireSirenError("Siren item titles must align with response items")
+            raise SirenityError(
+                "Siren item titles must align with response items")
         if self.item_capabilities and (
-            not isinstance(self.result, list) or len(self.item_capabilities) != len(self.result)
+            not isinstance(self.result, list) or len(
+                self.item_capabilities) != len(self.result)
         ):
-            raise ModwireSirenError("Siren item capabilities must align with response items")
+            raise SirenityError(
+                "Siren item capabilities must align with response items")
         return self

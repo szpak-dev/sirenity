@@ -6,7 +6,7 @@ from ..contexts.runtime.adapter import (
     SirenCapabilityPolicy,
     SirenDjangoMiddleware,
 )
-from ..contexts.shared import ModwireSirenError
+from ..contexts.shared import SirenityError
 from .adapter import siren_adapter
 
 
@@ -70,22 +70,25 @@ class SirenMiddleware:
 
             configuration = getattr(settings, "MODWIRE_SIREN", None)
             if not isinstance(configuration, Mapping):
-                raise ModwireSirenError("MODWIRE_SIREN must be a mapping")
+                raise SirenityError("MODWIRE_SIREN must be a mapping")
             openapi_path = configuration.get("OPENAPI")
             policy_path = configuration.get("POLICY")
             if not isinstance(openapi_path, str) or not openapi_path:
-                raise ModwireSirenError("MODWIRE_SIREN.OPENAPI must be a dotted import path")
+                raise SirenityError(
+                    "MODWIRE_SIREN.OPENAPI must be a dotted import path")
             if policy_path is not None and (not isinstance(policy_path, str) or not policy_path):
-                raise ModwireSirenError("MODWIRE_SIREN.POLICY must be a dotted import path")
+                raise SirenityError(
+                    "MODWIRE_SIREN.POLICY must be a dotted import path")
             source_path = configuration.get("SOURCE_PATH", "/")
             public_path = configuration.get("PUBLIC_PATH", "/")
             if not isinstance(source_path, str) or not isinstance(public_path, str):
-                raise ModwireSirenError("MODWIRE_SIREN source and public paths must be strings")
+                raise SirenityError(
+                    "MODWIRE_SIREN source and public paths must be strings")
             profile_paths = configuration.get("PROFILES", ())
             if not isinstance(profile_paths, list | tuple) or any(
                 not isinstance(path, str) or not path for path in profile_paths
             ):
-                raise ModwireSirenError(
+                raise SirenityError(
                     "MODWIRE_SIREN.PROFILES must be a sequence of dotted import paths"
                 )
 
@@ -98,15 +101,16 @@ class SirenMiddleware:
                 elif callable(openapi_source):
                     openapi = openapi_source()
                 else:
-                    raise ModwireSirenError(
+                    raise SirenityError(
                         "must resolve to a mapping, callable, or Ninja API"
                     )
             except Exception as error:
-                raise ModwireSirenError(
+                raise SirenityError(
                     f"MODWIRE_SIREN.OPENAPI could not be loaded: {error}"
                 ) from error
             if not isinstance(openapi, Mapping):
-                raise ModwireSirenError("MODWIRE_SIREN.OPENAPI did not produce an OpenAPI mapping")
+                raise SirenityError(
+                    "MODWIRE_SIREN.OPENAPI did not produce an OpenAPI mapping")
 
             policy = SirenAllowAllPolicy()
             if policy_path is not None:
@@ -115,11 +119,11 @@ class SirenMiddleware:
                     if isinstance(policy, type):
                         policy = policy()
                 except Exception as error:
-                    raise ModwireSirenError(
+                    raise SirenityError(
                         f"MODWIRE_SIREN.POLICY could not be loaded: {error}"
                     ) from error
             if not isinstance(policy, SirenCapabilityPolicy) and not callable(policy):
-                raise ModwireSirenError(
+                raise SirenityError(
                     "MODWIRE_SIREN.POLICY must resolve to a SirenCapabilityPolicy or callable"
                 )
 
@@ -127,9 +131,10 @@ class SirenMiddleware:
             for profile_path in profile_paths:
                 try:
                     profile = import_string(profile_path)
-                    profiles.append(profile() if isinstance(profile, type) else profile)
+                    profiles.append(profile() if isinstance(
+                        profile, type) else profile)
                 except Exception as error:
-                    raise ModwireSirenError(
+                    raise SirenityError(
                         f"MODWIRE_SIREN.PROFILES could not load {profile_path!r}: {error}"
                     ) from error
 
@@ -141,11 +146,11 @@ class SirenMiddleware:
                     profiles=tuple(profiles),
                 )
             except Exception as error:
-                raise ModwireSirenError(
+                raise SirenityError(
                     f"MODWIRE_SIREN.OPENAPI could not be compiled: {error}"
                 ) from error
             if not adapter.routes:
-                raise ModwireSirenError(
+                raise SirenityError(
                     "MODWIRE_SIREN.OPENAPI has no registered operations; initialization may be premature"
                 )
             middleware = SirenDjangoMiddleware(
@@ -155,7 +160,8 @@ class SirenMiddleware:
             )
             object.__setattr__(self, "middleware", middleware)
         except Exception as error:
-            raise ModwireSirenError(f"Django Siren middleware startup failed: {error}") from error
+            raise SirenityError(
+                f"Django Siren middleware startup failed: {error}") from error
 
     def __call__(self, request: object) -> object:
         return self.middleware(request)

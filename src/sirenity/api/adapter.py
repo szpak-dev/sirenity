@@ -3,7 +3,7 @@ from typing import Any
 
 from ..contexts.runtime.adapter import SirenAdapter, SirenAdapterProfile
 from ..contexts.runtime.adapter.values import SirenAdapterRoute
-from ..contexts.shared import ModwireSirenError
+from ..contexts.shared import SirenityError
 from .siren import siren
 
 
@@ -121,7 +121,8 @@ def siren_adapter(
     """
 
     try:
-        engine = siren(openapi, source_path=source_path, public_path=public_path)
+        engine = siren(openapi, source_path=source_path,
+                       public_path=public_path)
         source = source_path.rstrip("/") or "/"
         public = public_path.rstrip("/") or "/"
         source_routes = {}
@@ -145,7 +146,8 @@ def siren_adapter(
                 suffix = public_route[len(public):]
             source_route = source_routes.get(
                 (operation.name, operation.method),
-                suffix if source == "/" else source + ("" if suffix == "/" else suffix),
+                suffix if source == "/" else source +
+                ("" if suffix == "/" else suffix),
             )
             routes.append(SirenAdapterRoute(
                 source_path=source_route,
@@ -155,4 +157,5 @@ def siren_adapter(
             ))
         return SirenAdapter(engine=engine, routes=tuple(routes), profiles=profiles)
     except Exception as error:
-        raise ModwireSirenError(f"Invalid or unsupported Siren adapter contract: {error}") from error
+        raise SirenityError(
+            f"Invalid or unsupported Siren adapter contract: {error}") from error

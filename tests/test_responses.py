@@ -1,10 +1,9 @@
-import re
 from copy import deepcopy
 from typing import ClassVar
 
 import pytest
 
-from sirenity import ModwireSirenError, SirenResponseContext, siren
+from sirenity import SirenContractError, SirenityError, SirenResponseContext, siren
 
 
 class TestResponses:
@@ -239,7 +238,7 @@ class TestResponses:
             }
         }
 
-        with pytest.raises(ModwireSirenError, match="Siren response projection failed"):
+        with pytest.raises(SirenityError, match="Siren response projection failed"):
             siren(schema).project_response(SirenResponseContext(
                 operation_id="get_article",
                 status=200,
@@ -319,8 +318,12 @@ class TestResponses:
             }
         }
 
-        with pytest.raises(ModwireSirenError, match="Invalid or unsupported OpenAPI contract"):
+        with pytest.raises(SirenContractError) as raised:
             siren(schema)
+
+        assert raised.value.location == "#"
+        assert raised.value.category == "compilation"
+        assert raised.value.detail == "OpenAPI response link parameters do not match the target route"
 
     def test_public_engine_explains_ambiguous_response_link_targets(self):
         schema = deepcopy(self.schema)
@@ -333,13 +336,12 @@ class TestResponses:
             }
         }
 
-        with pytest.raises(
-            ModwireSirenError,
-            match=re.escape(
-                "Invalid or unsupported OpenAPI contract: "
-            ) + ".*is valid under each of",
-        ):
+        with pytest.raises(SirenContractError) as raised:
             siren(schema)
+
+        assert raised.value.location == "#"
+        assert raised.value.category == "openapi"
+        assert raised.value.detail == "OpenAPI document does not conform to OpenAPI 3.1."
 
     def test_public_engine_projects_collection_owned_object_responses_as_entities(self):
         engine = siren(self.schema)
@@ -354,7 +356,8 @@ class TestResponses:
             by_alias=True, mode="json", exclude_none=True
         )
         assert document["class"] == ["article"]
-        assert document["properties"] == {"article_key": "created", "title": "Created"}
+        assert document["properties"] == {
+            "article_key": "created", "title": "Created"}
         assert document["links"] == [
             {"rel": ["self"], "href": "https://api.example.com/articles/created"}
         ]
@@ -395,7 +398,8 @@ class TestResponses:
             "class": ["command-result"],
             "properties": {"published": True},
             "links": [
-                {"rel": ["self"], "href": "https://api.example.com/articles/article%2F42/publish"}
+                {"rel": [
+                    "self"], "href": "https://api.example.com/articles/article%2F42/publish"}
             ],
         }
         assert reindex == {
@@ -434,14 +438,14 @@ class TestResponses:
 
     def test_public_engine_rejects_undeclared_statuses_and_runtime_shape_mismatches(self):
         engine = siren(self.schema)
-        with pytest.raises(ModwireSirenError, match="Siren response projection failed"):
+        with pytest.raises(SirenityError, match="Siren response projection failed"):
             engine.project_response(SirenResponseContext(
                 operation_id="list_articles",
                 status=201,
                 result=[],
                 base_url="https://api.example.com",
             ))
-        with pytest.raises(ModwireSirenError, match="Siren response projection failed"):
+        with pytest.raises(SirenityError, match="Siren response projection failed"):
             engine.project_response(SirenResponseContext(
                 operation_id="list_articles",
                 status=200,

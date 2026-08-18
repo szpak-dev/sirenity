@@ -2,7 +2,7 @@ from typing import Any
 
 from pydantic import Field
 
-from sirenity.contexts.shared import BaseState, ModwireSirenError, SirenScope
+from sirenity.contexts.shared import BaseState, SirenityError, SirenScope
 
 from ..values import Resource
 
@@ -13,7 +13,8 @@ class RouteCatalog(BaseState):
     public_path: str = "/"
     segment_cache: dict[str, tuple[str, ...]] = Field(default_factory=dict)
     parameter_cache: dict[str, tuple[str, ...]] = Field(default_factory=dict)
-    ownership_cache: dict[str, tuple[Resource, SirenScope] | None] = Field(default_factory=dict)
+    ownership_cache: dict[str, tuple[Resource, SirenScope]
+                          | None] = Field(default_factory=dict)
     resource_cache: tuple[Resource, ...] | None = None
     single_object_paths: frozenset[str] = frozenset()
 
@@ -25,10 +26,11 @@ class RouteCatalog(BaseState):
         if path.rstrip("/") == self.source_path.rstrip("/"):
             return self.public_path
         if self.source_path != "/" and not path.startswith(f"{self.source_path}/"):
-            raise ModwireSirenError(
+            raise SirenityError(
                 f"OpenAPI route {path!r} is outside configured source path {self.source_path!r}"
             )
-        suffix = path if self.source_path == "/" else path[len(self.source_path):]
+        suffix = path if self.source_path == "/" else path[len(
+            self.source_path):]
         return suffix if self.public_path == "/" else f"{self.public_path}{suffix}"
 
     def resources(self) -> tuple[Resource, ...]:
@@ -50,11 +52,12 @@ class RouteCatalog(BaseState):
                 entity_path = path
             if collection_path is None:
                 continue
-            name = self.singular(segments[-1] if entity_path is None else segments[-2])
+            name = self.singular(
+                segments[-1] if entity_path is None else segments[-2])
             selection = name, self.parameters(collection_path)
             existing_path = names.get(selection)
             if existing_path is not None and existing_path != collection_path:
-                raise ModwireSirenError(
+                raise SirenityError(
                     f"OpenAPI routes derive duplicate resource {name!r}: {existing_path!r} and {collection_path!r}"
                 )
             names[selection] = collection_path
@@ -93,16 +96,20 @@ class RouteCatalog(BaseState):
         candidates: list[tuple[int, Resource, SirenScope]] = []
         for resource in self.resources():
             if resource.entity_path and self.belongs(path, resource.entity_path):
-                candidates.append((len(self.segments(resource.entity_path)), resource, SirenScope.ENTITY))
+                candidates.append(
+                    (len(self.segments(resource.entity_path)), resource, SirenScope.ENTITY))
             if self.belongs(path, resource.collection_path):
-                candidates.append((len(self.segments(resource.collection_path)), resource, SirenScope.COLLECTION))
+                candidates.append(
+                    (len(self.segments(resource.collection_path)), resource, SirenScope.COLLECTION))
         if not candidates:
             self.ownership_cache[path] = None
             return None
         longest = max(candidate[0] for candidate in candidates)
-        owners = [(resource, scope) for length, resource, scope in candidates if length == longest]
+        owners = [(resource, scope) for length, resource,
+                  scope in candidates if length == longest]
         if len(owners) != 1:
-            raise ModwireSirenError(f"OpenAPI route ownership is ambiguous: {path!r}")
+            raise SirenityError(
+                f"OpenAPI route ownership is ambiguous: {path!r}")
         self.ownership_cache[path] = owners[0]
         return owners[0]
 
@@ -119,14 +126,15 @@ class RouteCatalog(BaseState):
             self.segment_cache[path] = ()
             return ()
         if not isinstance(path, str) or not path.startswith("/"):
-            raise ModwireSirenError(f"OpenAPI route is unsupported: {path!r}")
+            raise SirenityError(f"OpenAPI route is unsupported: {path!r}")
         normalized = path[:-1] if path.endswith("/") else path
         segments = tuple(normalized[1:].split("/"))
         if any(
-            not segment or (("{" in segment or "}" in segment) and not self.is_parameter(segment))
+            not segment or (("{" in segment or "}" in segment)
+                            and not self.is_parameter(segment))
             for segment in segments
         ):
-            raise ModwireSirenError(f"OpenAPI route is unsupported: {path!r}")
+            raise SirenityError(f"OpenAPI route is unsupported: {path!r}")
         self.segment_cache[path] = segments
         return segments
 
@@ -143,7 +151,8 @@ class RouteCatalog(BaseState):
         cached = self.parameter_cache.get(path)
         if cached is not None:
             return cached
-        parameters = tuple(segment[1:-1] for segment in self.segments(path) if self.is_parameter(segment))
+        parameters = tuple(
+            segment[1:-1] for segment in self.segments(path) if self.is_parameter(segment))
         self.parameter_cache[path] = parameters
         return parameters
 
@@ -156,4 +165,5 @@ class RouteCatalog(BaseState):
             return f"{normalized[:-3]}y"
         if self.is_plural(normalized):
             return normalized[:-1]
-        raise ModwireSirenError(f"OpenAPI collection path must be plural: {value!r}")
+        raise SirenityError(
+            f"OpenAPI collection path must be plural: {value!r}")

@@ -3,15 +3,17 @@ from copy import deepcopy
 import pytest
 from openapi_documents import SCHEMA
 
-from sirenity import ModwireSirenError, SirenContext, siren
+from sirenity import SirenContext, SirenContractError, SirenityError, siren
 
 
 class TestErrors:
-    def test_public_facade_chains_invalid_openapi_as_a_compilation_error(self):
-        with pytest.raises(ModwireSirenError, match="Invalid or unsupported OpenAPI contract") as raised:
+    def test_public_facade_emits_a_structured_input_error(self):
+        with pytest.raises(SirenContractError) as raised:
             siren([])
 
-        assert raised.value.__cause__ is not None
+        assert raised.value.location == "#"
+        assert raised.value.category == "input"
+        assert raised.value.detail == "OpenAPI document must be a mapping."
 
     def test_public_facade_projects_a_supported_openapi_enum_control(self):
         document = deepcopy(SCHEMA)
@@ -39,8 +41,10 @@ class TestErrors:
     @pytest.mark.parametrize(
         "context",
         [
-            SirenContext(base_url="https://api.example.com", resource="record"),
-            SirenContext(base_url="https://api.example.com", resource="unknown"),
+            SirenContext(base_url="https://api.example.com",
+                         resource="record"),
+            SirenContext(base_url="https://api.example.com",
+                         resource="unknown"),
             SirenContext(
                 base_url="https://api.example.com",
                 resource="record",
@@ -50,7 +54,7 @@ class TestErrors:
         ],
     )
     def test_engine_chains_context_failures_as_projection_errors(self, context):
-        with pytest.raises(ModwireSirenError, match="Siren projection failed") as raised:
+        with pytest.raises(SirenityError, match="Siren projection failed") as raised:
             siren(SCHEMA).project(context)
 
         assert raised.value.__cause__ is not None
@@ -64,6 +68,8 @@ class TestErrors:
                 capabilities=frozenset({"get_record"}),
             )
         )
-        document = document.model_dump(by_alias=True, mode="json", exclude_none=True)
+        document = document.model_dump(
+            by_alias=True, mode="json", exclude_none=True)
 
-        assert document["links"] == [{"rel": ["self"], "href": "https://api.example.com/records/42"}]
+        assert document["links"] == [
+            {"rel": ["self"], "href": "https://api.example.com/records/42"}]

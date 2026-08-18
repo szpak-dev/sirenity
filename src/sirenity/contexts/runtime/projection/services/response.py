@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from wireup import injectable
 
 from sirenity.contexts.graph import SirenApi, SirenOperation, SirenResource, SirenResponse
-from sirenity.contexts.shared import ModwireSirenError, SirenScope
+from sirenity.contexts.shared import SirenityError, SirenScope
 
 from ...document import SirenDocument, SirenLink
 from ...request import SirenContext, SirenRelationship, SirenResponseContext
@@ -26,12 +26,14 @@ class SirenResponseProjectionService:
         if context.status >= 400:
             return self.error(operation, resource, context)
         if context.representation == "root" and response.shape != "object":
-            raise ModwireSirenError("Siren root response requires an OpenAPI object response")
+            raise SirenityError(
+                "Siren root response requires an OpenAPI object response")
         if response.shape == "empty":
             return self.empty(operation, resource, context)
         if response.shape == "array":
             if context.representation not in {None, "collection"}:
-                raise ModwireSirenError("OpenAPI array response requires collection representation")
+                raise SirenityError(
+                    "OpenAPI array response requires collection representation")
             return self.collection(api, resource, context, response)
         representation = context.representation
         if (
@@ -54,13 +56,15 @@ class SirenResponseProjectionService:
             return self.entity(api, resource, context, response)
         if representation == "command":
             return self.command(api, operation, resource, context, response)
-        raise ModwireSirenError("OpenAPI object response cannot use collection representation")
+        raise SirenityError(
+            "OpenAPI object response cannot use collection representation")
 
     def root(
         self, api: SirenApi, operation: SirenOperation, context: SirenResponseContext
     ) -> SirenDocument:
         if operation.scope != SirenScope.ROOT or not isinstance(context.result, Mapping):
-            raise ModwireSirenError("Siren root response requires a root operation and mapping result")
+            raise SirenityError(
+                "Siren root response requires a root operation and mapping result")
         request = SirenContext(
             base_url=context.base_url,
             scope=SirenScope.ROOT,
@@ -73,18 +77,22 @@ class SirenResponseProjectionService:
         return self.projection.project(api, request)
 
     def operation(self, api: SirenApi, operation_id: str) -> SirenOperation:
-        matches = [operation for operation in api.operations if operation.name == operation_id]
+        matches = [
+            operation for operation in api.operations if operation.name == operation_id]
         if len(matches) != 1:
-            raise ModwireSirenError(f"Siren response references unknown operation: {operation_id}")
+            raise SirenityError(
+                f"Siren response references unknown operation: {operation_id}")
         return matches[0]
 
     def response(self, operation: SirenOperation, context: SirenResponseContext) -> SirenResponse:
         candidates = list(self.candidates(operation, context))
         if context.media_type is None and len(candidates) > 1:
-            json_candidates = [response for response in candidates if response.media_type == "application/json"]
-            candidates = json_candidates if len(json_candidates) == 1 else candidates
+            json_candidates = [
+                response for response in candidates if response.media_type == "application/json"]
+            candidates = json_candidates if len(
+                json_candidates) == 1 else candidates
         if len(candidates) != 1:
-            raise ModwireSirenError(
+            raise SirenityError(
                 f"Siren response requires exactly one status and media type match: "
                 f"{operation.name} {context.status}"
             )
@@ -97,7 +105,8 @@ class SirenResponseProjectionService:
     def candidates(
         self, operation: SirenOperation, context: SirenResponseContext
     ) -> tuple[SirenResponse, ...]:
-        exact = [response for response in operation.responses if response.status == str(context.status)]
+        exact = [response for response in operation.responses if response.status == str(
+            context.status)]
         ranged = [
             response
             for response in operation.responses
@@ -105,10 +114,12 @@ class SirenResponseProjectionService:
             and response.status[0] == str(context.status)[0]
             and response.status[1:].upper() == "XX"
         ]
-        defaults = [response for response in operation.responses if response.status == "default"]
+        defaults = [
+            response for response in operation.responses if response.status == "default"]
         candidates = exact or ranged or defaults
         if context.media_type is not None:
-            candidates = [response for response in candidates if response.media_type == context.media_type]
+            candidates = [
+                response for response in candidates if response.media_type == context.media_type]
         return tuple(candidates)
 
     def project_error(
@@ -121,32 +132,40 @@ class SirenResponseProjectionService:
     def resource(self, api: SirenApi, operation: SirenOperation) -> SirenResource | None:
         if operation.resource is None:
             return None
-        matches = [resource for resource in api.resources if resource.reference == operation.resource]
+        matches = [
+            resource for resource in api.resources if resource.reference == operation.resource]
         if len(matches) != 1:
-            raise ModwireSirenError(f"Siren operation references unknown resource: {operation.name}")
+            raise SirenityError(
+                f"Siren operation references unknown resource: {operation.name}")
         return matches[0]
 
     def validate_result(self, response: SirenResponse, result: object) -> None:
         if response.shape == "empty" and result is not None:
-            raise ModwireSirenError("OpenAPI content-free response requires a null result")
+            raise SirenityError(
+                "OpenAPI content-free response requires a null result")
         if response.shape == "object" and not isinstance(result, Mapping):
-            raise ModwireSirenError("OpenAPI object response requires a mapping result")
+            raise SirenityError(
+                "OpenAPI object response requires a mapping result")
         if response.shape == "array" and (
-            not isinstance(result, list) or any(not isinstance(item, Mapping) for item in result)
+            not isinstance(result, list) or any(
+                not isinstance(item, Mapping) for item in result)
         ):
-            raise ModwireSirenError("OpenAPI array response requires a list of mapping results")
+            raise SirenityError(
+                "OpenAPI array response requires a list of mapping results")
 
     def entity(
         self, api: SirenApi, resource: SirenResource | None, context: SirenResponseContext, response: SirenResponse
     ) -> SirenDocument:
         if resource is None or not isinstance(context.result, Mapping):
-            raise ModwireSirenError("Siren entity response requires an operation-owned resource")
+            raise SirenityError(
+                "Siren entity response requires an operation-owned resource")
         request = SirenContext(
             base_url=context.base_url,
             resource=resource.name,
             title=context.title,
             value=context.result,
-            relationships=(*context.relationships, *self.relationships(api, response, context.result)),
+            relationships=(*context.relationships, *
+                           self.relationships(api, response, context.result)),
             path_values=context.path_values,
             query=context.query,
             capabilities=context.capabilities,
@@ -157,7 +176,8 @@ class SirenResponseProjectionService:
         self, api: SirenApi, resource: SirenResource | None, context: SirenResponseContext, response: SirenResponse
     ) -> SirenDocument:
         if resource is None or not isinstance(context.result, list):
-            raise ModwireSirenError("Siren collection response requires an operation-owned resource")
+            raise SirenityError(
+                "Siren collection response requires an operation-owned resource")
         request = SirenContext(
             base_url=context.base_url,
             scope=SirenScope.COLLECTION,
@@ -166,7 +186,8 @@ class SirenResponseProjectionService:
             items=tuple(context.result),
             item_titles=context.item_titles,
             item_capabilities=context.item_capabilities,
-            relationships=(*context.relationships, *self.relationships(api, response, context.result)),
+            relationships=(*context.relationships, *
+                           self.relationships(api, response, context.result)),
             path_values=context.path_values,
             query=context.query,
             capabilities=context.capabilities,
@@ -178,7 +199,8 @@ class SirenResponseProjectionService:
         context: SirenResponseContext, response: SirenResponse
     ) -> SirenDocument:
         if not isinstance(context.result, Mapping):
-            raise ModwireSirenError("Siren command response requires a mapping result")
+            raise SirenityError(
+                "Siren command response requires a mapping result")
         request = SirenContext(
             base_url=context.base_url,
             scope=SirenScope.ROOT,
@@ -188,21 +210,26 @@ class SirenResponseProjectionService:
         links = [SirenLink(
             rel=("self",),
             title=context.title or operation.title,
-            href=self.hrefs.href(operation.route.path, request, resource, context.result),
+            href=self.hrefs.href(operation.route.path,
+                                 request, resource, context.result),
         )]
         for relationship in self.relationships(api, response, context.result):
-            target = self.resource(api, self.operation(api, relationship.resource))
+            target = self.resource(
+                api, self.operation(api, relationship.resource))
             if target is None:
-                raise ModwireSirenError("Siren response link target requires a resource")
+                raise SirenityError(
+                    "Siren response link target requires a resource")
             path = target.collection.path if relationship.scope == SirenScope.COLLECTION else target.entity.path
             if path is None:
-                raise ModwireSirenError(f"Siren response link target has no entity route: {target.name}")
+                raise SirenityError(
+                    f"Siren response link target has no entity route: {target.name}")
             links.append(SirenLink(
                 rel=relationship.rel,
                 title=target.collection_title if relationship.scope == SirenScope.COLLECTION else target.title,
                 href=self.hrefs.href(
                     path,
-                    request.model_copy(update={"path_values": relationship.path_values}),
+                    request.model_copy(
+                        update={"path_values": relationship.path_values}),
                     target,
                 ),
             ))
@@ -221,10 +248,12 @@ class SirenResponseProjectionService:
             target = self.operation(api, link.operation)
             resource = self.resource(api, target)
             if resource is None:
-                raise ModwireSirenError("Siren response link target requires a resource")
+                raise SirenityError(
+                    "Siren response link target requires a resource")
             path = resource.collection.path if link.scope == SirenScope.COLLECTION else resource.entity.path
             if path is None:
-                raise ModwireSirenError(f"Siren response link target has no entity route: {resource.name}")
+                raise SirenityError(
+                    f"Siren response link target has no entity route: {resource.name}")
             required = tuple(
                 segment[1:-1]
                 for segment in path.split("/")
@@ -235,7 +264,8 @@ class SirenResponseProjectionService:
                 for name, expression in link.parameters.items()
             }
             if set(values) != set(required):
-                raise ModwireSirenError("Siren response link parameters do not match the target route")
+                raise SirenityError(
+                    "Siren response link parameters do not match the target route")
             links.append(SirenRelationship(
                 rel=link.rel,
                 resource=resource.name,
@@ -246,18 +276,20 @@ class SirenResponseProjectionService:
 
     def parameter_name(self, name: str) -> str:
         if name.startswith("path."):
-            return name[len("path.") :]
+            return name[len("path."):]
         return name
 
     def pointer(self, expression: str, result: object) -> object:
         prefix = "$response.body#"
         if not expression.startswith(prefix):
-            raise ModwireSirenError(f"Siren response link runtime expression is unsupported: {expression}")
-        pointer = expression[len(prefix) :]
+            raise SirenityError(
+                f"Siren response link runtime expression is unsupported: {expression}")
+        pointer = expression[len(prefix):]
         if pointer == "":
             return result
         if not pointer.startswith("/"):
-            raise ModwireSirenError(f"Siren response link runtime expression is invalid: {expression}")
+            raise SirenityError(
+                f"Siren response link runtime expression is invalid: {expression}")
         value = result
         for token in pointer[1:].split("/"):
             token = token.replace("~1", "/").replace("~0", "~")
@@ -266,9 +298,11 @@ class SirenResponseProjectionService:
             elif isinstance(value, list) and token.isdecimal() and int(token) < len(value):
                 value = value[int(token)]
             else:
-                raise ModwireSirenError(f"Siren response link runtime expression is missing: {expression}")
+                raise SirenityError(
+                    f"Siren response link runtime expression is missing: {expression}")
         if isinstance(value, (dict, list)):
-            raise ModwireSirenError(f"Siren response link runtime expression is not scalar: {expression}")
+            raise SirenityError(
+                f"Siren response link runtime expression is not scalar: {expression}")
         return value
 
     def empty(
@@ -318,6 +352,7 @@ class SirenResponseProjectionService:
             links=(SirenLink(
                 rel=("self",),
                 title=context.title or operation.title,
-                href=request_url or self.hrefs.href(operation.route.path, request, resource),
+                href=request_url or self.hrefs.href(
+                    operation.route.path, request, resource),
             ),),
         )

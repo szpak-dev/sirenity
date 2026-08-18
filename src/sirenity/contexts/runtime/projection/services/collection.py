@@ -2,7 +2,7 @@ from dataclasses import dataclass
 
 from wireup import injectable
 
-from sirenity.contexts.shared import ModwireSirenError, SirenRelation, SirenScope
+from sirenity.contexts.shared import SirenityError, SirenRelation, SirenScope
 
 from ...document import SirenDocument, SirenEmbeddedRepresentation, SirenLink
 from ...routing import SirenHrefService
@@ -28,8 +28,10 @@ class SirenCollectionScopeProjector(SirenScopeProjector):
 
     def project(self, request: SirenProjectionRequest) -> SirenDocument:
         if request.resource is None:
-            raise ModwireSirenError("Siren collection projection requires a resource")
-        relationships = self.relationships.relationships(request.api, request.context)
+            raise SirenityError(
+                "Siren collection projection requires a resource")
+        relationships = self.relationships.relationships(
+            request.api, request.context)
         item_entities = tuple(
             self.entities.entity(
                 request.api,
@@ -52,8 +54,10 @@ class SirenCollectionScopeProjector(SirenScopeProjector):
             )
             for index, item in enumerate(request.context.items)
         )
-        embedded = tuple(value for value in relationships if isinstance(value, SirenEmbeddedRepresentation))
-        links = tuple(value for value in relationships if isinstance(value, SirenLink))
+        embedded = tuple(value for value in relationships if isinstance(
+            value, SirenEmbeddedRepresentation))
+        links = tuple(
+            value for value in relationships if isinstance(value, SirenLink))
         title = request.context.title or request.resource.collection_title or request.resource.title
         return SirenDocument(
             class_=(SirenScope.COLLECTION, request.resource.resource_class),
@@ -67,7 +71,8 @@ class SirenCollectionScopeProjector(SirenScopeProjector):
                 SirenLink(
                     rel=("self",),
                     title=title,
-                    href=self.hrefs.href(request.resource.collection.path, request.context, request.resource),
+                    href=self.hrefs.href(
+                        request.resource.collection.path, request.context, request.resource),
                 ),
                 *links,
             ),

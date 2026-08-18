@@ -22,13 +22,13 @@ from framework_fixtures.django_openapi_provider import django_openapi_provider
 from framework_fixtures.root_capability_policy import RootCapabilityPolicy
 
 from sirenity import (
-    ModwireSirenError,
     SirenAdapter,
     SirenAdapterPolicy,
     SirenAdapterRequest,
     SirenAllowAllPolicy,
     SirenDelegatedInput,
     SirenDjangoMiddleware,
+    SirenityError,
     SirenMiddleware,
     SirenOperationInput,
     SirenResponseContext,
@@ -197,7 +197,8 @@ class TestAdapter:
     }
 
     def test_framework_neutral_boundary_resolves_mounts_and_projects_every_outcome(self):
-        adapter = siren_adapter(self.schema, source_path="/api", public_path="/siren")
+        adapter = siren_adapter(
+            self.schema, source_path="/api", public_path="/siren")
 
         source = adapter.match("GET", "/api/articles/a%2Fb")
         public = adapter.match("GET", "/siren/articles/a%2Fb")
@@ -217,7 +218,8 @@ class TestAdapter:
             status=200,
             result={"article_key": "one", "title": "One"},
             base_url="https://example.test",
-            headers={"ETag": "one", "Content-Type": "application/json", "Content-Length": "2"},
+            headers={"ETag": "one", "Content-Type": "application/json",
+                     "Content-Length": "2"},
             policy=SirenAdapterPolicy(capabilities=frozenset({"get_article"})),
         ))
         command = adapter.respond(SirenAdapterRequest(
@@ -287,7 +289,8 @@ class TestAdapter:
         }
 
     def test_allow_all_policy_derives_resource_capabilities_from_the_compiled_graph(self):
-        adapter = siren_adapter(self.schema, source_path="/api", public_path="/siren")
+        adapter = siren_adapter(
+            self.schema, source_path="/api", public_path="/siren")
         policy = SirenAllowAllPolicy().select("get_article", 200, object(), {})
 
         response = adapter.respond(SirenAdapterRequest(
@@ -335,7 +338,7 @@ class TestAdapter:
 
     def test_adapter_policy_rejects_conflicting_capability_modes(self):
         with pytest.raises(
-            ModwireSirenError,
+            SirenityError,
             match="cannot combine all capabilities with explicit capabilities",
         ):
             SirenAdapterPolicy(
@@ -457,8 +460,10 @@ class TestAdapter:
                 public_path="/siren",
             )
 
-            assert adapter.match("get", "/api/items/search/").operation_id == "search_items"
-            assert adapter.match("GET", "/siren/items/search").operation_id == "search_items"
+            assert adapter.match(
+                "get", "/api/items/search/").operation_id == "search_items"
+            assert adapter.match(
+                "GET", "/siren/items/search").operation_id == "search_items"
             encoded = adapter.match("GET", "/api/items/%73earch")
             assert encoded.operation_id == "get_item"
             assert encoded.path_values == {"item_id": "search"}
@@ -467,14 +472,16 @@ class TestAdapter:
             assert nested.path_values == {"item_id": "one"}
             generic = adapter.match("POST", "/api/items/one/commands/archive")
             assert generic.operation_id == "run_item_command"
-            assert generic.path_values == {"item_id": "one", "command_name": "archive"}
+            assert generic.path_values == {
+                "item_id": "one", "command_name": "archive"}
             assert adapter.match("DELETE", "/api/items/search") is None
 
     def test_adapter_construction_rejects_indistinguishable_route_templates(self):
-        adapter = siren_adapter(self.schema, source_path="/api", public_path="/siren")
+        adapter = siren_adapter(
+            self.schema, source_path="/api", public_path="/siren")
 
         with pytest.raises(
-            ModwireSirenError,
+            SirenityError,
             match=r"Ambiguous Siren adapter templates for GET /api/items/\{\}",
         ):
             SirenAdapter(
@@ -597,9 +604,11 @@ class TestAdapter:
             result={"article_key": "one", "title": "One"},
             base_url="https://example.test",
             path_values={"article_key": "one"},
-            policy=SirenAdapterPolicy(capabilities=frozenset({"update_article"})),
+            policy=SirenAdapterPolicy(
+                capabilities=frozenset({"update_article"})),
         )
-        default = siren_adapter(document, source_path="/api", public_path="/siren")
+        default = siren_adapter(
+            document, source_path="/api", public_path="/siren")
         profiled = siren_adapter(
             document,
             source_path="/api",
@@ -613,10 +622,11 @@ class TestAdapter:
         extension_name = SirenStructuredFormProfile.extension
 
         assert extension_name not in default_action
-        assert {field["name"] for field in action["fields"]} == {"page", "title"}
+        assert {field["name"]
+                for field in action["fields"]} == {"page", "title"}
         extension = action[extension_name]
         assert extension["version"] == "1"
-        controls = {control["name"]: control for control in extension["controls"]}
+        controls = {control["name"]                    : control for control in extension["controls"]}
         assert set(controls) == {
             "filter",
             "trace",
@@ -691,12 +701,14 @@ class TestAdapter:
         assert "$ref" not in json.dumps(extension)
 
         with ThreadPoolExecutor(max_workers=4) as executor:
-            payloads = tuple(executor.map(lambda _: profiled.respond(request).payload, range(8)))
+            payloads = tuple(executor.map(
+                lambda _: profiled.respond(request).payload, range(8)))
 
         assert all(payload == profiled_payload for payload in payloads)
 
     def test_structured_form_profile_recurses_and_custom_profiles_cannot_mutate_engine_inputs(self):
-        adapter = siren_adapter(self.schema, source_path="/api", public_path="/siren")
+        adapter = siren_adapter(
+            self.schema, source_path="/api", public_path="/siren")
         operation_input = adapter.engine.operation_input("get_article")
         delegated = SirenOperationInput(
             delegated_inputs=(
@@ -797,10 +809,12 @@ class TestAdapter:
         ))
 
         assert response.payload["custom-profile"] is True
-        assert "mutated" not in custom.engine.operation_input("update_article").definition
+        assert "mutated" not in custom.engine.operation_input(
+            "update_article").definition
 
     def test_adapter_projects_api_entry_points_and_keeps_explicit_root_commands(self):
-        adapter = siren_adapter(self.schema, source_path="/api", public_path="/siren")
+        adapter = siren_adapter(
+            self.schema, source_path="/api", public_path="/siren")
 
         root = adapter.respond(SirenAdapterRequest(
             operation_id="get_api_root",
@@ -863,7 +877,7 @@ class TestAdapter:
         assert titled.payload["title"] == "Live API"
         assert titled.payload["links"][0]["title"] == "Live API"
 
-        with pytest.raises(ModwireSirenError, match="Siren adapter response failed"):
+        with pytest.raises(SirenityError, match="Siren adapter response failed"):
             adapter.respond(SirenAdapterRequest(
                 operation_id="get_article",
                 status=200,
@@ -873,7 +887,8 @@ class TestAdapter:
             ))
 
     def test_undeclared_errors_preserve_every_body_shape_and_operation_context(self):
-        adapter = siren_adapter(self.schema, source_path="/api", public_path="/siren")
+        adapter = siren_adapter(
+            self.schema, source_path="/api", public_path="/siren")
 
         mapping = adapter.respond(SirenAdapterRequest(
             method="GET",
@@ -910,7 +925,8 @@ class TestAdapter:
                 }
             ],
         }
-        assert scalar.payload["properties"] == {"status": 401, "result": "Denied"}
+        assert scalar.payload["properties"] == {
+            "status": 401, "result": "Denied"}
         assert scalar.payload["links"][0]["href"] == "https://example.test/siren/articles/private"
         assert empty.payload["title"] == "Unavailable"
         assert empty.payload["properties"] == {"status": 500}
@@ -926,9 +942,10 @@ class TestAdapter:
     def test_declared_exact_ranged_and_default_errors_remain_strict(
         self, operation_id, status, media_type
     ):
-        adapter = siren_adapter(self.schema, source_path="/api", public_path="/siren")
+        adapter = siren_adapter(
+            self.schema, source_path="/api", public_path="/siren")
 
-        with pytest.raises(ModwireSirenError, match="Siren adapter response failed"):
+        with pytest.raises(SirenityError, match="Siren adapter response failed"):
             adapter.respond(SirenAdapterRequest(
                 operation_id=operation_id,
                 status=status,
@@ -939,7 +956,8 @@ class TestAdapter:
             ))
 
     def test_declared_status_with_an_incompatible_media_type_uses_generic_error(self):
-        adapter = siren_adapter(self.schema, source_path="/api", public_path="/siren")
+        adapter = siren_adapter(
+            self.schema, source_path="/api", public_path="/siren")
 
         response = adapter.respond(SirenAdapterRequest(
             operation_id="delete_article",
@@ -950,12 +968,14 @@ class TestAdapter:
             path_values={"article_key": "missing"},
         ))
 
-        assert response.payload["properties"] == {"status": 404, "result": "Missing"}
+        assert response.payload["properties"] == {
+            "status": 404, "result": "Missing"}
 
     def test_successful_undeclared_responses_remain_strict(self):
-        adapter = siren_adapter(self.schema, source_path="/api", public_path="/siren")
+        adapter = siren_adapter(
+            self.schema, source_path="/api", public_path="/siren")
 
-        with pytest.raises(ModwireSirenError, match="Siren adapter response failed"):
+        with pytest.raises(SirenityError, match="Siren adapter response failed"):
             adapter.respond(SirenAdapterRequest(
                 operation_id="get_article",
                 status=201,
@@ -965,10 +985,13 @@ class TestAdapter:
 
     def test_django_bridge_executes_once_and_preserves_unselected_json(self):
         if not settings.configured:
-            settings.configure(DEFAULT_CHARSET="utf-8", ALLOWED_HOSTS=["testserver"])
-        adapter = siren_adapter(self.schema, source_path="/api", public_path="/api")
+            settings.configure(DEFAULT_CHARSET="utf-8",
+                               ALLOWED_HOSTS=["testserver"])
+        adapter = siren_adapter(
+            self.schema, source_path="/api", public_path="/api")
         calls = []
-        original = JsonResponse({"article_key": "one", "title": "One"}, headers={"ETag": "one"})
+        original = JsonResponse(
+            {"article_key": "one", "title": "One"}, headers={"ETag": "one"})
 
         def handler(request):
             calls.append(request.path)
@@ -981,10 +1004,12 @@ class TestAdapter:
             return original
 
         policy = CapabilityPolicy()
-        middleware = SirenDjangoMiddleware(get_response=handler, adapter=adapter, policy=policy)
+        middleware = SirenDjangoMiddleware(
+            get_response=handler, adapter=adapter, policy=policy)
         factory = RequestFactory()
         with override_settings(ALLOWED_HOSTS=["testserver"]):
-            ordinary = middleware(factory.get("/api/articles/one", HTTP_ACCEPT="application/json"))
+            ordinary = middleware(factory.get(
+                "/api/articles/one", HTTP_ACCEPT="application/json"))
             siren = middleware(factory.get(
                 "/api/articles/one?view=full&view=compact",
                 HTTP_ACCEPT="application/vnd.siren+json",
@@ -1040,8 +1065,10 @@ class TestAdapter:
     )
     def test_django_bridge_negotiates_quality_specificity_and_wildcards(self, accept, selected):
         if not settings.configured:
-            settings.configure(DEFAULT_CHARSET="utf-8", ALLOWED_HOSTS=["testserver"])
-        adapter = siren_adapter(self.schema, source_path="/api", public_path="/api")
+            settings.configure(DEFAULT_CHARSET="utf-8",
+                               ALLOWED_HOSTS=["testserver"])
+        adapter = siren_adapter(
+            self.schema, source_path="/api", public_path="/api")
         original = JsonResponse({"article_key": "one", "title": "One"})
         calls = []
 
@@ -1058,14 +1085,17 @@ class TestAdapter:
         with override_settings(ALLOWED_HOSTS=["testserver"]):
             response = middleware(request)
 
-        assert (response["Content-Type"] == "application/vnd.siren+json") is selected
+        assert (response["Content-Type"] ==
+                "application/vnd.siren+json") is selected
         assert (response is not original) is selected
         assert calls == ["/api/articles/one"]
 
     def test_django_bridge_replaces_representation_headers_and_preserves_semantics(self):
         if not settings.configured:
-            settings.configure(DEFAULT_CHARSET="utf-8", ALLOWED_HOSTS=["testserver"])
-        adapter = siren_adapter(self.schema, source_path="/api", public_path="/api")
+            settings.configure(DEFAULT_CHARSET="utf-8",
+                               ALLOWED_HOSTS=["testserver"])
+        adapter = siren_adapter(
+            self.schema, source_path="/api", public_path="/api")
         original = JsonResponse(
             {"article_key": "one", "title": "One"},
             headers={
@@ -1128,20 +1158,25 @@ class TestAdapter:
 
     def test_django_bridge_passes_ineligible_responses_through_without_decoding(self):
         if not settings.configured:
-            settings.configure(DEFAULT_CHARSET="utf-8", ALLOWED_HOSTS=["testserver"])
-        adapter = siren_adapter(self.schema, source_path="/api", public_path="/api")
+            settings.configure(DEFAULT_CHARSET="utf-8",
+                               ALLOWED_HOSTS=["testserver"])
+        adapter = siren_adapter(
+            self.schema, source_path="/api", public_path="/api")
         policy = CapabilityPolicy()
         factory = RequestFactory()
         cases = (
             ("/openapi.json", JsonResponse({"openapi": "3.1.1"})),
             ("/health", JsonResponse({"status": "ok"})),
-            ("/missing", HttpResponse("<h1>Missing</h1>", status=404, content_type="text/html")),
-            ("/api/articles/one", HttpResponse("<h1>Article</h1>", content_type="text/html")),
+            ("/missing", HttpResponse("<h1>Missing</h1>",
+             status=404, content_type="text/html")),
+            ("/api/articles/one",
+             HttpResponse("<h1>Article</h1>", content_type="text/html")),
             ("/api/articles/one", HttpResponseRedirect("/login")),
             ("/api/articles/one", HttpResponse(status=304)),
             (
                 "/api/articles/one",
-                StreamingHttpResponse(iter((b'{"article_key":"one"}',)), content_type="application/json"),
+                StreamingHttpResponse(
+                    iter((b'{"article_key":"one"}',)), content_type="application/json"),
             ),
             ("/api/articles/one", FileResponse(BytesIO(b"article"))),
             (
@@ -1180,8 +1215,10 @@ class TestAdapter:
 
     def test_django_bridge_projects_matched_json_suffix_responses(self):
         if not settings.configured:
-            settings.configure(DEFAULT_CHARSET="utf-8", ALLOWED_HOSTS=["testserver"])
-        adapter = siren_adapter(self.schema, source_path="/api", public_path="/api")
+            settings.configure(DEFAULT_CHARSET="utf-8",
+                               ALLOWED_HOSTS=["testserver"])
+        adapter = siren_adapter(
+            self.schema, source_path="/api", public_path="/api")
         policy = CapabilityPolicy()
         calls = []
         problem = HttpResponse(
@@ -1194,7 +1231,8 @@ class TestAdapter:
             calls.append(request.path)
             return problem
 
-        middleware = SirenDjangoMiddleware(get_response=handler, adapter=adapter, policy=policy)
+        middleware = SirenDjangoMiddleware(
+            get_response=handler, adapter=adapter, policy=policy)
         factory = RequestFactory()
         with override_settings(ALLOWED_HOSTS=["testserver"]):
             response = middleware(factory.delete(
@@ -1203,14 +1241,17 @@ class TestAdapter:
             ))
 
         assert response["Content-Type"] == "application/vnd.siren+json"
-        assert json.loads(response.content)["properties"] == {"detail": "Missing", "status": 404}
+        assert json.loads(response.content)["properties"] == {
+            "detail": "Missing", "status": 404}
         assert calls == ["/api/articles/missing"]
         assert policy.calls == [("delete_article", 404)]
 
     def test_django_bridge_projects_browser_discovery_from_the_api_root(self):
         if not settings.configured:
-            settings.configure(DEFAULT_CHARSET="utf-8", ALLOWED_HOSTS=["testserver"])
-        adapter = siren_adapter(self.schema, source_path="/api", public_path="/api")
+            settings.configure(DEFAULT_CHARSET="utf-8",
+                               ALLOWED_HOSTS=["testserver"])
+        adapter = siren_adapter(
+            self.schema, source_path="/api", public_path="/api")
         calls = []
 
         def handler(request):
@@ -1237,7 +1278,8 @@ class TestAdapter:
         assert calls == ["/api"]
 
     def test_django_bridge_dispatches_an_independent_public_mount_once(self):
-        adapter = siren_adapter(self.schema, source_path="/api", public_path="/siren")
+        adapter = siren_adapter(
+            self.schema, source_path="/api", public_path="/siren")
         policy = CapabilityPolicy()
         calls = []
 
@@ -1245,7 +1287,8 @@ class TestAdapter:
             calls.append(request.path)
             return JsonResponse({"article_key": "one", "title": "One"})
 
-        middleware = SirenDjangoMiddleware(get_response=handler, adapter=adapter, policy=policy)
+        middleware = SirenDjangoMiddleware(
+            get_response=handler, adapter=adapter, policy=policy)
         with override_settings(ALLOWED_HOSTS=["testserver"]):
             response = middleware(RequestFactory().get(
                 "/siren/articles/one",
@@ -1262,11 +1305,13 @@ class TestAdapter:
             HTTP_ACCEPT="application/json",
         ))
 
-        assert json.loads(ordinary.content) == {"article_key": "one", "title": "One"}
+        assert json.loads(ordinary.content) == {
+            "article_key": "one", "title": "One"}
         assert calls == ["/api/articles/one", "/api/articles/one"]
 
     def test_django_bridge_restores_the_public_path_when_source_dispatch_fails(self):
-        adapter = siren_adapter(self.schema, source_path="/api", public_path="/siren")
+        adapter = siren_adapter(
+            self.schema, source_path="/api", public_path="/siren")
         request = RequestFactory().get("/siren/articles/one")
 
         def handler(failed_request):
@@ -1287,7 +1332,8 @@ class TestAdapter:
 
     def test_standard_django_loader_builds_one_fresh_adapter_without_application_middleware(self):
         if not settings.configured:
-            settings.configure(DEFAULT_CHARSET="utf-8", ALLOWED_HOSTS=["testserver"])
+            settings.configure(DEFAULT_CHARSET="utf-8",
+                               ALLOWED_HOSTS=["testserver"])
         django_openapi_provider.calls = 0
         configuration = {
             "OPENAPI": (
@@ -1319,18 +1365,21 @@ class TestAdapter:
         assert ordinary["Content-Type"].startswith("application/json")
         siren_payload = json.loads(siren.content)
         assert siren_payload["class"] == ["article"]
-        assert [action["name"] for action in siren_payload["actions"]] == ["get_article"]
+        assert [action["name"]
+                for action in siren_payload["actions"]] == ["get_article"]
         assert siren["Content-Type"] == "application/vnd.siren+json"
         assert django_openapi_provider.calls == 1
 
         with override_settings(MODWIRE_SIREN=configuration):
-            SirenMiddleware(lambda request: JsonResponse({"article_id": "two", "title": "Fresh"}))
+            SirenMiddleware(lambda request: JsonResponse(
+                {"article_id": "two", "title": "Fresh"}))
 
         assert django_openapi_provider.calls == 2
 
     def test_standard_django_loader_follows_the_projected_root_action_across_trailing_slash_mounts(self):
         if not settings.configured:
-            settings.configure(DEFAULT_CHARSET="utf-8", ALLOWED_HOSTS=["testserver"])
+            settings.configure(DEFAULT_CHARSET="utf-8",
+                               ALLOWED_HOSTS=["testserver"])
         configuration = {
             "OPENAPI": (
                 "framework_fixtures.django_openapi_provider.django_openapi_provider"
@@ -1373,7 +1422,7 @@ class TestAdapter:
     def test_standard_django_loader_rejects_incomplete_configuration_at_startup(self):
         with (
             override_settings(MODWIRE_SIREN={}),
-            pytest.raises(ModwireSirenError, match=r"MODWIRE_SIREN\.OPENAPI"),
+            pytest.raises(SirenityError, match=r"MODWIRE_SIREN\.OPENAPI"),
         ):
             SirenMiddleware(lambda request: JsonResponse({}))
 
@@ -1390,6 +1439,7 @@ class TestAdapter:
             "import sirenity\n"
         )
 
-        result = subprocess.run((sys.executable, "-c", script), capture_output=True, text=True)
+        result = subprocess.run(
+            (sys.executable, "-c", script), capture_output=True, text=True)
 
         assert result.returncode == 0, result.stderr

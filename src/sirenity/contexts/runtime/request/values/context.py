@@ -2,7 +2,7 @@ from collections.abc import Mapping
 
 from pydantic import Field, JsonValue, model_validator
 
-from sirenity.contexts.shared import BaseValue, ModwireSirenError, SirenScope
+from sirenity.contexts.shared import BaseValue, SirenityError, SirenScope
 
 from .relationship import SirenRelationship
 
@@ -47,15 +47,17 @@ class SirenContext(BaseValue):
     @model_validator(mode="after")
     def validate_scope(self) -> "SirenContext":
         if self.scope == SirenScope.ROOT and self.resource is not None:
-            raise ModwireSirenError(
+            raise SirenityError(
                 "Siren root context cannot declare a resource")
         if self.scope != SirenScope.ROOT and self.resource is None:
-            raise ModwireSirenError(
+            raise SirenityError(
                 f"Siren {self.scope} context requires a resource")
         if any(isinstance(value, (dict, list)) for _, value in self.query):
-            raise ModwireSirenError("Siren query values must be scalar")
+            raise SirenityError("Siren query values must be scalar")
         if self.item_titles and len(self.item_titles) != len(self.items):
-            raise ModwireSirenError("Siren item titles must align with collection items")
+            raise SirenityError(
+                "Siren item titles must align with collection items")
         if self.item_capabilities and len(self.item_capabilities) != len(self.items):
-            raise ModwireSirenError("Siren item capabilities must align with collection items")
+            raise SirenityError(
+                "Siren item capabilities must align with collection items")
         return self

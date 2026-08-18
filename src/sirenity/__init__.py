@@ -23,10 +23,9 @@ from .contexts.runtime.document import (
 )
 from .contexts.runtime.operation_input import SirenDelegatedInput, SirenOperationInput
 from .contexts.runtime.request import SirenContext, SirenRelationship, SirenResponseContext
-from .contexts.shared import ModwireSirenError, SirenScope
+from .contexts.shared import SirenContractError, SirenityError, SirenScope
 
 __all__ = [
-    "ModwireSirenError",
     "SirenAction",
     "SirenAdapter",
     "SirenAdapterMatch",
@@ -39,6 +38,7 @@ __all__ = [
     "SirenCompatibilityFinding",
     "SirenCompatibilityReport",
     "SirenContext",
+    "SirenContractError",
     "SirenDelegatedInput",
     "SirenDjangoMiddleware",
     "SirenDocument",
@@ -53,6 +53,7 @@ __all__ = [
     "SirenResponseContext",
     "SirenScope",
     "SirenStructuredFormProfile",
+    "SirenityError",
     "audit",
     "siren",
     "siren_adapter",

@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from wireup import injectable
 
 from sirenity.contexts.graph import SirenApi
-from sirenity.contexts.shared import ModwireSirenError, SirenScope
+from sirenity.contexts.shared import SirenityError, SirenScope
 
 from ...capabilities import SirenCapabilityValidator
 from ...document import SirenEmbeddedRepresentation, SirenLink
@@ -44,7 +44,8 @@ class SirenDefaultRelationshipDocumentService(SirenRelationshipDocumentService):
             }
         )
         resource = self.resources.resolve(api, related_context)
-        self.capabilities.validate(resource, related_context, relationship.scope)
+        self.capabilities.validate(
+            resource, related_context, relationship.scope)
         path = (
             resource.collection.path
             if relationship.scope == SirenScope.COLLECTION or resource.entity is None
@@ -61,8 +62,10 @@ class SirenDefaultRelationshipDocumentService(SirenRelationshipDocumentService):
                 ),
             )
         if resource.entity is None:
-            raise ModwireSirenError(f"Siren embedded relationship requires an entity resource: {resource.name}")
-        document = self.entities.entity(api, resource, relationship.value, related_context, relationship.rel)
+            raise SirenityError(
+                f"Siren embedded relationship requires an entity resource: {resource.name}")
+        document = self.entities.entity(
+            api, resource, relationship.value, related_context, relationship.rel)
         if isinstance(document, SirenEmbeddedRepresentation):
             return document
-        raise ModwireSirenError("Siren embedded relationship produced a document")
+        raise SirenityError("Siren embedded relationship produced a document")

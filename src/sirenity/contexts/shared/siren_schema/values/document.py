@@ -1,7 +1,7 @@
 from collections.abc import Mapping
 from typing import Any
 
-from sirenity.contexts.shared import BaseValue, ModwireSirenError
+from sirenity.contexts.shared import BaseValue, SirenityError
 
 
 class SirenSchemaDocument(BaseValue):
@@ -15,42 +15,48 @@ class SirenSchemaDocument(BaseValue):
     def definitions(self) -> Mapping[str, Mapping[str, Any]]:
         definitions = self.value["definitions"]
         if not isinstance(definitions, Mapping):
-            raise ModwireSirenError("Siren schema definitions must be an object.")
+            raise SirenityError("Siren schema definitions must be an object.")
         return definitions
 
     def member(self, definition: str, name: str) -> Mapping[str, Any]:
-        properties = self.effective(self.definition(definition)).get("properties", {})
+        properties = self.effective(
+            self.definition(definition)).get("properties", {})
         if not isinstance(properties, Mapping):
-            raise ModwireSirenError(f"Siren schema definition has invalid properties: {definition}")
+            raise SirenityError(
+                f"Siren schema definition has invalid properties: {definition}")
         member = properties[name]
         if not isinstance(member, Mapping):
-            raise ModwireSirenError(f"Siren schema member must be an object: {definition}.{name}")
+            raise SirenityError(
+                f"Siren schema member must be an object: {definition}.{name}")
         return member
 
     def default(self, definition: str, name: str) -> str:
         default = self.member(definition, name)["default"]
         if not isinstance(default, str):
-            raise ModwireSirenError(f"Siren schema member must define a string default: {definition}.{name}")
+            raise SirenityError(
+                f"Siren schema member must define a string default: {definition}.{name}")
         return default
 
     def enum(self, definition: str, name: str) -> tuple[str, ...]:
         values = self.member(definition, name)["enum"]
         if not isinstance(values, tuple) or not all(isinstance(value, str) for value in values):
-            raise ModwireSirenError(f"Siren schema member must define a string enum: {definition}.{name}")
+            raise SirenityError(
+                f"Siren schema member must define a string enum: {definition}.{name}")
         return values
 
     def effective(self, schema: Mapping[str, Any]) -> Mapping[str, Any]:
         if "$ref" in schema:
             reference = schema["$ref"]
             if not isinstance(reference, str):
-                raise ModwireSirenError("Siren schema reference must be a string.")
+                raise SirenityError("Siren schema reference must be a string.")
             return self.effective(self.reference(reference))
         effective = dict(schema)
         properties: dict[str, Any] = {}
         required: list[str] = []
         for member in schema.get("allOf", ()):
             if not isinstance(member, Mapping):
-                raise ModwireSirenError("Siren schema allOf member must be an object.")
+                raise SirenityError(
+                    "Siren schema allOf member must be an object.")
             incoming = self.effective(member)
             properties.update(incoming.get("properties", {}))
             required.extend(incoming.get("required", ()))
@@ -68,10 +74,12 @@ class SirenSchemaDocument(BaseValue):
         value: Any = self.value
         for segment in reference.removeprefix("#/").split("/"):
             if not isinstance(value, Mapping):
-                raise ModwireSirenError(f"Siren schema reference does not resolve to an object: {reference}")
+                raise SirenityError(
+                    f"Siren schema reference does not resolve to an object: {reference}")
             value = value[segment]
         if not isinstance(value, Mapping):
-            raise ModwireSirenError(f"Siren schema reference does not resolve to an object: {reference}")
+            raise SirenityError(
+                f"Siren schema reference does not resolve to an object: {reference}")
         return value
 
     def thaw(self, value: Any) -> Any:

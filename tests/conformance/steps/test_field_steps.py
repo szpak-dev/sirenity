@@ -2,7 +2,7 @@ from collections.abc import Mapping
 
 from pytest_bdd import given, scenarios, then, when
 
-from sirenity import ModwireSirenError, SirenAction, SirenField, SirenFieldValue
+from sirenity import SirenAction, SirenField, SirenFieldValue, SirenityError
 
 
 class FieldSteps:
@@ -11,7 +11,7 @@ class FieldSteps:
     fields: tuple[SirenField, ...] | None = None
     payload: Mapping[str, object] | None = None
     payloads: tuple[Mapping[str, object], ...] | None = None
-    error: ModwireSirenError | ValueError | None = None
+    error: SirenityError | ValueError | None = None
     unsupported_type: str | None = None
     duplicate_names: bool = False
 
@@ -118,7 +118,8 @@ class FieldSteps:
         FieldSteps.action = SirenAction(
             name="update",
             href="https://api.example.com/records/42",
-            fields=(SirenField(name="title"), SirenField(name="page", type="number")),
+            fields=(SirenField(name="title"), SirenField(
+                name="page", type="number")),
         )
 
     @staticmethod
@@ -126,21 +127,24 @@ class FieldSteps:
     def created_field() -> None:
         try:
             if FieldSteps.unsupported_type is not None:
-                FieldSteps.field = SirenField(name="title", type=FieldSteps.unsupported_type)
+                FieldSteps.field = SirenField(
+                    name="title", type=FieldSteps.unsupported_type)
             if FieldSteps.duplicate_names:
                 SirenAction(
                     name="update",
                     href="https://api.example.com/records/42",
-                    fields=(SirenField(name="title"), SirenField(name="title")),
+                    fields=(SirenField(name="title"),
+                            SirenField(name="title")),
                 )
-        except (ModwireSirenError, ValueError) as error:
+        except (SirenityError, ValueError) as error:
             FieldSteps.error = error
 
     @staticmethod
     @when("it is serialized", stacklevel=2)
     def serialized_field() -> None:
         assert isinstance(FieldSteps.field, SirenField)
-        FieldSteps.payload = FieldSteps.field.model_dump(by_alias=True, mode="json", exclude_none=True)
+        FieldSteps.payload = FieldSteps.field.model_dump(
+            by_alias=True, mode="json", exclude_none=True)
 
     @staticmethod
     @when("they are serialized", stacklevel=2)
@@ -154,7 +158,8 @@ class FieldSteps:
     @when("its fields are serialized", stacklevel=2)
     def serialized_action_fields() -> None:
         assert isinstance(FieldSteps.action, SirenAction)
-        FieldSteps.payload = FieldSteps.action.model_dump(by_alias=True, mode="json", exclude_none=True)
+        FieldSteps.payload = FieldSteps.action.model_dump(
+            by_alias=True, mode="json", exclude_none=True)
 
     @staticmethod
     @then("their types are the permitted Siren field types", stacklevel=2)
@@ -219,9 +224,11 @@ class FieldSteps:
         if FieldSteps.unsupported_type is not None:
             assert isinstance(FieldSteps.error, ValueError)
             errors = FieldSteps.error.errors(include_url=False)
-            assert any(error["loc"] == ("type",) and error["type"] == "enum" for error in errors)
+            assert any(error["loc"] == ("type",)
+                       and error["type"] == "enum" for error in errors)
         else:
-            assert str(FieldSteps.error) == "Siren action field names must be unique."
+            assert str(
+                FieldSteps.error) == "Siren action field names must be unique."
 
 
 scenarios("../features/fields.feature")

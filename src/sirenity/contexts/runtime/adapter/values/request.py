@@ -2,7 +2,7 @@ from collections.abc import Mapping
 
 from pydantic import Field, JsonValue, model_validator
 
-from sirenity.contexts.shared import BaseValue, ModwireSirenError, SirenMediaType
+from sirenity.contexts.shared import BaseValue, SirenityError, SirenMediaType
 
 from .policy import SirenAdapterPolicy
 
@@ -31,9 +31,12 @@ class SirenAdapterRequest(BaseValue):
     @model_validator(mode="after")
     def validate_request(self) -> "SirenAdapterRequest":
         if not 100 <= self.status <= 599:
-            raise ModwireSirenError("Siren adapter status must be between 100 and 599")
+            raise SirenityError(
+                "Siren adapter status must be between 100 and 599")
         if self.operation_id is None and ((self.method is None) != (self.path is None)):
-            raise ModwireSirenError("Siren adapter route resolution requires both method and path")
+            raise SirenityError(
+                "Siren adapter route resolution requires both method and path")
         if self.operation_id is None and self.path is None and self.status < 400:
-            raise ModwireSirenError("A successful Siren adapter response requires an operation")
+            raise SirenityError(
+                "A successful Siren adapter response requires an operation")
         return self

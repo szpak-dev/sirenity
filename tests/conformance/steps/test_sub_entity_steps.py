@@ -2,13 +2,13 @@ from collections.abc import Mapping
 
 from pytest_bdd import given, scenarios, then, when
 
-from sirenity import ModwireSirenError, SirenEmbeddedLink, SirenEmbeddedRepresentation
+from sirenity import SirenEmbeddedLink, SirenEmbeddedRepresentation, SirenityError
 
 
 class SubEntitySteps:
     value: SirenEmbeddedLink | SirenEmbeddedRepresentation | None = None
     payload: Mapping[str, object] | None = None
-    error: ModwireSirenError | ValueError | None = None
+    error: SirenityError | ValueError | None = None
     missing_value_type: type[SirenEmbeddedLink] | type[SirenEmbeddedRepresentation] | None = None
     invalid_media_type: str | None = None
 
@@ -50,7 +50,8 @@ class SubEntitySteps:
         SubEntitySteps.error = None
         SubEntitySteps.missing_value_type = None
         SubEntitySteps.invalid_media_type = None
-        SubEntitySteps.value = SirenEmbeddedRepresentation(rel=("item",), properties={"id": "42"})
+        SubEntitySteps.value = SirenEmbeddedRepresentation(
+            rel=("item",), properties={"id": "42"})
 
     @staticmethod
     @given("a public embedded representation without rel", stacklevel=2)
@@ -75,14 +76,16 @@ class SubEntitySteps:
                 SubEntitySteps.value = SirenEmbeddedLink(rel=("item",))
             if SubEntitySteps.missing_value_type is SirenEmbeddedRepresentation:
                 SubEntitySteps.value = SirenEmbeddedRepresentation()
-        except (ModwireSirenError, ValueError) as error:
+        except (SirenityError, ValueError) as error:
             SubEntitySteps.error = error
 
     @staticmethod
     @when("it is serialized", stacklevel=2)
     def serialized_sub_entity() -> None:
-        assert isinstance(SubEntitySteps.value, SirenEmbeddedLink | SirenEmbeddedRepresentation)
-        SubEntitySteps.payload = SubEntitySteps.value.model_dump(by_alias=True, mode="json", exclude_none=True)
+        assert isinstance(SubEntitySteps.value,
+                          SirenEmbeddedLink | SirenEmbeddedRepresentation)
+        SubEntitySteps.payload = SubEntitySteps.value.model_dump(
+            by_alias=True, mode="json", exclude_none=True)
 
     @staticmethod
     @then('the embedded link has rel "item" and its href', stacklevel=2)
@@ -96,13 +99,15 @@ class SubEntitySteps:
     @staticmethod
     @then('the embedded representation has rel "item"', stacklevel=2)
     def embedded_representation_has_relation() -> None:
-        assert SubEntitySteps.payload == {"properties": {"id": "42"}, "rel": ["item"]}
+        assert SubEntitySteps.payload == {
+            "properties": {"id": "42"}, "rel": ["item"]}
 
     @staticmethod
     @then("creation is rejected", stacklevel=2)
     def sub_entity_creation_is_rejected() -> None:
         if SubEntitySteps.invalid_media_type is not None:
-            assert str(SubEntitySteps.error) == "Siren media type must use the official media-type grammar."
+            assert str(
+                SubEntitySteps.error) == "Siren media type must use the official media-type grammar."
         elif SubEntitySteps.missing_value_type is SirenEmbeddedLink:
             assert isinstance(SubEntitySteps.error, ValueError)
             errors = SubEntitySteps.error.errors(include_url=False)
