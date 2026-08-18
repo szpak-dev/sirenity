@@ -9,13 +9,13 @@ class SirenMcpBridge(BaseState):
 
     def tools(self) -> tuple[SirenMcpTool, ...]:
         values = []
-        for route in self.adapter.routes:
-            input = self.adapter.engine.operation_input(route.operation_id)
+        for operation in self.adapter.engine.api.operations:
+            input = self.adapter.engine.operation_input(operation.name)
             schema = input.definition if input is not None and input.definition is not None else {"type": "object"}
             values.append(SirenMcpTool(
-                name=route.operation_id,
-                title=route.summary,
-                description=route.description,
+                name=operation.name,
+                title=operation.title,
+                description=operation.description,
                 input_schema=schema,
             ))
         return tuple(values)

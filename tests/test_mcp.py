@@ -1,4 +1,6 @@
-from sirenity import SirenAdapterRequest, siren_adapter, siren_mcp
+import pytest
+
+from sirenity import SirenAdapterRequest, SirenityError, siren_adapter, siren_mcp
 
 
 def test_public_mcp_bridge_exposes_compiled_operation_metadata_and_siren_content():
@@ -12,7 +14,7 @@ def test_public_mcp_bridge_exposes_compiled_operation_metadata_and_siren_content
                 "summary": "Read record",
                 "description": "Read one record.",
                 "responses": {"200": {"description": "Record", "content": {"application/json": {"schema": {
-                    "type": "object", "properties": {"record_id": {"type": "string"}}
+                    "type": "object", "title": "Record", "properties": {"record_id": {"type": "string"}}
                 }}}}},
             },
         }},
@@ -35,3 +37,25 @@ def test_public_mcp_bridge_exposes_compiled_operation_metadata_and_siren_content
 
     assert result.is_error is False
     assert result.structured_content["properties"] == {"record_id": "42"}
+
+
+@pytest.mark.parametrize(
+    ("member", "message"),
+    (("summary", "requires a non-empty summary"),
+     ("description", "requires a non-empty description")),
+)
+def test_public_mcp_bridge_rejects_missing_openapi_tool_metadata(member, message):
+    schema = {
+        "openapi": "3.1.1",
+        "info": {"title": "MCP API", "version": "1"},
+        "paths": {"/records": {"get": {
+            "operationId": "list_records",
+            "summary": "List records",
+            "description": "List all records.",
+            "responses": {"200": {"description": "Records"}},
+        }}},
+    }
+    del schema["paths"]["/records"]["get"][member]
+
+    with pytest.raises(SirenityError, match=message):
+        siren_mcp(siren_adapter(schema))

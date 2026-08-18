@@ -46,6 +46,7 @@ class TestAdapter:
                 "get": {
                     "operationId": "get_api_root",
                     "summary": "Read API entry point",
+                    "description": "Read the API entry point.",
                     "responses": {
                         "200": {
                             "description": "API entry point",
@@ -53,6 +54,7 @@ class TestAdapter:
                                 "application/json": {
                                     "schema": {
                                         "type": "object",
+                                        "title": "API entry point",
                                         "properties": {
                                             "status": {"type": "string"},
                                             "version": {"type": "string"},
@@ -68,6 +70,7 @@ class TestAdapter:
                 "post": {
                     "operationId": "reindex",
                     "summary": "Reindex content",
+                    "description": "Request content reindexing.",
                     "responses": {
                         "202": {
                             "description": "Reindex accepted",
@@ -75,6 +78,7 @@ class TestAdapter:
                                 "application/json": {
                                     "schema": {
                                         "type": "object",
+                                        "title": "Reindex result",
                                         "properties": {"accepted": {"type": "boolean"}},
                                     }
                                 }
@@ -86,6 +90,8 @@ class TestAdapter:
             "/api/articles": {
                 "get": {
                     "operationId": "list_articles",
+                    "summary": "List articles",
+                    "description": "List available articles.",
                     "responses": {
                         "200": {
                             "description": "Articles",
@@ -93,6 +99,7 @@ class TestAdapter:
                                 "application/json": {
                                     "schema": {
                                         "type": "array",
+                                        "title": "Articles",
                                         "items": {"$ref": "#/components/schemas/Article"},
                                     }
                                 }
@@ -121,6 +128,7 @@ class TestAdapter:
                 "get": {
                     "operationId": "get_article",
                     "summary": "Read article",
+                    "description": "Read one article.",
                     "responses": {
                         "200": {
                             "description": "Article",
@@ -134,6 +142,8 @@ class TestAdapter:
                 },
                 "delete": {
                     "operationId": "delete_article",
+                    "summary": "Delete article",
+                    "description": "Delete one article.",
                     "responses": {
                         "204": {"description": "Deleted"},
                         "404": {
@@ -158,12 +168,14 @@ class TestAdapter:
                 ],
                 "post": {
                     "operationId": "publish_article",
+                    "summary": "Publish article",
+                    "description": "Publish one article.",
                     "responses": {
                         "202": {
                             "description": "Published",
                             "content": {
                                 "application/json": {
-                                    "schema": {"type": "object", "properties": {"published": {"type": "boolean"}}}
+                                    "schema": {"type": "object", "title": "Publication", "properties": {"published": {"type": "boolean"}}}
                                 }
                             },
                         },
@@ -183,6 +195,7 @@ class TestAdapter:
             "schemas": {
                 "Article": {
                     "type": "object",
+                    "title": "Article",
                     "properties": {
                         "article_key": {"type": "string"},
                         "title": {"type": "string"},
@@ -190,17 +203,18 @@ class TestAdapter:
                 },
                 "Problem": {
                     "type": "object",
+                    "title": "Problem",
                     "properties": {"detail": {"type": "string"}},
                 },
             }
         },
     }
 
-    def test_public_adapter_routes_expose_normalized_operation_metadata(self):
+    def test_public_adapter_routes_expose_compiled_source_and_public_mounts(self):
         routes = {route.operation_id: route for route in siren_adapter(self.schema).routes}
 
-        assert routes["get_api_root"].summary == "Read API entry point"
-        assert routes["get_api_root"].description == ""
+        assert routes["get_api_root"].source_path == "/api"
+        assert routes["get_api_root"].public_path == "/api"
 
     def test_framework_neutral_boundary_resolves_mounts_and_projects_every_outcome(self):
         adapter = siren_adapter(
@@ -405,6 +419,8 @@ class TestAdapter:
                 ],
                 "get": {
                     "operationId": "get_item",
+                    "summary": "Read item",
+                    "description": "Read one item.",
                     "responses": {"204": {"description": "Item"}},
                 },
             },
@@ -425,6 +441,8 @@ class TestAdapter:
                 ],
                 "post": {
                     "operationId": "run_item_command",
+                    "summary": "Run item command",
+                    "description": "Run one item command.",
                     "responses": {"204": {"description": "Command"}},
                 },
             },
@@ -433,6 +451,8 @@ class TestAdapter:
             "/api/items/search": {
                 "get": {
                     "operationId": "search_items",
+                    "summary": "Search items",
+                    "description": "Search items.",
                     "responses": {"204": {"description": "Search"}},
                 }
             },
@@ -447,6 +467,8 @@ class TestAdapter:
                 ],
                 "post": {
                     "operationId": "retry_item",
+                    "summary": "Retry item",
+                    "description": "Retry one item.",
                     "responses": {"204": {"description": "Retry"}},
                 },
             },
@@ -532,7 +554,7 @@ class TestAdapter:
                     "record_ids",
                 ],
                 "properties": {
-                    "title": {"type": "string"},
+                    "title": {"type": "string", "title": "Title"},
                     "metadata": {"$ref": "#/components/schemas/Metadata"},
                     "items": {
                         "type": "array",
@@ -573,8 +595,10 @@ class TestAdapter:
         }
         document["paths"]["/api/articles/{article_key}"]["patch"] = {
             "operationId": "update_article",
+            "summary": "Update article",
+            "description": "Update one article.",
             "parameters": [
-                {"name": "page", "in": "query", "schema": {"type": "integer"}},
+                {"name": "page", "in": "query", "schema": {"type": "integer", "title": "Page"}},
                 {
                     "name": "filter",
                     "in": "query",
@@ -788,6 +812,8 @@ class TestAdapter:
         schema = deepcopy(self.schema)
         schema["paths"]["/api/articles/{article_key}"]["patch"] = {
             "operationId": "update_article",
+            "summary": "Update article",
+            "description": "Update one article.",
             "requestBody": {
                 "content": {
                     "application/json": {
@@ -867,6 +893,7 @@ class TestAdapter:
                     "href": "https://example.test/siren?view=full",
                 },
                 {
+                    "title": "Articles",
                     "rel": ["collection"],
                     "href": "https://example.test/siren/articles",
                 },
@@ -1417,6 +1444,7 @@ class TestAdapter:
             "name": "get_api_root",
             "href": "http://testserver/siren",
             "method": "GET",
+            "title": "Read API entry point",
         }
         assert followed.status_code == 200
         assert followed["Content-Type"] == "application/vnd.siren+json"

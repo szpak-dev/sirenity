@@ -55,8 +55,8 @@ class OpenApiFieldProjection(BaseState):
         field_type = self.type(name, definition, values)
         title = definition.get("title")
         default = definition.get("default")
-        if title is not None and not isinstance(title, str):
-            raise SirenityError(f"OpenAPI field schema is unsupported: {name}")
+        if not isinstance(title, str) or not title:
+            raise SirenityError(f"OpenAPI field schema requires a non-empty title: {name}")
         if isinstance(default, bool):
             if definition.get("type") != "boolean":
                 raise SirenityError(

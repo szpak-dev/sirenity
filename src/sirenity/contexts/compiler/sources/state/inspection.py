@@ -91,6 +91,22 @@ class OpenApiCompatibilityInspection(BaseState):
             )
         else:
             self.operation_ids.add(name)
+        summary = operation.get("summary")
+        if not isinstance(summary, str) or not summary:
+            self.add(
+                self.location("paths", path, method_name, "summary"),
+                "operation-summary",
+                f"OpenAPI operation requires a non-empty summary: {method.upper()} {path}",
+                "Provide a non-empty summary for the Siren action title.",
+            )
+        description = operation.get("description")
+        if not isinstance(description, str) or not description:
+            self.add(
+                self.location("paths", path, method_name, "description"),
+                "operation-description",
+                f"OpenAPI operation requires a non-empty description: {method.upper()} {path}",
+                "Provide a non-empty description for the caller-facing operation contract.",
+            )
         try:
             self.routes.ownership(path)
         except ValueError as error:

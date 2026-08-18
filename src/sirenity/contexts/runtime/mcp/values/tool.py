@@ -7,6 +7,6 @@ from sirenity.contexts.shared import BaseValue
 
 class SirenMcpTool(BaseValue):
     name: str
-    title: str = ""
-    description: str = ""
+    title: str
+    description: str
     input_schema: Mapping[str, JsonValue]

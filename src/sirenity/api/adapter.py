@@ -123,39 +123,13 @@ def siren_adapter(
     try:
         engine = siren(openapi, source_path=source_path,
                        public_path=public_path)
-        source = source_path.rstrip("/") or "/"
-        public = public_path.rstrip("/") or "/"
-        source_routes = {}
-        for path, path_item in openapi.get("paths", {}).items():
-            if not isinstance(path, str) or not isinstance(path_item, Mapping):
-                continue
-            for method, definition in path_item.items():
-                if not isinstance(method, str) or not isinstance(definition, Mapping):
-                    continue
-                operation_id = definition.get("operationId")
-                if isinstance(operation_id, str):
-                    source_routes[operation_id, method.upper()] = path
         routes = []
         for operation in engine.api.operations:
-            public_route = operation.route.path
-            if public == "/":
-                suffix = public_route
-            elif public_route == public:
-                suffix = "/"
-            else:
-                suffix = public_route[len(public):]
-            source_route = source_routes.get(
-                (operation.name, operation.method),
-                suffix if source == "/" else source +
-                ("" if suffix == "/" else suffix),
-            )
             routes.append(SirenAdapterRoute(
-                source_path=source_route,
-                public_path=public_route,
+                source_path=operation.source_path,
+                public_path=operation.route.path,
                 method=operation.method,
                 operation_id=operation.name,
-                summary=operation.title or "",
-                description=operation.description,
             ))
         return SirenAdapter(engine=engine, routes=tuple(routes), profiles=profiles)
     except Exception as error:

@@ -6,5 +6,3 @@ class SirenAdapterRoute(BaseValue):
     public_path: str
     method: SirenHttpMethod
     operation_id: str
-    summary: str = ""
-    description: str = ""

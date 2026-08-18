@@ -66,6 +66,7 @@ class SirenBuilder:
                     scope=operation.scope,
                     method=operation.method,
                     route=SirenRoute(path=operation.path),
+                    source_path=operation.source_path,
                     title=operation.title,
                     description=operation.description,
                     media_type=operation.media_type,
@@ -158,26 +159,19 @@ class SirenBuilder:
                 if not response.status.startswith("2") or response.definition is None:
                     continue
                 definition = response.definition
-                title: object = None
                 priority = 0
                 if scope == SirenScope.COLLECTION and exact_collection and response.shape == "array":
                     priority = 0 if operation.method == SirenHttpMethod.GET else 1
-                    title = definition.get("title")
-                    if title == "Response" or (
-                        isinstance(title, str) and title.startswith(
-                            "Response ")
-                    ):
-                        title = None
+                    title = definition["title"]
                 elif scope == SirenScope.ENTITY and exact_entity and response.shape == "object":
                     priority = 0 if operation.method == SirenHttpMethod.GET else 2
-                    title = definition.get("title")
+                    title = definition["title"]
                 elif scope == SirenScope.ENTITY and exact_collection and response.shape == "array":
                     priority = 1 if operation.method == SirenHttpMethod.GET else 3
-                    items = definition.get("items")
-                    title = items.get("title") if isinstance(
-                        items, Mapping) else None
-                if isinstance(title, str) and title:
-                    candidates.append((priority, len(candidates), title))
+                    title = definition["items"]["title"]
+                else:
+                    continue
+                candidates.append((priority, len(candidates), title))
         return min(candidates)[2] if candidates else None
 
     def link_operation(self, link, operations: Mapping[str, OperationDraft]) -> str:

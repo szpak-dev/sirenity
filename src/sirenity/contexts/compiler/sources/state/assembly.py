@@ -14,7 +14,7 @@ class SirenAssembly(BaseState):
     fields: list[FieldDraft] = Field(default_factory=list)
     root_operations: list[str] = Field(default_factory=list)
 
-    def set_root(self, path: str = "/", title: str = "", version: str = "") -> "SirenAssembly":
+    def set_root(self, path: str, title: str, version: str) -> "SirenAssembly":
         self.root_path = path
         self.root_title = title
         self.root_version = version
@@ -46,11 +46,12 @@ class SirenAssembly(BaseState):
         name: str,
         method: SirenHttpMethod,
         path: str,
-        title: str | None = None,
+        source_path: str,
+        title: str,
+        description: str,
         media_type: SirenMediaType | None = None,
         input: InputDraft | None = None,
         responses: tuple[ResponseDraft, ...] = (),
-        description: str = "",
     ) -> "SirenAssembly":
         self.operations.append(OperationDraft(
             resource=resource,
@@ -58,6 +59,7 @@ class SirenAssembly(BaseState):
             name=name,
             method=method,
             path=path,
+            source_path=source_path,
             title=title,
             description=description,
             media_type=media_type,
@@ -71,15 +73,15 @@ class SirenAssembly(BaseState):
         return self
 
     def add_field(
-        self, operation: str, name: str, type: SirenFieldType, values: tuple[str | int | float, ...] = (),
-        title: str | None = None, default: str | int | float | None = None,
+        self, operation: str, name: str, type: SirenFieldType, title: str,
+        values: tuple[str | int | float, ...] = (), default: str | int | float | None = None,
     ) -> "SirenAssembly":
         self.fields.append(FieldDraft(
             operation=operation,
             name=name,
             type=type,
-            values=values,
             title=title,
+            values=values,
             default=default,
         ))
         return self

@@ -66,6 +66,10 @@ class OpenApiResponseProjection(BaseState):
                         f"OpenAPI response schema is required: {status} {media_name}")
                 definition = self.components.schema(schema)
                 shape = definition.get("type")
+                title = definition.get("title")
+                if not isinstance(title, str) or not title:
+                    raise SirenityError(
+                        f"OpenAPI response schema requires a non-empty title: {status} {media_name}")
                 if shape == "array":
                     items = definition.get("items")
                     if not isinstance(items, dict):
@@ -76,6 +80,10 @@ class OpenApiResponseProjection(BaseState):
                         raise SirenityError(
                             f"OpenAPI array response items must be objects: {status} {media_name}"
                         )
+                    item_title = item_definition.get("title")
+                    if not isinstance(item_title, str) or not item_title:
+                        raise SirenityError(
+                            f"OpenAPI array response items require a non-empty title: {status} {media_name}")
                     definition = definition | {"items": item_definition}
                 elif shape != "object":
                     raise SirenityError(
