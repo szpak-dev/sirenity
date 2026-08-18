@@ -3,10 +3,10 @@ from openapi_documents import SCHEMA
 from pydantic import ValidationError
 
 from sirenity import (
-    ModwireSirenError,
     SirenContext,
     SirenDocument,
     SirenEmbeddedRepresentation,
+    SirenityError,
     SirenRelationship,
     SirenResponseContext,
     SirenScope,
@@ -144,7 +144,7 @@ class TestProjection:
             },
         ]
 
-        with pytest.raises(ModwireSirenError, match="Siren projection failed"):
+        with pytest.raises(SirenityError, match="Siren projection failed"):
             engine.project(
                 SirenContext(
                     base_url="https://api.example.com",
@@ -156,7 +156,8 @@ class TestProjection:
                             resource="diagram",
                             scope=SirenScope.ENTITY,
                             path_values={"diagram_set_id": "set-7"},
-                            capabilities=frozenset({"list_diagram_set_diagrams"}),
+                            capabilities=frozenset(
+                                {"list_diagram_set_diagrams"}),
                         ),
                     ),
                 )
@@ -165,10 +166,12 @@ class TestProjection:
     def test_public_facade_rejects_invalid_collection_relationships(self):
         with pytest.raises(ValidationError, match="scope"):
             SirenRelationship(rel=("collection",), resource="diagram")
-        with pytest.raises(ModwireSirenError, match="Siren collection relationships cannot be embedded"):
-            SirenRelationship(rel=("collection",), resource="diagram", scope=SirenScope.COLLECTION, embedded=True)
-        with pytest.raises(ModwireSirenError, match="Siren relationship scope must be entity or collection"):
-            SirenRelationship(rel=("collection",), resource="diagram", scope=SirenScope.ROOT)
+        with pytest.raises(SirenityError, match="Siren collection relationships cannot be embedded"):
+            SirenRelationship(rel=("collection",), resource="diagram",
+                              scope=SirenScope.COLLECTION, embedded=True)
+        with pytest.raises(SirenityError, match="Siren relationship scope must be entity or collection"):
+            SirenRelationship(rel=("collection",),
+                              resource="diagram", scope=SirenScope.ROOT)
 
     def test_public_facade_requires_nested_collection_relationship_path_values(self):
         schema = {
@@ -203,14 +206,15 @@ class TestProjection:
             },
         }
 
-        with pytest.raises(ModwireSirenError, match="Siren projection failed: Siren link requires path value"):
+        with pytest.raises(SirenityError, match="Siren projection failed: Siren link requires path value"):
             siren(schema).project(
                 SirenContext(
                     base_url="https://api.example.com",
                     resource="diagram_set",
                     value={"diagram_set_id": "set-7"},
                     relationships=(
-                        SirenRelationship(rel=("collection",), resource="diagram", scope=SirenScope.COLLECTION),
+                        SirenRelationship(
+                            rel=("collection",), resource="diagram", scope=SirenScope.COLLECTION),
                     ),
                 )
             )
@@ -260,7 +264,7 @@ class TestProjection:
         ]
 
     def test_public_facade_rejects_an_unknown_relationship_resource(self):
-        with pytest.raises(ModwireSirenError, match="Siren projection failed"):
+        with pytest.raises(SirenityError, match="Siren projection failed"):
             siren(SCHEMA).project(
                 SirenContext(
                     base_url="https://api.example.com",
@@ -273,7 +277,7 @@ class TestProjection:
             )
 
     def test_engine_rejects_a_capability_outside_the_resource_contract(self):
-        with pytest.raises(ModwireSirenError, match="Siren projection failed"):
+        with pytest.raises(SirenityError, match="Siren projection failed"):
             siren(SCHEMA).project(
                 SirenContext(
                     base_url="https://api.example.com",
@@ -337,17 +341,18 @@ class TestProjection:
         ]
 
     def test_public_facade_rejects_misaligned_item_capabilities(self):
-        with pytest.raises(ModwireSirenError, match="Siren item capabilities must align with collection items"):
+        with pytest.raises(SirenityError, match="Siren item capabilities must align with collection items"):
             SirenContext(
                 base_url="https://api.example.com",
                 scope="collection",
                 resource="record",
                 items=({"id": "42"},),
-                item_capabilities=(frozenset({"get_record"}), frozenset({"rename_record"})),
+                item_capabilities=(
+                    frozenset({"get_record"}), frozenset({"rename_record"})),
             )
 
     def test_public_facade_validates_item_title_alignment_and_allows_empty_collections(self):
-        with pytest.raises(ModwireSirenError, match="Siren item titles must align with collection items"):
+        with pytest.raises(SirenityError, match="Siren item titles must align with collection items"):
             SirenContext(
                 base_url="https://api.example.com",
                 scope="collection",
@@ -367,7 +372,7 @@ class TestProjection:
         assert context.item_titles == ()
 
     def test_response_context_rejects_misaligned_item_titles(self):
-        with pytest.raises(ModwireSirenError, match="Siren item titles must align with response items"):
+        with pytest.raises(SirenityError, match="Siren item titles must align with response items"):
             SirenResponseContext(
                 operation_id="list_records",
                 status=200,
@@ -387,17 +392,20 @@ class TestProjection:
         )
 
         assert isinstance(document, SirenDocument)
-        payload = document.model_dump(by_alias=True, mode="json", exclude_none=True)
-        assert payload["links"] == [{"rel": ["self"], "href": "https://api.example.com/records/42"}]
-        assert [action["name"] for action in payload["actions"]] == ["get_record", "rename_record"]
+        payload = document.model_dump(
+            by_alias=True, mode="json", exclude_none=True)
+        assert payload["links"] == [
+            {"rel": ["self"], "href": "https://api.example.com/records/42"}]
+        assert [action["name"] for action in payload["actions"]] == [
+            "get_record", "rename_record"]
         assert payload["actions"][0] == {
             "name": "get_record",
             "href": "https://api.example.com/records/42",
             "method": "GET",
         }
         assert payload["actions"][1]["type"] == "application/json"
-        assert payload["actions"][1]["fields"][0] == {"name": "title", "type": "text"}
-
+        assert payload["actions"][1]["fields"][0] == {
+            "name": "title", "type": "text"}
 
     def test_public_facade_projects_only_followable_root_links_and_eligible_root_actions(self):
         schema = {
@@ -440,13 +448,15 @@ class TestProjection:
                 },
                 "/records/{record_id}": {
                     "parameters": [
-                        {"name": "record_id", "in": "path", "required": True, "schema": {"type": "string"}}
+                        {"name": "record_id", "in": "path",
+                            "required": True, "schema": {"type": "string"}}
                     ],
                     "get": {"operationId": "get_record", "responses": {"200": {"description": "OK"}}},
                 },
                 "/commands/{command_id}/run": {
                     "parameters": [
-                        {"name": "command_id", "in": "path", "required": True, "schema": {"type": "string"}}
+                        {"name": "command_id", "in": "path",
+                            "required": True, "schema": {"type": "string"}}
                     ],
                     "post": {"operationId": "run_command", "responses": {"202": {"description": "Accepted"}}},
                 },
@@ -459,14 +469,17 @@ class TestProjection:
                 scope="root",
                 path_values={"command_id": "command/42"},
                 query=(("format", "siren"),),
-                capabilities=frozenset({"search_records", "rebuild_index", "get_record", "run_command"}),
+                capabilities=frozenset(
+                    {"search_records", "rebuild_index", "get_record", "run_command"}),
             )
         )
 
         assert isinstance(document, SirenDocument)
-        payload = document.model_dump(by_alias=True, mode="json", exclude_none=True)
+        payload = document.model_dump(
+            by_alias=True, mode="json", exclude_none=True)
         assert payload["links"] == [
-            {"title": "Root actions", "rel": ["self"], "href": "https://api.example.com/?format=siren"},
+            {"title": "Root actions", "rel": [
+                "self"], "href": "https://api.example.com/?format=siren"},
             {"rel": ["collection"], "href": "https://api.example.com/records"},
         ]
         assert payload["actions"] == [

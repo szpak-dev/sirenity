@@ -3,7 +3,7 @@ from typing import Literal
 from pydantic import model_validator
 
 from sirenity.contexts.runtime.request import SirenRelationship
-from sirenity.contexts.shared import BaseValue, ModwireSirenError
+from sirenity.contexts.shared import BaseValue, SirenityError
 
 
 class SirenAdapterPolicy(BaseValue):
@@ -16,7 +16,8 @@ class SirenAdapterPolicy(BaseValue):
     """
 
     title: str | None = None
-    representation: Literal["root", "entity", "collection", "command"] | None = None
+    representation: Literal["root", "entity",
+                            "collection", "command"] | None = None
     capabilities: frozenset[str] = frozenset()
     all_capabilities: bool = False
     item_titles: tuple[str, ...] = ()
@@ -26,7 +27,7 @@ class SirenAdapterPolicy(BaseValue):
     @model_validator(mode="after")
     def validate_capabilities(self) -> "SirenAdapterPolicy":
         if self.all_capabilities and self.capabilities:
-            raise ModwireSirenError(
+            raise SirenityError(
                 "Siren adapter policy cannot combine all capabilities with explicit capabilities"
             )
         return self

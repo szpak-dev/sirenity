@@ -1,6 +1,6 @@
 from typing import Any, Literal
 
-from sirenity.contexts.shared import BaseState, ModwireSirenError, SirenFieldType
+from sirenity.contexts.shared import BaseState, SirenFieldType, SirenityError
 
 from ..values import Field
 from .components import ComponentResolver
@@ -14,7 +14,7 @@ class OpenApiFieldProjection(BaseState):
     ) -> Literal["array", "object", "json"] | None:
         try:
             definition = self.definition(name, schema)
-        except ModwireSirenError:
+        except SirenityError:
             definition = self.components.schema(schema)
             for keyword in ("anyOf", "oneOf"):
                 variants = definition.get(keyword)
@@ -22,7 +22,8 @@ class OpenApiFieldProjection(BaseState):
                     if not isinstance(variants, list) or not variants:
                         return None
                     kinds = tuple(
-                        self.delegated_kind(name, variant) if isinstance(variant, dict) else None
+                        self.delegated_kind(name, variant) if isinstance(
+                            variant, dict) else None
                         for variant in variants
                     )
                     if any(kind is None for kind in kinds):
@@ -34,9 +35,11 @@ class OpenApiFieldProjection(BaseState):
             properties = definition.get("properties")
             additional = definition.get("additionalProperties", True)
             if properties is not None and not isinstance(properties, dict):
-                raise ModwireSirenError(f"OpenAPI field schema is unsupported: {name}")
+                raise SirenityError(
+                    f"OpenAPI field schema is unsupported: {name}")
             if not isinstance(additional, (bool, dict)):
-                raise ModwireSirenError(f"OpenAPI field schema is unsupported: {name}")
+                raise SirenityError(
+                    f"OpenAPI field schema is unsupported: {name}")
             if not (isinstance(properties, dict) and properties) and (
                 additional is True or additional == {}
             ):
@@ -53,15 +56,16 @@ class OpenApiFieldProjection(BaseState):
         title = definition.get("title")
         default = definition.get("default")
         if title is not None and not isinstance(title, str):
-            raise ModwireSirenError(f"OpenAPI field schema is unsupported: {name}")
+            raise SirenityError(f"OpenAPI field schema is unsupported: {name}")
         if isinstance(default, bool):
             if definition.get("type") != "boolean":
-                raise ModwireSirenError(f"OpenAPI field schema is unsupported: {name}")
+                raise SirenityError(
+                    f"OpenAPI field schema is unsupported: {name}")
             default = None
         elif default is not None and not isinstance(default, (str, int, float)):
-            raise ModwireSirenError(f"OpenAPI field schema is unsupported: {name}")
+            raise SirenityError(f"OpenAPI field schema is unsupported: {name}")
         if values and default is not None and default not in values:
-            raise ModwireSirenError(f"OpenAPI field schema is unsupported: {name}")
+            raise SirenityError(f"OpenAPI field schema is unsupported: {name}")
         return Field(name=name, type=field_type, values=values, title=title, default=default)
 
     def definition(self, name: str, schema: dict[str, Any]) -> dict[str, Any]:
@@ -73,7 +77,8 @@ class OpenApiFieldProjection(BaseState):
         if isinstance(schema_type, list):
             values = [value for value in schema_type if value != "null"]
             if len(values) != 1 or len(values) + 1 != len(schema_type) or not isinstance(values[0], str):
-                raise ModwireSirenError(f"OpenAPI field schema is unsupported: {name}")
+                raise SirenityError(
+                    f"OpenAPI field schema is unsupported: {name}")
             definition = {**definition, "type": values[0], "nullable": True}
         return definition
 
@@ -82,15 +87,18 @@ class OpenApiFieldProjection(BaseState):
         if variants is None:
             return definition
         if not isinstance(variants, list) or not variants:
-            raise ModwireSirenError(f"OpenAPI field schema is unsupported: {name}")
-        merged = {key: value for key, value in definition.items() if key != "allOf"}
+            raise SirenityError(f"OpenAPI field schema is unsupported: {name}")
+        merged = {key: value for key, value in definition.items()
+                  if key != "allOf"}
         for variant in variants:
             if not isinstance(variant, dict):
-                raise ModwireSirenError(f"OpenAPI field schema is unsupported: {name}")
+                raise SirenityError(
+                    f"OpenAPI field schema is unsupported: {name}")
             for key, value in self.definition(name, variant).items():
                 existing = merged.get(key)
                 if key in merged and existing != value:
-                    raise ModwireSirenError(f"OpenAPI field schema is unsupported: {name}")
+                    raise SirenityError(
+                        f"OpenAPI field schema is unsupported: {name}")
                 merged[key] = value
         return merged
 
@@ -99,16 +107,20 @@ class OpenApiFieldProjection(BaseState):
         if variants is None:
             return definition
         if not isinstance(variants, list):
-            raise ModwireSirenError(f"OpenAPI field schema is unsupported: {name}")
-        scalar = [variant for variant in variants if isinstance(variant, dict) and variant.get("type") != "null"]
-        nulls = [variant for variant in variants if isinstance(variant, dict) and variant.get("type") == "null"]
+            raise SirenityError(f"OpenAPI field schema is unsupported: {name}")
+        scalar = [variant for variant in variants if isinstance(
+            variant, dict) and variant.get("type") != "null"]
+        nulls = [variant for variant in variants if isinstance(
+            variant, dict) and variant.get("type") == "null"]
         if len(scalar) != 1 or len(nulls) + len(scalar) != len(variants):
-            raise ModwireSirenError(f"OpenAPI field schema is unsupported: {name}")
+            raise SirenityError(f"OpenAPI field schema is unsupported: {name}")
         normalized = self.definition(name, scalar[0])
-        outer = {key: value for key, value in definition.items() if key != keyword}
+        outer = {key: value for key, value in definition.items()
+                 if key != keyword}
         for key, value in outer.items():
             if key in normalized and normalized[key] != value:
-                raise ModwireSirenError(f"OpenAPI field schema is unsupported: {name}")
+                raise SirenityError(
+                    f"OpenAPI field schema is unsupported: {name}")
         return {**normalized, **outer, "nullable": bool(nulls) or normalized.get("nullable") is True}
 
     def values(self, name: str, definition: dict[str, Any]) -> tuple[str | int | float, ...]:
@@ -116,33 +128,36 @@ class OpenApiFieldProjection(BaseState):
         if source is None and definition.get("type") == "array":
             items = definition.get("items")
             if not isinstance(items, dict):
-                raise ModwireSirenError(f"OpenAPI field schema is unsupported: {name}")
+                raise SirenityError(
+                    f"OpenAPI field schema is unsupported: {name}")
             source = self.definition(name, items).get("enum")
         if source is None:
             return ()
         if not isinstance(source, list):
-            raise ModwireSirenError(f"OpenAPI field schema is unsupported: {name}")
+            raise SirenityError(f"OpenAPI field schema is unsupported: {name}")
         values = tuple(value for value in source if value is not None)
         if not values or any(isinstance(value, bool) or not isinstance(value, (str, int, float)) for value in values):
-            raise ModwireSirenError(f"OpenAPI field schema is unsupported: {name}")
+            raise SirenityError(f"OpenAPI field schema is unsupported: {name}")
         return values
 
     def type(self, name: str, definition: dict[str, Any], values: tuple[str | int | float, ...]) -> SirenFieldType:
         unsupported = {"const", "contains", "if", "not", "prefixItems"}
         if unsupported & definition.keys():
-            raise ModwireSirenError(f"OpenAPI field schema is unsupported: {name}")
+            raise SirenityError(f"OpenAPI field schema is unsupported: {name}")
         schema_type = definition.get("type")
         if schema_type == "array":
             items = definition.get("items")
             if not isinstance(items, dict):
-                raise ModwireSirenError(f"OpenAPI field schema is unsupported: {name}")
+                raise SirenityError(
+                    f"OpenAPI field schema is unsupported: {name}")
             item_definition = self.definition(name, items)
             if item_definition.get("type") == "array":
-                raise ModwireSirenError(f"OpenAPI field schema is unsupported: {name}")
+                raise SirenityError(
+                    f"OpenAPI field schema is unsupported: {name}")
             self.type(name, item_definition, ())
             if values:
                 return SirenFieldType.validate("checkbox")
-            raise ModwireSirenError(f"OpenAPI field schema is unsupported: {name}")
+            raise SirenityError(f"OpenAPI field schema is unsupported: {name}")
         if values:
             return SirenFieldType.validate("radio")
         if schema_type == "string":
@@ -162,4 +177,4 @@ class OpenApiFieldProjection(BaseState):
             return SirenFieldType.validate("number")
         if schema_type == "boolean":
             return SirenFieldType.validate("checkbox")
-        raise ModwireSirenError(f"OpenAPI field schema is unsupported: {name}")
+        raise SirenityError(f"OpenAPI field schema is unsupported: {name}")

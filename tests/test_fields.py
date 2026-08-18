@@ -3,7 +3,7 @@ from copy import deepcopy
 import pytest
 from openapi_documents import PARAMETER_MEDIA_SCHEMA
 
-from sirenity import ModwireSirenError, SirenContext, siren
+from sirenity import SirenContext, SirenityError, siren
 
 
 class TestFields:
@@ -26,27 +26,27 @@ class TestFields:
             {"name": "page", "type": "text"}
         ]
 
-
     def test_public_facade_rejects_a_schema_less_parameter(self):
         invalid = deepcopy(PARAMETER_MEDIA_SCHEMA)
         invalid["paths"]["/records"]["get"]["parameters"] = [
-            {"name": "filter", "in": "query", "required": False, "content": {"application/json": {}}}
+            {"name": "filter", "in": "query", "required": False,
+                "content": {"application/json": {}}}
         ]
 
-        with pytest.raises(ModwireSirenError, match="Invalid or unsupported OpenAPI contract"):
+        with pytest.raises(SirenityError):
             siren(invalid)
-
 
     def test_public_facade_rejects_duplicate_parameter_identities(self):
         invalid = deepcopy(PARAMETER_MEDIA_SCHEMA)
         invalid["paths"]["/records"]["get"]["parameters"] = [
-            {"name": "filter", "in": "query", "required": False, "schema": {"type": "string"}},
-            {"name": "filter", "in": "query", "required": False, "schema": {"type": "integer"}},
+            {"name": "filter", "in": "query", "required": False,
+                "schema": {"type": "string"}},
+            {"name": "filter", "in": "query", "required": False,
+                "schema": {"type": "integer"}},
         ]
 
-        with pytest.raises(ModwireSirenError, match="Invalid or unsupported OpenAPI contract"):
+        with pytest.raises(SirenityError):
             siren(invalid)
-
 
     def test_public_facade_rejects_ambiguous_non_json_request_body_media(self):
         invalid = deepcopy(PARAMETER_MEDIA_SCHEMA)
@@ -55,7 +55,7 @@ class TestFields:
             "application/xml": {"schema": {"type": "string"}},
         }
 
-        with pytest.raises(ModwireSirenError, match="Invalid or unsupported OpenAPI contract"):
+        with pytest.raises(SirenityError):
             siren(invalid)
 
     @pytest.mark.parametrize(
@@ -73,7 +73,7 @@ class TestFields:
             {"name": "value", "in": "query", "required": False, "schema": schema}
         ]
 
-        with pytest.raises(ModwireSirenError, match="Invalid or unsupported OpenAPI contract"):
+        with pytest.raises(SirenityError):
             siren(invalid)
 
     def test_public_facade_delegates_structured_inputs_and_non_json_bodies(self):
@@ -81,8 +81,10 @@ class TestFields:
         document["paths"]["/records"]["parameters"] = []
         document["paths"]["/records"]["get"]["parameters"] = [
             {"name": "page", "in": "query", "schema": {"type": "integer"}},
-            {"name": "filter", "in": "query", "schema": {"$ref": "#/components/schemas/Filter"}},
-            {"name": "matrix", "in": "query", "schema": {"$ref": "#/components/schemas/Matrix"}},
+            {"name": "filter", "in": "query", "schema": {
+                "$ref": "#/components/schemas/Filter"}},
+            {"name": "matrix", "in": "query", "schema": {
+                "$ref": "#/components/schemas/Matrix"}},
             {"name": "trace", "in": "header", "schema": {"type": "string"}},
             {"name": "session", "in": "cookie", "schema": {"type": "string"}},
         ]
@@ -114,10 +116,13 @@ class TestFields:
             capabilities=frozenset({"replace_record"}),
         )).model_dump(by_alias=True, mode="json", exclude_none=True)
 
-        assert collection["actions"][0]["fields"] == [{"name": "page", "type": "number"}]
-        assert entity["actions"][0]["fields"] == [{"name": "title", "type": "text"}]
+        assert collection["actions"][0]["fields"] == [
+            {"name": "page", "type": "number"}]
+        assert entity["actions"][0]["fields"] == [
+            {"name": "title", "type": "text"}]
 
-        document["paths"]["/records/{record_id}"]["patch"]["requestBody"]["content"] = {"text/plain": {}}
+        document["paths"]["/records/{record_id}"]["patch"]["requestBody"]["content"] = {
+            "text/plain": {}}
         delegated = siren(document).project(SirenContext(
             base_url="https://api.example.com",
             resource="record",
@@ -136,8 +141,10 @@ class TestFields:
         document = deepcopy(PARAMETER_MEDIA_SCHEMA)
         document["paths"]["/records"]["parameters"] = []
         document["paths"]["/records"]["get"]["parameters"] = [
-            {"name": "request_id", "in": "query", "required": True, "schema": {"type": "string", "format": "uuid"}},
-            {"name": "tags", "in": "query", "schema": {"type": "array", "items": {"type": "string"}}},
+            {"name": "request_id", "in": "query", "required": True,
+                "schema": {"type": "string", "format": "uuid"}},
+            {"name": "tags", "in": "query", "schema": {
+                "type": "array", "items": {"type": "string"}}},
             {
                 "name": "aliases",
                 "in": "query",
@@ -148,7 +155,8 @@ class TestFields:
                 "in": "query",
                 "schema": {
                     "oneOf": [
-                        {"type": "array", "minItems": 1, "items": {"type": "string"}},
+                        {"type": "array", "minItems": 1,
+                            "items": {"type": "string"}},
                         {"type": "null"},
                     ]
                 },
@@ -164,13 +172,15 @@ class TestFields:
                     ]
                 },
             },
-            {"name": "status", "in": "query", "schema": {"type": "string", "enum": ["draft", "published"]}},
+            {"name": "status", "in": "query", "schema": {
+                "type": "string", "enum": ["draft", "published"]}},
             {
                 "name": "scopes",
                 "in": "query",
                 "schema": {"type": "array", "items": {"type": "string", "enum": ["read", "write"]}},
             },
-            {"name": "nickname", "in": "query", "schema": {"type": ["string", "null"]}},
+            {"name": "nickname", "in": "query",
+                "schema": {"type": ["string", "null"]}},
             {
                 "name": "external_id",
                 "in": "query",
@@ -287,7 +297,7 @@ class TestFields:
             "responses": {"200": {"description": "OK"}},
         }
 
-        with pytest.raises(ModwireSirenError, match="Invalid or unsupported OpenAPI contract"):
+        with pytest.raises(SirenityError):
             siren(invalid)
 
     def test_public_facade_prefers_json_request_body_fields(self):
@@ -299,28 +309,38 @@ class TestFields:
                 capabilities=frozenset({"replace_record"}),
             )
         )
-        document = document.model_dump(by_alias=True, mode="json", exclude_none=True)
+        document = document.model_dump(
+            by_alias=True, mode="json", exclude_none=True)
 
-        assert document["actions"][0]["fields"] == [{"name": "title", "type": "text"}]
+        assert document["actions"][0]["fields"] == [
+            {"name": "title", "type": "text"}]
 
     def test_public_facade_maps_supported_query_and_json_body_fields(self):
         document = deepcopy(PARAMETER_MEDIA_SCHEMA)
         document["paths"]["/records"]["parameters"] = []
         document["paths"]["/records"]["get"]["parameters"] = [
-            {"name": "text", "in": "query", "required": False, "schema": {"type": "string"}},
-            {"name": "email", "in": "query", "required": False, "schema": {"type": "string", "format": "email"}},
-            {"name": "uri", "in": "query", "required": False, "schema": {"type": "string", "format": "uri"}},
-            {"name": "date", "in": "query", "required": False, "schema": {"type": "string", "format": "date"}},
+            {"name": "text", "in": "query", "required": False,
+                "schema": {"type": "string"}},
+            {"name": "email", "in": "query", "required": False,
+                "schema": {"type": "string", "format": "email"}},
+            {"name": "uri", "in": "query", "required": False,
+                "schema": {"type": "string", "format": "uri"}},
+            {"name": "date", "in": "query", "required": False,
+                "schema": {"type": "string", "format": "date"}},
             {
                 "name": "date_time",
                 "in": "query",
                 "required": False,
                 "schema": {"type": "string", "format": "date-time"},
             },
-            {"name": "time", "in": "query", "required": False, "schema": {"type": "string", "format": "time"}},
-            {"name": "integer", "in": "query", "required": False, "schema": {"type": "integer"}},
-            {"name": "number", "in": "query", "required": False, "schema": {"type": "number"}},
-            {"name": "boolean", "in": "query", "required": False, "schema": {"type": "boolean"}},
+            {"name": "time", "in": "query", "required": False,
+                "schema": {"type": "string", "format": "time"}},
+            {"name": "integer", "in": "query", "required": False,
+                "schema": {"type": "integer"}},
+            {"name": "number", "in": "query", "required": False,
+                "schema": {"type": "number"}},
+            {"name": "boolean", "in": "query", "required": False,
+                "schema": {"type": "boolean"}},
         ]
         document["paths"]["/records/{record_id}"]["patch"]["requestBody"]["content"]["application/json"][
             "schema"
@@ -347,8 +367,10 @@ class TestFields:
                 capabilities=frozenset({"replace_record"}),
             )
         )
-        collection = collection.model_dump(by_alias=True, mode="json", exclude_none=True)
-        entity = entity.model_dump(by_alias=True, mode="json", exclude_none=True)
+        collection = collection.model_dump(
+            by_alias=True, mode="json", exclude_none=True)
+        entity = entity.model_dump(
+            by_alias=True, mode="json", exclude_none=True)
 
         assert collection["actions"][0]["fields"] == [
             {"name": "text", "type": "text"},

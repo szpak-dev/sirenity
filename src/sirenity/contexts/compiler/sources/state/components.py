@@ -3,12 +3,13 @@ from typing import Any
 
 from pydantic import Field
 
-from sirenity.contexts.shared import BaseState, ModwireSirenError
+from sirenity.contexts.shared import BaseState, SirenityError
 
 
 class ComponentResolver(BaseState):
     components: Any
-    reference_cache: dict[tuple[str, str], dict[str, Any]] = Field(default_factory=dict)
+    reference_cache: dict[tuple[str, str],
+                          dict[str, Any]] = Field(default_factory=dict)
 
     def parameter(self, definition: Any) -> dict[str, Any]:
         return self.resolve(definition, "parameters")
@@ -29,11 +30,13 @@ class ComponentResolver(BaseState):
             return deepcopy(definition)
         reference = definition.get("$ref")
         if reference is not None and not isinstance(reference, str):
-            raise ModwireSirenError("OpenAPI component reference must be a string")
+            raise SirenityError("OpenAPI component reference must be a string")
         if isinstance(reference, str) and reference in trail:
             return deepcopy(definition)
-        resolved = self.schema(definition) if reference is not None else deepcopy(definition)
-        nested_trail = (*trail, reference) if isinstance(reference, str) else trail
+        resolved = self.schema(
+            definition) if reference is not None else deepcopy(definition)
+        nested_trail = (
+            *trail, reference) if isinstance(reference, str) else trail
         return {name: self.schema_tree(value, nested_trail) for name, value in resolved.items()}
 
     def resolve(self, definition: Any, kind: str, trail: tuple[str, ...] = ()) -> dict[str, Any]:
@@ -44,18 +47,21 @@ class ComponentResolver(BaseState):
         if reference is None:
             return result
         if not isinstance(reference, str):
-            raise ModwireSirenError("OpenAPI component reference must be a string")
+            raise SirenityError("OpenAPI component reference must be a string")
         if reference in trail:
-            raise ModwireSirenError(f"OpenAPI component reference cycle: {' -> '.join((*trail, reference))}")
+            raise SirenityError(
+                f"OpenAPI component reference cycle: {' -> '.join((*trail, reference))}")
         component_kind, name = self.address(reference, kind)
         cache_key = component_kind, name
         cached = self.reference_cache.get(cache_key)
         if cached is not None:
             return deepcopy(cached) | result
-        collection = self.components.get(component_kind) if isinstance(self.components, dict) else None
+        collection = self.components.get(component_kind) if isinstance(
+            self.components, dict) else None
         target = collection.get(name) if isinstance(collection, dict) else None
         if not isinstance(target, dict):
-            raise ModwireSirenError(f"OpenAPI component reference is unknown: {reference}")
+            raise SirenityError(
+                f"OpenAPI component reference is unknown: {reference}")
         resolved = self.resolve(target, kind, (*trail, reference))
         self.reference_cache[cache_key] = resolved
         return deepcopy(resolved) | result
@@ -63,13 +69,15 @@ class ComponentResolver(BaseState):
     def address(self, reference: str, expected_kind: str) -> tuple[str, str]:
         prefix = "#/components/"
         if not reference.startswith(prefix):
-            raise ModwireSirenError(f"OpenAPI component reference is unsupported: {reference}")
-        parts = reference[len(prefix) :].split("/")
+            raise SirenityError(
+                f"OpenAPI component reference is unsupported: {reference}")
+        parts = reference[len(prefix):].split("/")
         if len(parts) != 2:
-            raise ModwireSirenError(f"OpenAPI component reference is invalid: {reference}")
+            raise SirenityError(
+                f"OpenAPI component reference is invalid: {reference}")
         kind, encoded_name = parts
         if kind != expected_kind:
-            raise ModwireSirenError(
+            raise SirenityError(
                 f"OpenAPI component reference {reference!r} must target components/{expected_kind}, "
                 f"not components/{kind}"
             )
@@ -85,7 +93,8 @@ class ComponentResolver(BaseState):
                 index += 1
                 continue
             if index + 1 == len(token) or token[index + 1] not in {"0", "1"}:
-                raise ModwireSirenError(f"OpenAPI component reference is invalid: {reference}")
+                raise SirenityError(
+                    f"OpenAPI component reference is invalid: {reference}")
             decoded += "~" if token[index + 1] == "0" else "/"
             index += 2
         return decoded

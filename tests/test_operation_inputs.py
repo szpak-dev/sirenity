@@ -4,9 +4,9 @@ import pytest
 from openapi_documents import PARAMETER_MEDIA_SCHEMA
 
 from sirenity import (
-    ModwireSirenError,
     SirenContext,
     SirenDelegatedInput,
+    SirenityError,
     SirenOperationInput,
     audit,
     siren,
@@ -28,8 +28,10 @@ class TestOperationInputs:
                 "allowReserved": True,
                 "schema": {"$ref": "#/components/schemas/Filter"},
             },
-            {"name": "trace", "in": "header", "required": True, "schema": {"type": "string"}},
-            {"name": "session", "in": "cookie", "explode": False, "schema": {"type": "string"}},
+            {"name": "trace", "in": "header", "required": True,
+                "schema": {"type": "string"}},
+            {"name": "session", "in": "cookie",
+                "explode": False, "schema": {"type": "string"}},
         ]
         document["components"] = {
             "requestBodies": {
@@ -86,7 +88,8 @@ class TestOperationInputs:
         assert collection_input.media_type is None
         assert collection_input.definition is None
         assert collection_input.official_fields == ("page",)
-        assert all(isinstance(value, SirenDelegatedInput) for value in collection_input.delegated_inputs)
+        assert all(isinstance(value, SirenDelegatedInput)
+                   for value in collection_input.delegated_inputs)
         assert [
             (
                 value.name,
@@ -114,8 +117,10 @@ class TestOperationInputs:
                     "properties": {"state": {"type": "string"}},
                 },
             ),
-            ("trace", "header", "json", True, "simple", False, False, {"type": "string"}),
-            ("session", "cookie", "json", False, "form", False, False, {"type": "string"}),
+            ("trace", "header", "json", True, "simple",
+             False, False, {"type": "string"}),
+            ("session", "cookie", "json", False,
+             "form", False, False, {"type": "string"}),
         ]
         assert isinstance(body_input, SirenOperationInput)
         assert body_input.media_type == "application/json"
@@ -148,7 +153,8 @@ class TestOperationInputs:
             },
         }
         assert [
-            (value.name, value.location, value.kind, value.required, value.media_type)
+            (value.name, value.location, value.kind,
+             value.required, value.media_type)
             for value in body_input.delegated_inputs
         ] == [
             ("metadata", "body", "object", True, "application/json"),
@@ -168,8 +174,10 @@ class TestOperationInputs:
             )
         ).model_dump(by_alias=True, mode="json", exclude_none=True)
 
-        assert projected["actions"][0]["fields"] == [{"name": "title", "type": "text"}]
-        assert set(projected["actions"][0]) == {"name", "href", "method", "type", "fields"}
+        assert projected["actions"][0]["fields"] == [
+            {"name": "title", "type": "text"}]
+        assert set(projected["actions"][0]) == {
+            "name", "href", "method", "type", "fields"}
         assert audit(document).compatible is True
 
     def test_public_facade_exposes_one_non_json_body_as_delegated_input(self):
@@ -203,5 +211,5 @@ class TestOperationInputs:
         engine = siren(document)
 
         assert engine.operation_input("list_records") is None
-        with pytest.raises(ModwireSirenError, match="Siren operation input lookup failed"):
+        with pytest.raises(SirenityError, match="Siren operation input lookup failed"):
             engine.operation_input("missing")

@@ -5,7 +5,7 @@ from typing import Any
 from openapi_spec_validator import validate
 
 from ..contexts.runtime.engine import SirenEngine
-from ..contexts.shared import ModwireSirenError
+from ..contexts.shared import SirenContractError, SirenityError
 from ..wiring import SirenApplicationContainer
 
 
@@ -148,6 +148,31 @@ def siren(
     Call `audit(openapi)` first when a consumer needs a deterministic list of every current
     incompatibility before using this strict fail-fast entry point.
 
+    #### Response relationships
+
+    A response `links` object can declare a navigational Siren relationship. Target an operation with
+    standard `operationId` or local `operationRef`, bind each target path parameter with a
+    `$response.body#...` runtime expression, and add `x-sirenity` metadata for the Siren relation and
+    target scope. The compiler rejects an unknown target, an incomplete path binding, or malformed
+    expression during startup; a missing runtime response value fails projection deterministically.
+
+    ```yaml
+    responses:
+      "200":
+        links:
+          diagrams:
+            operationId: list_diagram_set_diagrams
+            parameters:
+              path.diagram_set_id: $response.body#/diagram_set_id
+            x-sirenity:
+              rel: collection
+              scope: collection
+    ```
+
+    Declared relationships do not need application capability policy merely to appear. Continue using
+    `SirenRelationship` for relationships that are defined by application runtime policy rather than
+    the OpenAPI contract.
+
     #### Explicit title metadata
 
     The root document uses `info.title`, and exposes `info.version` as the official Siren
@@ -239,22 +264,35 @@ def siren(
     slash. Every OpenAPI path must belong to `source_path`.
     """
 
+    if not isinstance(openapi, Mapping):
+        raise SirenContractError(
+            "#", "input", "OpenAPI document must be a mapping.")
+    if not isinstance(source_path, str) or not source_path.startswith("/"):
+        raise SirenContractError(
+            "#/source_path", "input", "Siren source path must start with '/'.")
+    if not isinstance(public_path, str) or not public_path.startswith("/"):
+        raise SirenContractError(
+            "#/public_path", "input", "Siren public path must start with '/'.")
+    source_path = source_path.rstrip("/") or "/"
+    public_path = public_path.rstrip("/") or "/"
     try:
-        if not isinstance(openapi, Mapping):
-            raise ModwireSirenError("OpenAPI document must be a mapping")
-        if not isinstance(source_path, str) or not source_path.startswith("/"):
-            raise ModwireSirenError("Siren source path must start with '/'")
-        if not isinstance(public_path, str) or not public_path.startswith("/"):
-            raise ModwireSirenError("Siren public path must start with '/'")
-        source_path = source_path.rstrip("/") or "/"
-        public_path = public_path.rstrip("/") or "/"
         document = json.loads(json.dumps(openapi))
+    except Exception as error:
+        raise SirenContractError(
+            "#", "input", "OpenAPI document must be JSON-compatible.") from error
+    try:
         validate(document)
     except Exception as error:
-        raise ModwireSirenError("Invalid or unsupported OpenAPI contract") from error
+        raise SirenContractError(
+            "#", "openapi", "OpenAPI document does not conform to OpenAPI 3.1.") from error
     try:
         application = SirenApplicationContainer().application()
         api = application.api_service().build(document, source_path, public_path)
         return application.engine_factory().create(api)
+    except SirenContractError:
+        raise
+    except SirenityError as error:
+        raise SirenContractError("#", "compilation", str(error)) from error
     except Exception as error:
-        raise ModwireSirenError("Invalid or unsupported OpenAPI contract") from error
+        raise SirenContractError(
+            "#", "compilation", "Sirenity could not compile the OpenAPI document.") from error

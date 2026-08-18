@@ -4,7 +4,7 @@ from urllib.parse import quote, unquote
 
 from pydantic import JsonValue, model_validator
 
-from sirenity.contexts.shared import BaseState, ModwireSirenError
+from sirenity.contexts.shared import BaseState, SirenityError
 
 from ...document import SirenDocument, SirenLink
 from ...engine import SirenEngine
@@ -37,22 +37,25 @@ class SirenAdapter(BaseState):
     def validate_routes(self) -> "SirenAdapter":
         profile_types = tuple(type(profile) for profile in self.profiles)
         if len(set(profile_types)) != len(profile_types):
-            raise ModwireSirenError("Siren adapter profile types must be unique")
+            raise SirenityError("Siren adapter profile types must be unique")
         if any(not isinstance(profile, SirenAdapterProfile) for profile in self.profiles):
-            raise ModwireSirenError("Siren adapter profiles must implement SirenAdapterProfile")
+            raise SirenityError(
+                "Siren adapter profiles must implement SirenAdapterProfile")
         templates = {}
         for route in self.routes:
             for template in dict.fromkeys((route.source_path, route.public_path)):
-                parts = template.strip("/").split("/") if template != "/" else []
+                parts = template.strip(
+                    "/").split("/") if template != "/" else []
                 canonical_parts = tuple(
-                    "{}" if part.startswith("{") and part.endswith("}") else part
+                    "{}" if part.startswith(
+                        "{") and part.endswith("}") else part
                     for part in parts
                 )
                 canonical = "/" + "/".join(canonical_parts)
                 key = (route.method, canonical)
                 existing = templates.get(key)
                 if existing is not None:
-                    raise ModwireSirenError(
+                    raise SirenityError(
                         f"Ambiguous Siren adapter templates for {route.method} {canonical}: "
                         f"{existing[0]!r} ({existing[1]}) and {route.operation_id!r} ({template})"
                     )
@@ -67,8 +70,10 @@ class SirenAdapter(BaseState):
             if route.method != method.upper():
                 continue
             for template in dict.fromkeys((route.source_path, route.public_path)):
-                template_parts = template.strip("/").split("/") if template != "/" else []
-                path_parts = normalized.strip("/").split("/") if normalized != "/" else []
+                template_parts = template.strip(
+                    "/").split("/") if template != "/" else []
+                path_parts = normalized.strip(
+                    "/").split("/") if normalized != "/" else []
                 if len(template_parts) != len(path_parts):
                     continue
                 values = {}
@@ -87,7 +92,8 @@ class SirenAdapter(BaseState):
                     if selected_specificity is None or specificity > selected_specificity:
                         selected = SirenAdapterMatch(
                             operation_id=route.operation_id,
-                            path_values={name: unquote(value) for name, value in values.items()},
+                            path_values={name: unquote(
+                                value) for name, value in values.items()},
                         )
                         selected_specificity = specificity
         return selected
@@ -96,15 +102,17 @@ class SirenAdapter(BaseState):
         match = self.match(method, path)
         if match is None:
             return None
-        routes = [route for route in self.routes if route.operation_id == match.operation_id]
+        routes = [
+            route for route in self.routes if route.operation_id == match.operation_id]
         if len(routes) != 1:
-            raise ModwireSirenError(
+            raise SirenityError(
                 f"Siren adapter operation requires exactly one route: {match.operation_id}"
             )
         route = routes[0]
         public_path = self.render_path(route.public_path, match.path_values)
         normalized = "/" + path.strip("/") if path.strip("/") else "/"
-        normalized_public = "/" + public_path.strip("/") if public_path.strip("/") else "/"
+        normalized_public = "/" + \
+            public_path.strip("/") if public_path.strip("/") else "/"
         if normalized != normalized_public:
             return None
         source_path = self.render_path(route.source_path, match.path_values)
@@ -124,8 +132,10 @@ class SirenAdapter(BaseState):
             match = None
             if request.operation_id is None and request.method is not None and request.path is not None:
                 match = self.match(request.method, request.path)
-            operation_id = request.operation_id or (match.operation_id if match is not None else None)
-            path_values = dict(match.path_values if match is not None else {}) | dict(request.path_values)
+            operation_id = request.operation_id or (
+                match.operation_id if match is not None else None)
+            path_values = dict(match.path_values if match is not None else {}) | dict(
+                request.path_values)
             if operation_id is None:
                 document = self.error(request)
             else:
@@ -148,7 +158,8 @@ class SirenAdapter(BaseState):
                     relationships=request.policy.relationships,
                 )
                 if request.status >= 400 and not self.engine.has_response(context):
-                    document = self.engine.project_error(context, request.request_url)
+                    document = self.engine.project_error(
+                        context, request.request_url)
                 else:
                     document = self.engine.project_response(context)
             headers = {
@@ -170,14 +181,16 @@ class SirenAdapter(BaseState):
                     "transfer-encoding",
                 }
             }
-            payload = document.model_dump(by_alias=True, mode="json", exclude_none=True)
+            payload = document.model_dump(
+                by_alias=True, mode="json", exclude_none=True)
             if self.profiles and operation_id is not None:
                 operation_inputs: dict[str, SirenOperationInput | None] = {}
                 for route in self.routes:
                     if route.operation_id not in operation_inputs:
                         value = self.engine.operation_input(route.operation_id)
                         operation_inputs[route.operation_id] = (
-                            value.model_copy(deep=True) if value is not None else None
+                            value.model_copy(
+                                deep=True) if value is not None else None
                         )
                 operation_input = operation_inputs.get(operation_id)
                 for profile in self.profiles:
@@ -189,7 +202,8 @@ class SirenAdapter(BaseState):
                             else None
                         ),
                         operation_inputs={
-                            name: value.model_copy(deep=True) if value is not None else None
+                            name: value.model_copy(
+                                deep=True) if value is not None else None
                             for name, value in operation_inputs.items()
                         },
                         document=payload,
@@ -201,12 +215,14 @@ class SirenAdapter(BaseState):
                 headers=headers,
             )
         except Exception as error:
-            raise ModwireSirenError("Siren adapter response failed") from error
+            raise SirenityError("Siren adapter response failed") from error
 
     def capabilities(self, operation_id: str) -> frozenset[str]:
-        operations = [operation for operation in self.engine.api.operations if operation.name == operation_id]
+        operations = [
+            operation for operation in self.engine.api.operations if operation.name == operation_id]
         if len(operations) != 1:
-            raise ModwireSirenError(f"Siren response references unknown operation: {operation_id}")
+            raise SirenityError(
+                f"Siren response references unknown operation: {operation_id}")
         operation = operations[0]
         if operation.resource is None:
             return frozenset(self.engine.api.root.operations)
@@ -215,13 +231,15 @@ class SirenAdapter(BaseState):
             if resource.reference == operation.resource
         ]
         if len(resources) != 1:
-            raise ModwireSirenError(f"Siren operation references unknown resource: {operation_id}")
+            raise SirenityError(
+                f"Siren operation references unknown resource: {operation_id}")
         resource = resources[0]
         return frozenset((*resource.collection_operations, *resource.entity_operations))
 
     def error(self, request: SirenAdapterRequest) -> SirenDocument:
         if request.status < 400:
-            raise ModwireSirenError("An unmatched successful response cannot be projected")
+            raise SirenityError(
+                "An unmatched successful response cannot be projected")
         properties = {"status": request.status}
         if isinstance(request.result, dict):
             properties = dict(request.result) | properties
@@ -231,7 +249,8 @@ class SirenAdapter(BaseState):
             properties["result"] = request.result
         links = ()
         if request.request_url is not None:
-            links = (SirenLink(rel=("self",), title=request.policy.title, href=request.request_url),)
+            links = (SirenLink(rel=("self",),
+                     title=request.policy.title, href=request.request_url),)
         return SirenDocument(
             class_=("error",),
             title=request.policy.title,

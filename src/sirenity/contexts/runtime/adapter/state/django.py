@@ -1,7 +1,7 @@
 import json
 from collections.abc import Callable
 
-from sirenity.contexts.shared import BaseState, ModwireSirenError
+from sirenity.contexts.shared import BaseState, SirenityError
 
 from ..contracts import SirenCapabilityPolicy
 from ..values import SirenAccept, SirenAdapterPolicy, SirenAdapterRequest
@@ -37,7 +37,8 @@ class SirenDjangoMiddleware(BaseState):
 
     def __call__(self, request: object) -> object:
         match = self.adapter.match(request.method, request.path)
-        dispatch_path = self.adapter.dispatch_path(request.method, request.path)
+        dispatch_path = self.adapter.dispatch_path(
+            request.method, request.path)
         original_path = request.path
         original_path_info = request.path_info
         if dispatch_path is not None:
@@ -59,7 +60,8 @@ class SirenDjangoMiddleware(BaseState):
             return response
         if getattr(response, "streaming", False):
             return response
-        content_type = response.get("Content-Type", "").split(";", 1)[0].strip().lower()
+        content_type = response.get(
+            "Content-Type", "").split(";", 1)[0].strip().lower()
         if content_type == "application/vnd.siren+json":
             patch_vary_headers(response, ("Accept",))
             return response
@@ -72,12 +74,16 @@ class SirenDjangoMiddleware(BaseState):
             return response
         result = json.loads(content) if content else None
         if isinstance(self.policy, SirenCapabilityPolicy):
-            selected = self.policy.select(match.operation_id, response.status_code, request, result)
+            selected = self.policy.select(
+                match.operation_id, response.status_code, request, result)
         else:
-            selected = self.policy(match.operation_id, response.status_code, request, result)
+            selected = self.policy(
+                match.operation_id, response.status_code, request, result)
         if not isinstance(selected, SirenAdapterPolicy):
-            raise ModwireSirenError("Siren capability policy must return SirenAdapterPolicy")
-        query = tuple((name, value) for name in request.GET for value in request.GET.getlist(name))
+            raise SirenityError(
+                "Siren capability policy must return SirenAdapterPolicy")
+        query = tuple((name, value)
+                      for name in request.GET for value in request.GET.getlist(name))
         projected = self.adapter.respond(SirenAdapterRequest(
             operation_id=match.operation_id,
             method=request.method,

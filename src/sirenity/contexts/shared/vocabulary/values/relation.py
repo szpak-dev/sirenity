@@ -2,7 +2,7 @@ from typing import Any, ClassVar
 
 from pydantic_core import CoreSchema, core_schema
 
-from sirenity.contexts.shared import ModwireSirenError
+from sirenity.contexts.shared import SirenityError
 
 from .uri import SirenUri
 
@@ -107,9 +107,9 @@ class SirenRelation(str):
             return cls(value)
         try:
             SirenUri.validate(value)
-        except ModwireSirenError as error:
+        except SirenityError as error:
             message = "Siren relation must be an official relation token or URI."
-            raise ModwireSirenError(message) from error
+            raise SirenityError(message) from error
         return cls(value)
 
     @classmethod

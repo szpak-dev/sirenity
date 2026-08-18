@@ -2,7 +2,7 @@ from collections.abc import Mapping
 
 from pytest_bdd import given, parsers, scenarios, then, when
 
-from sirenity import ModwireSirenError, SirenAction, SirenDocument, SirenField
+from sirenity import SirenAction, SirenDocument, SirenField, SirenityError
 
 
 class ActionSteps:
@@ -11,7 +11,7 @@ class ActionSteps:
     document: SirenDocument | None = None
     payload: Mapping[str, object] | None = None
     payloads: tuple[Mapping[str, object], ...] | None = None
-    error: ModwireSirenError | ValueError | None = None
+    error: SirenityError | ValueError | None = None
     unsupported_method: str | None = None
     invalid_href: str | None = None
     invalid_media_type: str | None = None
@@ -51,7 +51,8 @@ class ActionSteps:
         ActionSteps.invalid_href = None
         ActionSteps.invalid_media_type = None
         ActionSteps.duplicate_names = False
-        ActionSteps.action = SirenAction(name="update", href="https://api.example.com/records/42")
+        ActionSteps.action = SirenAction(
+            name="update", href="https://api.example.com/records/42")
 
     @staticmethod
     @given("public Siren actions for every permitted method", stacklevel=2)
@@ -144,8 +145,10 @@ class ActionSteps:
         ActionSteps.duplicate_names = False
         ActionSteps.document = SirenDocument(
             actions=(
-                SirenAction(name="create", href="https://api.example.com/records"),
-                SirenAction(name="update", href="https://api.example.com/records/42"),
+                SirenAction(name="create",
+                            href="https://api.example.com/records"),
+                SirenAction(name="update",
+                            href="https://api.example.com/records/42"),
             ),
         )
 
@@ -210,18 +213,21 @@ class ActionSteps:
             if ActionSteps.duplicate_names:
                 ActionSteps.document = SirenDocument(
                     actions=(
-                        SirenAction(name="update", href="https://api.example.com/records/42"),
-                        SirenAction(name="update", href="https://api.example.com/records/42"),
+                        SirenAction(name="update",
+                                    href="https://api.example.com/records/42"),
+                        SirenAction(name="update",
+                                    href="https://api.example.com/records/42"),
                     ),
                 )
-        except (ModwireSirenError, ValueError) as error:
+        except (SirenityError, ValueError) as error:
             ActionSteps.error = error
 
     @staticmethod
     @when("it is serialized", stacklevel=2)
     def serialized_action() -> None:
         assert isinstance(ActionSteps.action, SirenAction)
-        ActionSteps.payload = ActionSteps.action.model_dump(by_alias=True, mode="json", exclude_none=True)
+        ActionSteps.payload = ActionSteps.action.model_dump(
+            by_alias=True, mode="json", exclude_none=True)
 
     @staticmethod
     @when("they are serialized", stacklevel=2)
@@ -235,7 +241,8 @@ class ActionSteps:
     @when("its actions are serialized", stacklevel=2)
     def serialized_document_actions() -> None:
         assert isinstance(ActionSteps.document, SirenDocument)
-        ActionSteps.payload = ActionSteps.document.model_dump(by_alias=True, mode="json", exclude_none=True)
+        ActionSteps.payload = ActionSteps.document.model_dump(
+            by_alias=True, mode="json", exclude_none=True)
 
     @staticmethod
     @then("the action has its official members", stacklevel=2)
@@ -263,15 +270,18 @@ class ActionSteps:
     @then("their methods are the permitted Siren methods", stacklevel=2)
     def action_methods_are_permitted_siren_methods() -> None:
         assert ActionSteps.payloads is not None
-        assert [payload["method"] for payload in ActionSteps.payloads] == ["DELETE", "GET", "PATCH", "POST", "PUT"]
+        assert [payload["method"] for payload in ActionSteps.payloads] == [
+            "DELETE", "GET", "PATCH", "POST", "PUT"]
 
     @staticmethod
     @then('the document has actions named "create" then "update"', stacklevel=2)
     def document_has_ordered_action_names() -> None:
         assert ActionSteps.payload == {
             "actions": [
-                {"name": "create", "method": "GET", "href": "https://api.example.com/records"},
-                {"name": "update", "method": "GET", "href": "https://api.example.com/records/42"},
+                {"name": "create", "method": "GET",
+                    "href": "https://api.example.com/records"},
+                {"name": "update", "method": "GET",
+                    "href": "https://api.example.com/records/42"},
             ],
         }
 
@@ -287,13 +297,16 @@ class ActionSteps:
         if ActionSteps.unsupported_method is not None:
             assert isinstance(ActionSteps.error, ValueError)
             errors = ActionSteps.error.errors(include_url=False)
-            assert any(error["loc"] == ("method",) and error["type"] == "enum" for error in errors)
+            assert any(error["loc"] == ("method",)
+                       and error["type"] == "enum" for error in errors)
         elif ActionSteps.invalid_href is not None:
             assert str(ActionSteps.error) == "Siren URI must be a valid URI."
         elif ActionSteps.invalid_media_type is not None:
-            assert str(ActionSteps.error) == "Siren media type must use the official media-type grammar."
+            assert str(
+                ActionSteps.error) == "Siren media type must use the official media-type grammar."
         else:
-            assert str(ActionSteps.error) == "Siren document action names must be unique."
+            assert str(
+                ActionSteps.error) == "Siren document action names must be unique."
 
 
 scenarios("../features/actions.feature")

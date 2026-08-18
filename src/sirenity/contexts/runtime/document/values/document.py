@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pydantic import model_validator
 
-from sirenity.contexts.shared import ModwireSirenError
+from sirenity.contexts.shared import SirenityError
 
 from .embedded_link import SirenEmbeddedLink
 from .embedded_representation import SirenEmbeddedRepresentation
@@ -18,11 +18,12 @@ class SirenDocument(SirenEntity):
     belong in `entities`.
     """
 
-    entities: tuple[SirenEmbeddedLink | SirenEmbeddedRepresentation, ...] | None = None
+    entities: tuple[SirenEmbeddedLink |
+                    SirenEmbeddedRepresentation, ...] | None = None
 
     @model_validator(mode="after")
     def validate_action_names(self) -> SirenDocument:
         actions = self.actions or ()
         if len({action.name for action in actions}) != len(actions):
-            raise ModwireSirenError("Siren document action names must be unique.")
+            raise SirenityError("Siren document action names must be unique.")
         return self

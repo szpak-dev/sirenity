@@ -1,4 +1,4 @@
-from .foundation import BaseState, BaseValue, ModwireSirenError
+from .foundation import BaseState, BaseValue, SirenContractError, SirenityError
 from .vocabulary import (
     SirenActionMethod,
     SirenFieldType,
@@ -12,12 +12,13 @@ from .vocabulary import (
 __all__ = [
     "BaseState",
     "BaseValue",
-    "ModwireSirenError",
     "SirenActionMethod",
+    "SirenContractError",
     "SirenFieldType",
     "SirenHttpMethod",
     "SirenMediaType",
     "SirenRelation",
     "SirenScope",
     "SirenUri",
+    "SirenityError",
 ]

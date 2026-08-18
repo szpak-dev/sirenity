@@ -2,7 +2,7 @@ from typing import Any
 
 from pydantic import Field
 
-from sirenity.contexts.shared import BaseState, ModwireSirenError, SirenActionMethod, SirenHttpMethod
+from sirenity.contexts.shared import BaseState, SirenActionMethod, SirenHttpMethod, SirenityError
 
 from ...compatibility import SirenCompatibilityFinding
 from .components import ComponentResolver
@@ -69,7 +69,8 @@ class OpenApiCompatibilityInspection(BaseState):
                 "Use an official Siren action method: GET, POST, PUT, PATCH, or DELETE.",
             )
             return
-        supported_methods = {SirenHttpMethod(value) for value in SirenActionMethod.values()}
+        supported_methods = {SirenHttpMethod(
+            value) for value in SirenActionMethod.values()}
         if operation_method not in supported_methods or not isinstance(operation, dict):
             return
         location = self.location("paths", path, method_name)
@@ -99,15 +100,17 @@ class OpenApiCompatibilityInspection(BaseState):
                 str(error),
                 "Use an unambiguous plural collection or entity route.",
             )
-        self.parameters(path_item.get("parameters", ()), self.location("paths", path, "parameters"))
-        self.parameters(operation.get("parameters", ()), self.location("paths", path, method_name, "parameters"))
+        self.parameters(path_item.get("parameters", ()),
+                        self.location("paths", path, "parameters"))
+        self.parameters(operation.get("parameters", ()), self.location(
+            "paths", path, method_name, "parameters"))
         self.request_body(operation, location)
         self.response_descriptors(operation, location)
 
     def response_descriptors(self, operation: dict[str, Any], location: str) -> None:
         try:
             self.responses.responses(operation)
-        except (ModwireSirenError, ValueError) as error:
+        except (SirenityError, ValueError) as error:
             self.add(
                 self.location_from(location, "responses"),
                 "response-schema",
@@ -123,7 +126,8 @@ class OpenApiCompatibilityInspection(BaseState):
             try:
                 definition = self.components.parameter(parameter)
             except ValueError as error:
-                self.add(pointer, "component-reference", str(error), "Use a resolvable local component reference.")
+                self.add(pointer, "component-reference", str(error),
+                         "Use a resolvable local component reference.")
                 continue
             name = definition.get("name")
             parameter_location = definition.get("in")
@@ -161,9 +165,11 @@ class OpenApiCompatibilityInspection(BaseState):
     def request_body(self, operation: dict[str, Any], location: str) -> None:
         body_location = self.location_from(location, "requestBody")
         try:
-            body = self.components.request_body(operation.get("requestBody", {}))
+            body = self.components.request_body(
+                operation.get("requestBody", {}))
         except ValueError as error:
-            self.add(body_location, "component-reference", str(error), "Use a resolvable local component reference.")
+            self.add(body_location, "component-reference", str(error),
+                     "Use a resolvable local component reference.")
             return
         content = body.get("content", {}) if isinstance(body, dict) else {}
         if not content:
@@ -213,7 +219,8 @@ class OpenApiCompatibilityInspection(BaseState):
         try:
             definition = self.components.schema(schema)
         except ValueError as error:
-            self.add(schema_location, "component-reference", str(error), "Use a resolvable local component reference.")
+            self.add(schema_location, "component-reference", str(error),
+                     "Use a resolvable local component reference.")
             return
         if definition.get("type") != "object":
             self.add(
@@ -241,12 +248,13 @@ class OpenApiCompatibilityInspection(BaseState):
                     "Use named object properties with scalar schemas.",
                 )
                 continue
-            self.field(name, value, self.location_from(schema_location, "properties", name))
+            self.field(name, value, self.location_from(
+                schema_location, "properties", name))
 
     def field(self, name: str, schema: dict[str, Any], location: str) -> None:
         try:
             self.projection.field(name, schema)
-        except (ModwireSirenError, ValueError):
+        except (SirenityError, ValueError):
             if self.projection.delegated_kind(name, schema) is not None:
                 return
             self.add(

@@ -3,7 +3,7 @@ from collections.abc import Mapping
 from typing import Any
 
 from sirenity.contexts.graph import SirenApi, SirenResource
-from sirenity.contexts.shared import ModwireSirenError, SirenRelation
+from sirenity.contexts.shared import SirenityError, SirenRelation
 
 from ...document import SirenDocument, SirenEmbeddedRepresentation
 from ...request import SirenContext
@@ -19,4 +19,4 @@ class SirenEntityDocumentService(ABC):
         context: SirenContext,
         rel: tuple[SirenRelation, ...],
     ) -> SirenDocument | SirenEmbeddedRepresentation:
-        raise ModwireSirenError
+        raise SirenityError

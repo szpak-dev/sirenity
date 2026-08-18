@@ -3,7 +3,7 @@ from typing import ClassVar
 from pydantic import Field, model_validator
 from pydantic.json_schema import SkipJsonSchema
 
-from sirenity.contexts.shared import BaseValue, ModwireSirenError, SirenActionMethod, SirenMediaType, SirenUri
+from sirenity.contexts.shared import BaseValue, SirenActionMethod, SirenityError, SirenMediaType, SirenUri
 
 from .field import SirenField
 
@@ -31,5 +31,5 @@ class SirenAction(BaseValue):
     def validate_field_names(self) -> "SirenAction":
         fields = self.fields or ()
         if len({field.name for field in fields}) != len(fields):
-            raise ModwireSirenError("Siren action field names must be unique.")
+            raise SirenityError("Siren action field names must be unique.")
         return self

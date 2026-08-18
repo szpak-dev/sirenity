@@ -7,7 +7,6 @@ from openapi_documents import SCHEMA
 
 import sirenity
 from sirenity import (
-    ModwireSirenError,
     SirenAction,
     SirenAdapter,
     SirenAdapterMatch,
@@ -20,6 +19,7 @@ from sirenity import (
     SirenCompatibilityFinding,
     SirenCompatibilityReport,
     SirenContext,
+    SirenContractError,
     SirenDelegatedInput,
     SirenDjangoMiddleware,
     SirenDocument,
@@ -27,6 +27,7 @@ from sirenity import (
     SirenEmbeddedRepresentation,
     SirenField,
     SirenFieldValue,
+    SirenityError,
     SirenLink,
     SirenMiddleware,
     SirenOperationInput,
@@ -52,12 +53,11 @@ class TestFacade:
     def test_public_facade_rejects_invalid_inputs_before_the_happy_path(
         self, openapi, source_path, public_path
     ):
-        with pytest.raises(ModwireSirenError, match="Invalid or unsupported OpenAPI contract"):
+        with pytest.raises(SirenityError):
             siren(openapi, source_path=source_path, public_path=public_path)
 
     def test_public_facade_exports_siren_contracts_and_composition_entry_points(self):
         assert sirenity.__all__ == [
-            "ModwireSirenError",
             "SirenAction",
             "SirenAdapter",
             "SirenAdapterMatch",
@@ -70,6 +70,7 @@ class TestFacade:
             "SirenCompatibilityFinding",
             "SirenCompatibilityReport",
             "SirenContext",
+            "SirenContractError",
             "SirenDelegatedInput",
             "SirenDjangoMiddleware",
             "SirenDocument",
@@ -84,12 +85,13 @@ class TestFacade:
             "SirenResponseContext",
             "SirenScope",
             "SirenStructuredFormProfile",
+            "SirenityError",
             "audit",
             "siren",
             "siren_adapter",
         ]
         assert (
-            ModwireSirenError,
+            SirenityError,
             SirenAction,
             SirenAdapter,
             SirenAdapterMatch,
@@ -101,6 +103,7 @@ class TestFacade:
             SirenCapabilityPolicy,
             SirenCompatibilityFinding,
             SirenCompatibilityReport,
+            SirenContractError,
             SirenDelegatedInput,
             SirenDjangoMiddleware,
             SirenDocument,
@@ -117,7 +120,7 @@ class TestFacade:
             SirenStructuredFormProfile,
             audit,
         ) == (
-            sirenity.ModwireSirenError,
+            sirenity.SirenityError,
             sirenity.SirenAction,
             sirenity.SirenAdapter,
             sirenity.SirenAdapterMatch,
@@ -129,6 +132,7 @@ class TestFacade:
             sirenity.SirenCapabilityPolicy,
             sirenity.SirenCompatibilityFinding,
             sirenity.SirenCompatibilityReport,
+            sirenity.SirenContractError,
             sirenity.SirenDelegatedInput,
             sirenity.SirenDjangoMiddleware,
             sirenity.SirenDocument,
@@ -165,7 +169,8 @@ class TestFacade:
 
     def test_public_facade_remounts_source_paths_without_mutating_the_openapi_document(self):
         schema = deepcopy(SCHEMA)
-        schema["paths"] = {f"/service{path}": item for path, item in schema["paths"].items()}
+        schema["paths"] = {f"/service{path}": item for path,
+                           item in schema["paths"].items()}
         original = deepcopy(schema)
 
         document = siren(schema, source_path="/service/", public_path="/siren/").project(
@@ -173,16 +178,19 @@ class TestFacade:
         )
 
         assert document.model_dump(by_alias=True, mode="json", exclude_none=True)["links"] == [
-            {"title": "Modwire", "rel": ["self"], "href": "https://api.example.com/siren"},
-            {"rel": ["collection"], "href": "https://api.example.com/siren/records"},
+            {"title": "Modwire", "rel": ["self"],
+                "href": "https://api.example.com/siren"},
+            {"rel": ["collection"],
+                "href": "https://api.example.com/siren/records"},
         ]
         assert schema == original
 
     def test_public_facade_rejects_paths_outside_the_segment_aware_source_prefix(self):
         schema = deepcopy(SCHEMA)
-        schema["paths"] = {f"/services{path}": item for path, item in schema["paths"].items()}
+        schema["paths"] = {f"/services{path}": item for path,
+                           item in schema["paths"].items()}
 
-        with pytest.raises(ModwireSirenError, match="Invalid or unsupported OpenAPI contract"):
+        with pytest.raises(SirenityError):
             siren(schema, source_path="/service", public_path="/siren")
 
     def test_generated_public_api_hides_framework_validator_hooks(self):

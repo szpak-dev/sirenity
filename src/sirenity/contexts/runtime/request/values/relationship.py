@@ -2,7 +2,7 @@ from collections.abc import Mapping
 
 from pydantic import Field, JsonValue, model_validator
 
-from sirenity.contexts.shared import BaseValue, ModwireSirenError, SirenRelation, SirenScope
+from sirenity.contexts.shared import BaseValue, SirenityError, SirenRelation, SirenScope
 
 
 class SirenRelationship(BaseValue):
@@ -41,7 +41,9 @@ class SirenRelationship(BaseValue):
     @model_validator(mode="after")
     def validate_scope(self) -> "SirenRelationship":
         if self.scope == SirenScope.ROOT:
-            raise ModwireSirenError("Siren relationship scope must be entity or collection")
+            raise SirenityError(
+                "Siren relationship scope must be entity or collection")
         if self.scope == SirenScope.COLLECTION and self.embedded:
-            raise ModwireSirenError("Siren collection relationships cannot be embedded")
+            raise SirenityError(
+                "Siren collection relationships cannot be embedded")
         return self

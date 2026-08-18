@@ -7,7 +7,7 @@ from urllib.parse import quote
 from wireup import injectable
 
 from sirenity.contexts.graph import SirenResource
-from sirenity.contexts.shared import ModwireSirenError, SirenUri
+from sirenity.contexts.shared import SirenityError, SirenUri
 
 from ...request import SirenContext
 from ..contracts import SirenHrefService
@@ -35,8 +35,10 @@ class SirenDefaultHrefService(SirenHrefService):
             if path_value is None and resource is not None:
                 path_value = values.get(resource.identifier)
             if path_value is None:
-                raise ModwireSirenError(f"Siren link requires path value: {parameter}")
-            resolved_path = resolved_path.replace(f"{{{parameter}}}", quote(str(path_value), safe=""))
+                raise SirenityError(
+                    f"Siren link requires path value: {parameter}")
+            resolved_path = resolved_path.replace(
+                f"{{{parameter}}}", quote(str(path_value), safe=""))
         href = f"{context.base_url.rstrip('/')}{resolved_path}"
         if not include_query or not context.query:
             return SirenUri.validate(href)
@@ -47,5 +49,6 @@ class SirenDefaultHrefService(SirenHrefService):
                 query_text = ""
             elif isinstance(query_value, bool):
                 query_text = query_text.lower()
-            query_items.append(f"{quote(name, safe='')}={quote(query_text, safe='')}")
+            query_items.append(
+                f"{quote(name, safe='')}={quote(query_text, safe='')}")
         return SirenUri.validate(f"{href}?{'&'.join(query_items)}")

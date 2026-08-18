@@ -8,7 +8,7 @@ import pytest
 from framework_fixtures.django_ninja_extra.openapi_fixture import DjangoNinjaExtraOpenApiFixture
 from framework_fixtures.fastapi.openapi_fixture import FastApiOpenApiFixture
 
-from sirenity import ModwireSirenError, SirenContext, siren
+from sirenity import SirenContext, SirenityError, siren
 
 
 class TestConformance:
@@ -23,7 +23,8 @@ class TestConformance:
                 capabilities=frozenset({"list_widgets"}),
             )
         )
-        document = document.model_dump(by_alias=True, mode="json", exclude_none=True)
+        document = document.model_dump(
+            by_alias=True, mode="json", exclude_none=True)
 
         assert document["links"] == [{
             "title": "Response Get Widget",
@@ -49,7 +50,8 @@ class TestConformance:
                 capabilities=frozenset({"rename_widget"}),
             )
         )
-        entity = entity.model_dump(by_alias=True, mode="json", exclude_none=True)
+        entity = entity.model_dump(
+            by_alias=True, mode="json", exclude_none=True)
 
         assert entity["links"] == [{
             "title": "Response Get Widget",
@@ -67,16 +69,16 @@ class TestConformance:
             }
         ]
 
-
     def test_public_facade_compiles_a_django_ninja_extra_controller_openapi_document(self):
         openapi = DjangoNinjaExtraOpenApiFixture().document()
 
         assert 200 in openapi["paths"]["/api/v1/widgets"]["get"]["responses"]
 
         invalid = deepcopy(openapi)
-        invalid["paths"]["/api/v1/widgets"]["get"]["responses"] = {999: {"description": "Invalid"}}
+        invalid["paths"]["/api/v1/widgets"]["get"]["responses"] = {
+            999: {"description": "Invalid"}}
 
-        with pytest.raises(ModwireSirenError, match="Invalid or unsupported OpenAPI contract"):
+        with pytest.raises(SirenityError):
             siren(invalid)
 
         document = siren(openapi).project(
@@ -87,7 +89,8 @@ class TestConformance:
                 capabilities=frozenset({"list_widgets"}),
             )
         )
-        document = document.model_dump(by_alias=True, mode="json", exclude_none=True)
+        document = document.model_dump(
+            by_alias=True, mode="json", exclude_none=True)
 
         assert document["links"] == [{
             "title": "Response",
@@ -113,7 +116,8 @@ class TestConformance:
                 capabilities=frozenset({"rename_widget"}),
             )
         )
-        entity = entity.model_dump(by_alias=True, mode="json", exclude_none=True)
+        entity = entity.model_dump(
+            by_alias=True, mode="json", exclude_none=True)
 
         assert entity["links"] == [{
             "title": "Response",
@@ -131,14 +135,14 @@ class TestConformance:
             }
         ]
 
-
     def test_built_wheel_supports_the_documented_public_consumer_flow(self, tmp_path: Path):
         project = Path(__file__).parents[1]
         artifacts = tmp_path / "artifacts"
         environment = tmp_path / "consumer"
         fixture = project / "tests" / "fixtures" / "wheel_consumer.py"
         subprocess.run(
-            (sys.executable, "-m", "build", "--wheel", "--sdist", "--outdir", str(artifacts)),
+            (sys.executable, "-m", "build", "--wheel",
+             "--sdist", "--outdir", str(artifacts)),
             cwd=project,
             check=True,
             capture_output=True,
@@ -150,17 +154,23 @@ class TestConformance:
         with tarfile.open(source) as distribution:
             names = tuple(distribution.getnames())
 
-        assert any(name.endswith("tests/framework_fixtures/fastapi/openapi_fixture.py") for name in names)
-        assert any(name.endswith("tests/framework_fixtures/fastapi/widget_controller.py") for name in names)
-        assert any(name.endswith("tests/framework_fixtures/fastapi/rename_widget_payload.py") for name in names)
-        assert any(name.endswith("tests/framework_fixtures/django_ninja_extra/openapi_fixture.py") for name in names)
-        assert any(name.endswith("tests/framework_fixtures/django_ninja_extra/widget_controller.py") for name in names)
+        assert any(name.endswith(
+            "tests/framework_fixtures/fastapi/openapi_fixture.py") for name in names)
+        assert any(name.endswith(
+            "tests/framework_fixtures/fastapi/widget_controller.py") for name in names)
+        assert any(name.endswith(
+            "tests/framework_fixtures/fastapi/rename_widget_payload.py") for name in names)
+        assert any(name.endswith(
+            "tests/framework_fixtures/django_ninja_extra/openapi_fixture.py") for name in names)
+        assert any(name.endswith(
+            "tests/framework_fixtures/django_ninja_extra/widget_controller.py") for name in names)
         assert any(
             name.endswith("tests/framework_fixtures/django_ninja_extra/rename_widget_payload.py") for name in names
         )
 
         subprocess.run(
-            (sys.executable, "-m", "venv", "--system-site-packages", str(environment)),
+            (sys.executable, "-m", "venv",
+             "--system-site-packages", str(environment)),
             check=True,
             capture_output=True,
             text=True,

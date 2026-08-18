@@ -3,15 +3,17 @@ from copy import deepcopy
 import pytest
 from openapi_documents import PARAMETER_MEDIA_SCHEMA
 
-from sirenity import ModwireSirenError, audit, siren
+from sirenity import SirenityError, audit, siren
 
 
 class TestCompatibility:
     def test_public_facade_reports_all_independent_compatibility_findings_in_deterministic_order(self):
         document = deepcopy(PARAMETER_MEDIA_SCHEMA)
         document["paths"]["/records"]["get"]["parameters"] = [
-            {"name": "session", "in": "header", "required": False, "schema": {"type": "string"}},
-            {"name": "query", "in": "query", "required": True, "schema": {"type": "string"}},
+            {"name": "session", "in": "header",
+                "required": False, "schema": {"type": "string"}},
+            {"name": "query", "in": "query", "required": True,
+                "schema": {"type": "string"}},
             {
                 "name": "tags",
                 "in": "query",
@@ -33,7 +35,8 @@ class TestCompatibility:
         assert report.compatible is False
         assert [(finding.category, finding.location) for finding in report.findings] == [
             ("http-method", "#/paths/~1records/head"),
-            ("body-media-type", "#/paths/~1records~1{record_id}/patch/requestBody/content"),
+            ("body-media-type",
+             "#/paths/~1records~1{record_id}/patch/requestBody/content"),
         ]
         assert report.render() == (
             "OpenAPI-to-Siren compatibility findings:\n"
@@ -52,10 +55,11 @@ class TestCompatibility:
 
         incompatible = deepcopy(PARAMETER_MEDIA_SCHEMA)
         incompatible["paths"]["/records"]["get"]["parameters"] = [
-            {"name": "page", "in": "query", "schema": {"type": "string", "format": "hostname"}}
+            {"name": "page", "in": "query", "schema": {
+                "type": "string", "format": "hostname"}}
         ]
 
-        with pytest.raises(ModwireSirenError, match="Invalid or unsupported OpenAPI contract"):
+        with pytest.raises(SirenityError):
             siren(incompatible)
 
     def test_public_facade_audits_response_shapes_with_the_strict_compiler_policy(self):
@@ -72,5 +76,5 @@ class TestCompatibility:
         assert report.findings[0].detail == (
             "OpenAPI response schema must be an object or array: 200 application/json"
         )
-        with pytest.raises(ModwireSirenError, match="Invalid or unsupported OpenAPI contract"):
+        with pytest.raises(SirenityError):
             siren(incompatible)

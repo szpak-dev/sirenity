@@ -3,7 +3,7 @@ from typing import Any, ClassVar
 from jsonschema import FormatChecker
 from pydantic_core import CoreSchema, core_schema
 
-from sirenity.contexts.shared import ModwireSirenError
+from sirenity.contexts.shared import SirenityError
 
 
 class SirenUri(str):
@@ -23,5 +23,5 @@ class SirenUri(str):
     def validate(cls, value: str) -> "SirenUri":
         if not cls.checker.conforms(value, "uri"):
             message = "Siren URI must be a valid URI."
-            raise ModwireSirenError(message)
+            raise SirenityError(message)
         return cls(value)
