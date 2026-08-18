@@ -5,6 +5,7 @@ from pydantic import JsonValue
 
 from sirenity.contexts.shared import BaseValue, SirenMediaType
 
+from .response_binding import SirenResponseBinding
 from .response_link import SirenResponseLink
 
 
@@ -14,3 +15,4 @@ class SirenResponse(BaseValue):
     shape: Literal["object", "array", "empty"]
     definition: Mapping[str, JsonValue] | None = None
     links: tuple[SirenResponseLink, ...] = ()
+    bindings: tuple[SirenResponseBinding, ...] = ()

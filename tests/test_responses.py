@@ -187,6 +187,29 @@ class TestResponses:
             "links": [{"rel": ["self"], "href": "https://api.example.com/articles"}],
         }
 
+    def test_public_engine_binds_response_values_into_item_action_fields(self):
+        schema = deepcopy(self.schema)
+        schema["paths"]["/articles/{article_key}"]["patch"]["requestBody"] = {
+            "content": {"application/json": {"schema": {"type": "object", "properties": {
+                "title": {"type": "string"},
+            }}}}
+        }
+        schema["paths"]["/articles"]["get"]["responses"]["200"]["x-sirenity"] = {
+            "actionBindings": {"update_article": {"title": "$response.body#/title"}}
+        }
+
+        document = siren(schema).project_response(SirenResponseContext(
+            operation_id="list_articles",
+            status=200,
+            result=[{"article_key": "first", "title": "Current"}],
+            base_url="https://api.example.com",
+            item_capabilities=(frozenset({"update_article"}),),
+        )).model_dump(by_alias=True, mode="json", exclude_none=True)
+
+        assert document["entities"][0]["actions"][0]["fields"] == [
+            {"name": "title", "type": "text", "value": "Current"}
+        ]
+
     def test_public_engine_projects_openapi_response_links_without_runtime_relationship_policy(self):
         schema = deepcopy(self.schema)
         schema["paths"]["/articles/{article_key}"]["get"]["responses"]["200"]["links"] = {

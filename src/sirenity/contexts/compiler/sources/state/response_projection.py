@@ -8,7 +8,7 @@ from sirenity.contexts.shared import (
     SirenScope,
 )
 
-from ..values import ResponseDraft, ResponseLinkDraft
+from ..values import ResponseDraft, ResponseLinkDraft, RuntimeBindingDraft
 from .components import ComponentResolver
 
 
@@ -47,7 +47,11 @@ class OpenApiResponseProjection(BaseState):
             content = response.get("content", {})
             if not content:
                 projected.append(ResponseDraft(
-                    status=status, shape="empty", links=self.links(response)))
+                    status=status,
+                    shape="empty",
+                    links=self.links(response),
+                    bindings=self.bindings(response),
+                ))
                 continue
             if not isinstance(content, dict):
                 raise SirenityError(
@@ -83,6 +87,7 @@ class OpenApiResponseProjection(BaseState):
                     shape=shape,
                     definition=definition,
                     links=self.links(response),
+                    bindings=self.bindings(response),
                 ))
         return tuple(projected)
 
@@ -140,3 +145,22 @@ class OpenApiResponseProjection(BaseState):
                 scope=link_scope,
             ))
         return tuple(links)
+
+    def bindings(self, response: dict[str, Any]) -> tuple[RuntimeBindingDraft, ...]:
+        extension = response.get("x-sirenity", {})
+        if not isinstance(extension, dict):
+            raise SirenityError("OpenAPI response x-sirenity metadata must be an object")
+        source = extension.get("actionBindings", {})
+        if not isinstance(source, dict):
+            raise SirenityError("OpenAPI response action bindings must be an object")
+        bindings = []
+        for operation, fields in source.items():
+            if not isinstance(operation, str) or not operation or not isinstance(fields, dict):
+                raise SirenityError("OpenAPI response action binding is invalid")
+            if not fields or any(
+                not isinstance(name, str) or not name or not isinstance(expression, str)
+                for name, expression in fields.items()
+            ):
+                raise SirenityError("OpenAPI response action binding fields are invalid")
+            bindings.append(RuntimeBindingDraft(operation=operation, fields=fields))
+        return tuple(bindings)
