@@ -154,6 +154,8 @@ def siren_adapter(
                 public_path=public_route,
                 method=operation.method,
                 operation_id=operation.name,
+                summary=operation.title or "",
+                description=operation.description,
             ))
         return SirenAdapter(engine=engine, routes=tuple(routes), profiles=profiles)
     except Exception as error:

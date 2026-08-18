@@ -67,6 +67,7 @@ class SirenBuilder:
                     method=operation.method,
                     route=SirenRoute(path=operation.path),
                     title=operation.title,
+                    description=operation.description,
                     media_type=operation.media_type,
                     fields=tuple(
                         SirenField(

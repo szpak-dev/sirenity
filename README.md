@@ -26,6 +26,10 @@ Version 2 is a breaking rewrite. See [MIGRATION.md](MIGRATION.md) when upgrading
 
 This section is generated from the docstrings of the supported root imports. Run `make docs` after changing a public API example or its guidance.
 
+### `siren_mcp`
+
+Expose compiled Siren operation tools for a caller-owned MCP server.
+
 ### `siren_adapter`
 
 Compile a framework-neutral boundary for operation-aware Siren HTTP responses.
@@ -735,4 +739,5 @@ The supported root imports below are generated from `sirenity.__all__`.
 | `audit` | Inspect a valid OpenAPI document against the current official-Siren support boundary. | — |
 | `siren` | Compile a complete OpenAPI 3.1 document into a reusable Siren engine. | — |
 | `siren_adapter` | Compile a framework-neutral boundary for operation-aware Siren HTTP responses. | — |
+| `siren_mcp` | Expose compiled Siren operation tools for a caller-owned MCP server. | — |
 <!-- generated:public-api:end -->

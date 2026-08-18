@@ -38,6 +38,7 @@ from sirenity import (
     audit,
     siren,
     siren_adapter,
+    siren_mcp,
 )
 
 
@@ -89,6 +90,7 @@ class TestFacade:
             "audit",
             "siren",
             "siren_adapter",
+            "siren_mcp",
         ]
         assert (
             SirenityError,
@@ -166,6 +168,7 @@ class TestFacade:
         )
         assert adapter_parameters["profiles"].kind is Parameter.KEYWORD_ONLY
         assert adapter_parameters["profiles"].default == ()
+        assert tuple(signature(siren_mcp).parameters) == ("adapter",)
 
     def test_public_facade_remounts_source_paths_without_mutating_the_openapi_document(self):
         schema = deepcopy(SCHEMA)

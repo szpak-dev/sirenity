@@ -1,4 +1,4 @@
-from .api import SirenMiddleware, audit, siren, siren_adapter
+from .api import SirenMiddleware, audit, siren, siren_adapter, siren_mcp
 from .contexts.compiler.compatibility import SirenCompatibilityFinding, SirenCompatibilityReport
 from .contexts.runtime.adapter import (
     SirenAdapter,
@@ -57,4 +57,5 @@ __all__ = [
     "audit",
     "siren",
     "siren_adapter",
+    "siren_mcp",
 ]

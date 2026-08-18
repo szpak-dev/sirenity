@@ -56,6 +56,10 @@ class OpenApiOperationCompiler(BaseState):
                 if title is not None and not isinstance(title, str):
                     raise SirenityError(
                         f"OpenAPI operation summary must be a string: {method.upper()} {path}")
+                description = operation.get("description", "")
+                if not isinstance(description, str):
+                    raise SirenityError(
+                        f"OpenAPI operation description must be a string: {method.upper()} {path}")
                 ownership = self.routes.ownership(path)
                 fields, input = self.input(path_item, operation)
                 media_type = input.media_type if input else None
@@ -72,6 +76,7 @@ class OpenApiOperationCompiler(BaseState):
                         media_type,
                         input,
                         responses,
+                        description=description,
                     )
                     self.assembly.add_root_operation(name)
                     for field in fields:
@@ -89,6 +94,7 @@ class OpenApiOperationCompiler(BaseState):
                     media_type,
                     input,
                     responses,
+                    description=description,
                 )
                 for field in fields:
                     self.assembly.add_field(

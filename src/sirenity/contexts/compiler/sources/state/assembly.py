@@ -50,6 +50,7 @@ class SirenAssembly(BaseState):
         media_type: SirenMediaType | None = None,
         input: InputDraft | None = None,
         responses: tuple[ResponseDraft, ...] = (),
+        description: str = "",
     ) -> "SirenAssembly":
         self.operations.append(OperationDraft(
             resource=resource,
@@ -58,6 +59,7 @@ class SirenAssembly(BaseState):
             method=method,
             path=path,
             title=title,
+            description=description,
             media_type=media_type,
             input=input,
             responses=responses,

@@ -13,6 +13,7 @@ class SirenOperation(BaseValue):
     method: SirenHttpMethod
     route: SirenRoute
     title: str | None = None
+    description: str = ""
     media_type: SirenMediaType | None = None
     fields: tuple[SirenField, ...] = ()
     input: SirenInput | None = None

@@ -196,6 +196,12 @@ class TestAdapter:
         },
     }
 
+    def test_public_adapter_routes_expose_normalized_operation_metadata(self):
+        routes = {route.operation_id: route for route in siren_adapter(self.schema).routes}
+
+        assert routes["get_api_root"].summary == "Read API entry point"
+        assert routes["get_api_root"].description == ""
+
     def test_framework_neutral_boundary_resolves_mounts_and_projects_every_outcome(self):
         adapter = siren_adapter(
             self.schema, source_path="/api", public_path="/siren")
