@@ -169,6 +169,7 @@ class SirenResponseProjectionService:
             path_values=context.path_values,
             query=context.query,
             capabilities=context.capabilities,
+            action_bindings={binding.operation: binding.fields for binding in response.bindings},
         )
         return self.projection.project_resource(api, request, resource)
 
@@ -191,6 +192,7 @@ class SirenResponseProjectionService:
             path_values=context.path_values,
             query=context.query,
             capabilities=context.capabilities,
+            action_bindings={binding.operation: binding.fields for binding in response.bindings},
         )
         return self.projection.project_resource(api, request, resource)
 

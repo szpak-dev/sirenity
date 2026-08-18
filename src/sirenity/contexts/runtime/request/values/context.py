@@ -43,6 +43,7 @@ class SirenContext(BaseValue):
     path_values: Mapping[str, JsonValue] = Field(default_factory=dict)
     query: tuple[tuple[str, JsonValue], ...] = ()
     capabilities: frozenset[str] = frozenset()
+    action_bindings: Mapping[str, Mapping[str, str]] = Field(default_factory=dict)
 
     @model_validator(mode="after")
     def validate_scope(self) -> "SirenContext":

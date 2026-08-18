@@ -7,6 +7,7 @@ from .resource import Resource
 from .resource_draft import ResourceDraft
 from .response_draft import ResponseDraft
 from .response_link_draft import ResponseLinkDraft
+from .runtime_binding_draft import RuntimeBindingDraft
 
 __all__ = [
     "DelegatedInputDraft",
@@ -18,4 +19,5 @@ __all__ = [
     "ResourceDraft",
     "ResponseDraft",
     "ResponseLinkDraft",
+    "RuntimeBindingDraft",
 ]

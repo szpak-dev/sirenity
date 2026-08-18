@@ -11,6 +11,7 @@ from sirenity.contexts.graph import (
     SirenOperation,
     SirenResource,
     SirenResponse,
+    SirenResponseBinding,
     SirenResponseLink,
     SirenRoot,
     SirenRoute,
@@ -102,6 +103,7 @@ class SirenBuilder:
                             media_type=response.media_type,
                             shape=response.shape,
                             definition=response.definition,
+                            bindings=self.response_bindings(response, fields),
                             links=tuple(
                                 SirenResponseLink(
                                     operation=self.link_operation(
@@ -120,6 +122,25 @@ class SirenBuilder:
                 for operation in operations.values()
             ),
         )
+
+    def response_bindings(
+        self, response, fields: Mapping[str, tuple[FieldDraft, ...]]
+    ) -> tuple[SirenResponseBinding, ...]:
+        values = []
+        for binding in response.bindings:
+            operation_fields = {field.name for field in fields.get(binding.operation, ())}
+            if not operation_fields:
+                raise SirenityError(
+                    f"OpenAPI response action binding targets unknown or delegated operation field: {binding.operation}"
+                )
+            if not set(binding.fields).issubset(operation_fields):
+                raise SirenityError(
+                    f"OpenAPI response action binding targets an unknown or delegated field: {binding.operation}"
+                )
+            if any(not expression.startswith("$response.body#") for expression in binding.fields.values()):
+                raise SirenityError("OpenAPI response action binding runtime expression is unsupported")
+            values.append(SirenResponseBinding(operation=binding.operation, fields=binding.fields))
+        return tuple(values)
 
     def resource_title(
         self, resource: ResourceDraft, operations: Mapping[str, OperationDraft], scope: SirenScope
