@@ -54,7 +54,7 @@ class OpenApiOperationCompiler(BaseState):
                 ownership = self.routes.ownership(path)
                 fields, input = self.input(path_item, operation)
                 media_type = input.media_type if input else None
-                responses = self.responses.responses(operation)
+                responses = self.response_links(self.responses.responses(operation))
                 if ownership is None:
                     self.assembly.add_operation(
                         None,
@@ -205,3 +205,26 @@ class OpenApiOperationCompiler(BaseState):
             official_fields=tuple(field.name for field in fields),
             delegated_inputs=tuple(delegated),
         )
+
+    def response_links(self, responses):
+        values = []
+        for response in responses:
+            links = []
+            for link in response.links:
+                reference = link.operation_ref
+                if reference is not None:
+                    if not reference.startswith("#/paths/"):
+                        raise ModwireSirenError(
+                            f"OpenAPI response link operationRef is unsupported: {reference}"
+                        )
+                    parts = reference[len("#/paths/") :].rsplit("/", 1)
+                    if len(parts) != 2 or not parts[1]:
+                        raise ModwireSirenError(f"OpenAPI response link operationRef is invalid: {reference}")
+                    path = parts[0].replace("~1", "/").replace("~0", "~")
+                    links.append(link.model_copy(update={
+                        "operation_ref": f"{self.routes.public(path)}#{parts[1].lower()}"
+                    }))
+                else:
+                    links.append(link)
+            values.append(response.model_copy(update={"links": tuple(links)}))
+        return tuple(values)

@@ -6,6 +6,7 @@ from .model import (
     SirenOperation,
     SirenResource,
     SirenResponse,
+    SirenResponseLink,
     SirenRoot,
     SirenRoute,
 )
@@ -18,6 +19,7 @@ __all__ = [
     "SirenOperation",
     "SirenResource",
     "SirenResponse",
+    "SirenResponseLink",
     "SirenRoot",
     "SirenRoute",
 ]

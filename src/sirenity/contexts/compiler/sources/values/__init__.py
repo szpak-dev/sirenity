@@ -6,6 +6,7 @@ from .operation_draft import OperationDraft
 from .resource import Resource
 from .resource_draft import ResourceDraft
 from .response_draft import ResponseDraft
+from .response_link_draft import ResponseLinkDraft
 
 __all__ = [
     "DelegatedInputDraft",
@@ -16,4 +17,5 @@ __all__ = [
     "Resource",
     "ResourceDraft",
     "ResponseDraft",
+    "ResponseLinkDraft",
 ]

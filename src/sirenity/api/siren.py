@@ -148,6 +148,31 @@ def siren(
     Call `audit(openapi)` first when a consumer needs a deterministic list of every current
     incompatibility before using this strict fail-fast entry point.
 
+    #### Response relationships
+
+    A response `links` object can declare a navigational Siren relationship. Target an operation with
+    standard `operationId` or local `operationRef`, bind each target path parameter with a
+    `$response.body#...` runtime expression, and add `x-sirenity` metadata for the Siren relation and
+    target scope. The compiler rejects an unknown target, an incomplete path binding, or malformed
+    expression during startup; a missing runtime response value fails projection deterministically.
+
+    ```yaml
+    responses:
+      "200":
+        links:
+          diagrams:
+            operationId: list_diagram_set_diagrams
+            parameters:
+              path.diagram_set_id: $response.body#/diagram_set_id
+            x-sirenity:
+              rel: collection
+              scope: collection
+    ```
+
+    Declared relationships do not need application capability policy merely to appear. Continue using
+    `SirenRelationship` for relationships that are defined by application runtime policy rather than
+    the OpenAPI contract.
+
     #### Explicit title metadata
 
     The root document uses `info.title`, and exposes `info.version` as the official Siren
@@ -251,10 +276,10 @@ def siren(
         document = json.loads(json.dumps(openapi))
         validate(document)
     except Exception as error:
-        raise ModwireSirenError("Invalid or unsupported OpenAPI contract") from error
+        raise ModwireSirenError(f"Invalid or unsupported OpenAPI contract: {error}") from error
     try:
         application = SirenApplicationContainer().application()
         api = application.api_service().build(document, source_path, public_path)
         return application.engine_factory().create(api)
     except Exception as error:
-        raise ModwireSirenError("Invalid or unsupported OpenAPI contract") from error
+        raise ModwireSirenError(f"Invalid or unsupported OpenAPI contract: {error}") from error

@@ -1,3 +1,5 @@
+import re
+from copy import deepcopy
 from typing import ClassVar
 
 import pytest
@@ -185,6 +187,159 @@ class TestResponses:
             ],
             "links": [{"rel": ["self"], "href": "https://api.example.com/articles"}],
         }
+
+    def test_public_engine_projects_openapi_response_links_without_runtime_relationship_policy(self):
+        schema = deepcopy(self.schema)
+        schema["paths"]["/articles/{article_key}"]["get"]["responses"]["200"]["links"] = {
+            "articleCollection": {
+                "operationId": "list_articles",
+                "x-sirenity": {"rel": "collection", "scope": "collection"},
+            }
+        }
+        schema["paths"]["/articles/{article_key}"]["patch"]["responses"]["200"]["links"] = {
+            "article": {
+                "operationRef": "#/paths/~1articles~1{article_key}/get",
+                "parameters": {"path.article_key": "$response.body#/article_key"},
+                "x-sirenity": {"rel": ["self", "canonical"], "scope": "entity"},
+            }
+        }
+
+        entity = siren(schema).project_response(SirenResponseContext(
+            operation_id="get_article",
+            status=200,
+            result={"article_key": "42", "title": "Linked"},
+            base_url="https://api.example.com",
+        )).model_dump(by_alias=True, mode="json", exclude_none=True)
+        command = siren(schema).project_response(SirenResponseContext(
+            operation_id="update_article",
+            status=200,
+            result={"article_key": "42", "title": "Linked"},
+            base_url="https://api.example.com",
+        )).model_dump(by_alias=True, mode="json", exclude_none=True)
+
+        assert entity["links"] == [
+            {"rel": ["self"], "href": "https://api.example.com/articles/42"},
+            {"rel": ["collection"], "href": "https://api.example.com/articles"},
+        ]
+        assert command["links"] == [
+            {"rel": ["self"], "href": "https://api.example.com/articles/42"},
+            {
+                "rel": ["self", "canonical"],
+                "href": "https://api.example.com/articles/42",
+            },
+        ]
+
+    def test_public_engine_rejects_invalid_openapi_response_link_bindings(self):
+        schema = deepcopy(self.schema)
+        schema["paths"]["/articles/{article_key}"]["get"]["responses"]["200"]["links"] = {
+            "article": {
+                "operationId": "get_article",
+                "parameters": {"article_key": "$response.body#/missing"},
+                "x-sirenity": {"rel": "canonical", "scope": "entity"},
+            }
+        }
+
+        with pytest.raises(ModwireSirenError, match="Siren response projection failed"):
+            siren(schema).project_response(SirenResponseContext(
+                operation_id="get_article",
+                status=200,
+                result={"article_key": "42", "title": "Linked"},
+                base_url="https://api.example.com",
+            ))
+
+    def test_public_engine_projects_a_nested_collection_response_link(self):
+        schema = {
+            "openapi": "3.1.1",
+            "info": {"title": "Diagram sets", "version": "1"},
+            "paths": {
+                "/diagram-sets/{diagram_set_id}": {
+                    "parameters": [{
+                        "name": "diagram_set_id",
+                        "in": "path",
+                        "required": True,
+                        "schema": {"type": "string"},
+                    }],
+                    "get": {
+                        "operationId": "get_diagram_set",
+                        "responses": {"200": {
+                            "description": "Diagram set",
+                            "content": {"application/json": {"schema": {"type": "object"}}},
+                            "links": {"diagrams": {
+                                "operationId": "list_diagram_set_diagrams",
+                                "parameters": {
+                                    "path.diagram_set_id": "$response.body#/diagram_set_id"
+                                },
+                                "x-sirenity": {"rel": "collection", "scope": "collection"},
+                            }},
+                        }},
+                    },
+                },
+                "/diagram-sets/{diagram_set_id}/diagrams": {
+                    "parameters": [{
+                        "name": "diagram_set_id",
+                        "in": "path",
+                        "required": True,
+                        "schema": {"type": "string"},
+                    }],
+                    "get": {
+                        "operationId": "list_diagram_set_diagrams",
+                        "responses": {"200": {
+                            "description": "Diagrams",
+                            "content": {"application/json": {"schema": {
+                                "type": "array", "items": {"type": "object"}
+                            }}},
+                        }},
+                    },
+                },
+            },
+        }
+
+        document = siren(schema).project_response(SirenResponseContext(
+            operation_id="get_diagram_set",
+            status=200,
+            result={"diagram_set_id": "set-7"},
+            base_url="https://api.example.com",
+        )).model_dump(by_alias=True, mode="json", exclude_none=True)
+
+        assert document["links"] == [
+            {"rel": ["self"], "href": "https://api.example.com/diagram-sets/set-7"},
+            {
+                "rel": ["collection"],
+                "href": "https://api.example.com/diagram-sets/set-7/diagrams",
+            },
+        ]
+
+    def test_public_engine_rejects_invalid_openapi_response_link_targets_at_startup(self):
+        schema = deepcopy(self.schema)
+        schema["paths"]["/articles/{article_key}"]["get"]["responses"]["200"]["links"] = {
+            "article": {
+                "operationId": "get_article",
+                "parameters": {},
+                "x-sirenity": {"rel": "canonical", "scope": "entity"},
+            }
+        }
+
+        with pytest.raises(ModwireSirenError, match="Invalid or unsupported OpenAPI contract"):
+            siren(schema)
+
+    def test_public_engine_explains_ambiguous_response_link_targets(self):
+        schema = deepcopy(self.schema)
+        schema["paths"]["/articles/{article_key}"]["get"]["responses"]["200"]["links"] = {
+            "article": {
+                "operationId": "get_article",
+                "operationRef": "#/paths/~1articles~1{article_key}/get",
+                "parameters": {"article_key": "$response.body#/article_key"},
+                "x-sirenity": {"rel": "canonical", "scope": "entity"},
+            }
+        }
+
+        with pytest.raises(
+            ModwireSirenError,
+            match=re.escape(
+                "Invalid or unsupported OpenAPI contract: "
+            ) + ".*is valid under each of",
+        ):
+            siren(schema)
 
     def test_public_engine_projects_collection_owned_object_responses_as_entities(self):
         engine = siren(self.schema)

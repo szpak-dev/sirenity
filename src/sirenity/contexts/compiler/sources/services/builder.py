@@ -11,10 +11,11 @@ from sirenity.contexts.graph import (
     SirenOperation,
     SirenResource,
     SirenResponse,
+    SirenResponseLink,
     SirenRoot,
     SirenRoute,
 )
-from sirenity.contexts.shared import ModwireSirenError, SirenHttpMethod, SirenScope
+from sirenity.contexts.shared import ModwireSirenError, SirenHttpMethod, SirenRelation, SirenScope
 
 from ..state import SirenAssembly
 from ..values import FieldDraft, OperationDraft, ResourceDraft
@@ -96,6 +97,15 @@ class SirenBuilder:
                             media_type=response.media_type,
                             shape=response.shape,
                             definition=response.definition,
+                            links=tuple(
+                                SirenResponseLink(
+                                    operation=self.link_operation(link, operations),
+                                    parameters=link.parameters,
+                                    rel=tuple(SirenRelation.validate(value) for value in link.rel),
+                                    scope=link.scope,
+                                )
+                                for link in response.links
+                            ),
                         )
                         for response in operation.responses
                     ),
@@ -138,6 +148,51 @@ class SirenBuilder:
                 if isinstance(title, str) and title:
                     candidates.append((priority, len(candidates), title))
         return min(candidates)[2] if candidates else None
+
+    def link_operation(self, link, operations: Mapping[str, OperationDraft]) -> str:
+        if link.operation_id is not None:
+            operation = operations.get(link.operation_id)
+            if operation is None:
+                raise ModwireSirenError(
+                    f"OpenAPI response link references unknown operation: {link.operation_id}"
+                )
+            target = operation
+        else:
+            reference = link.operation_ref
+            if reference is None or "#" not in reference:
+                raise ModwireSirenError(f"OpenAPI response link operationRef is invalid: {reference}")
+            path, method = reference.rsplit("#", 1)
+            matches = [
+                operation for operation in operations.values()
+                if operation.path == path and operation.method.value.lower() == method
+            ]
+            if len(matches) != 1:
+                raise ModwireSirenError(f"OpenAPI response link operationRef is unknown: {reference}")
+            target = matches[0]
+        if target.resource is None or target.scope != link.scope:
+            raise ModwireSirenError("OpenAPI response link target does not match declared Siren scope")
+        required = {
+            segment[1:-1]
+            for segment in target.path.split("/")
+            if segment.startswith("{") and segment.endswith("}")
+        }
+        supplied = {
+            name[len("path.") :] if name.startswith("path.") else name
+            for name in link.parameters
+        }
+        if supplied != required:
+            raise ModwireSirenError("OpenAPI response link parameters do not match the target route")
+        for expression in link.parameters.values():
+            if not expression.startswith("$response.body#"):
+                raise ModwireSirenError(
+                    f"OpenAPI response link runtime expression is unsupported: {expression}"
+                )
+            pointer = expression[len("$response.body#") :]
+            if pointer and not pointer.startswith("/"):
+                raise ModwireSirenError(
+                    f"OpenAPI response link runtime expression is invalid: {expression}"
+                )
+        return target.name
 
     def resource_index(self, resources: list[ResourceDraft]) -> dict[str, ResourceDraft]:
         index: dict[str, ResourceDraft] = {}
