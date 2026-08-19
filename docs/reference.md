@@ -27,6 +27,8 @@ The supported root imports below are generated from `sirenity.__all__`.
 | `SirenFieldValue` | Describe a selectable Siren action field value. | — |
 | `SirenInput` | !!! abstract "Usage Documentation" | — |
 | `SirenLink` | Describe a navigational Siren link. | — |
+| `SirenMcpExecution` | Carry one caller-executed MCP operation result back to the bridge. | — |
+| `SirenMcpExecutor` | Execute one normalized MCP operation exactly once. | `execute(operation: <class 'sirenity.contexts.runtime.mcp.values.operation.SirenMcpOperation'>) -> <class 'sirenity.contexts.runtime.mcp.values.execution.SirenMcpExecution'>` |
 | `SirenMcpInvocation` | Describe arguments supplied to one compiled MCP operation tool. | — |
 | `SirenMcpOperation` | Represent compiled MCP arguments separated by their HTTP placement. | — |
 | `SirenMcpResult` | !!! abstract "Usage Documentation" | — |
