@@ -13,7 +13,7 @@ from ...request import SirenResponseContext
 @injectable
 @dataclass(frozen=True)
 class SirenStructuredFormProfile:
-    """Emit the versioned Modwire structured-form extension for delegated inputs.
+    """Emit the versioned structured-form extension for delegated inputs.
 
     This opt-in profile adds the non-standard action member
     `https://modwire.dev/siren/structured-form/v1`. Its value has `version: "1"` and ordered

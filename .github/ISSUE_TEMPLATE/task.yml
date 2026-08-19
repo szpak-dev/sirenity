@@ -3,7 +3,7 @@ description: Propose concrete implementation, maintenance, documentation, or rel
 title: "Task: "
 type: Task
 projects:
-  - modwire/1
+  - sirenity/1
 body:
   - type: markdown
     attributes:

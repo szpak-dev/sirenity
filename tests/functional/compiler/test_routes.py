@@ -45,11 +45,13 @@ class TestRoutes:
                 "name": "list_team_records",
                 "href": "https://api.example.com/hypermedia/v2/teams/north%2Feast/records",
                 "method": "GET",
+                "title": "List team records",
             },
             {
                 "name": "search_team_records",
                 "href": "https://api.example.com/hypermedia/v2/teams/north%2Feast/records/search",
                 "method": "GET",
+                "title": "Search team records",
             },
         ]
         assert entity["links"] == [
@@ -63,11 +65,13 @@ class TestRoutes:
                 "name": "get_team_record",
                 "href": "https://api.example.com/hypermedia/v2/teams/north%2Feast/records/r%2F42",
                 "method": "GET",
+                "title": "Read team record",
             },
             {
                 "name": "archive_team_record",
                 "href": "https://api.example.com/hypermedia/v2/teams/north%2Feast/records/r%2F42/archive",
                 "method": "POST",
+                "title": "Archive team record",
             },
         ]
 
@@ -101,6 +105,8 @@ class TestRoutes:
                 "/examples": {
                     "get": {
                         "operationId": "list_examples",
+                        "summary": "List examples",
+                        "description": "List examples.",
                         "responses": {
                             "200": {
                                 "description": "Examples",
@@ -108,7 +114,8 @@ class TestRoutes:
                                     "application/json": {
                                         "schema": {
                                             "type": "array",
-                                            "items": {"type": "object"},
+                                            "title": "Examples",
+                                            "items": {"type": "object", "title": "Example"},
                                         }
                                     }
                                 },
@@ -127,11 +134,13 @@ class TestRoutes:
                     ],
                     "get": {
                         "operationId": "get_example",
+                        "summary": "Read example",
+                        "description": "Read an example.",
                         "responses": {
                             "200": {
                                 "description": "Example",
                                 "content": {
-                                    "application/json": {"schema": {"type": "object"}}
+                                    "application/json": {"schema": {"type": "object", "title": "Example"}}
                                 },
                             }
                         },
@@ -148,11 +157,13 @@ class TestRoutes:
                     ],
                     "get": {
                         "operationId": "read_example_metrics",
+                        "summary": "Read example metrics",
+                        "description": "Read metrics for an example.",
                         "responses": {
                             "200": {
                                 "description": "Metrics",
                                 "content": {
-                                    "application/json": {"schema": {"type": "object"}}
+                                    "application/json": {"schema": {"type": "object", "title": "Example metrics"}}
                                 },
                             }
                         },
@@ -169,6 +180,8 @@ class TestRoutes:
                     ],
                     "get": {
                         "operationId": "list_example_events",
+                        "summary": "List example events",
+                        "description": "List events for an example.",
                         "responses": {
                             "200": {
                                 "description": "Events",
@@ -176,7 +189,8 @@ class TestRoutes:
                                     "application/json": {
                                         "schema": {
                                             "type": "array",
-                                            "items": {"type": "object"},
+                                            "title": "Example events",
+                                            "items": {"type": "object", "title": "Example event"},
                                         }
                                     }
                                 },
@@ -208,10 +222,11 @@ class TestRoutes:
                 "name": "read_example_metrics",
                 "href": "https://api.example.com/examples/one/metrics",
                 "method": "GET",
+                "title": "Read example metrics",
             }
         ]
         assert collection["links"] == [
-            {"rel": ["self"], "href": "https://api.example.com/examples/one/events"}
+            {"title": "Example events", "rel": ["self"], "href": "https://api.example.com/examples/one/events"}
         ]
         assert [action["name"]
                 for action in collection["actions"]] == ["list_example_events"]
@@ -221,7 +236,12 @@ class TestRoutes:
         schema["paths"].update(
             {
                 "/scaffoldings/converge": {
-                    "post": {"operationId": "converge_scaffoldings", "responses": {"200": {"description": "OK"}}}
+                    "post": {
+                        "operationId": "converge_scaffoldings",
+                        "summary": "Converge scaffoldings",
+                        "description": "Converge scaffoldings.",
+                        "responses": {"200": {"description": "OK"}},
+                    }
                 },
                 "/scaffoldings/{scaffolding_id}/schema": {
                     "parameters": [
@@ -232,7 +252,12 @@ class TestRoutes:
                             "schema": {"type": "string"},
                         }
                     ],
-                    "get": {"operationId": "get_scaffolding_schema", "responses": {"200": {"description": "OK"}}},
+                    "get": {
+                        "operationId": "get_scaffolding_schema",
+                        "summary": "Read scaffolding schema",
+                        "description": "Read a scaffolding schema.",
+                        "responses": {"200": {"description": "OK"}},
+                    },
                 },
                 "/scaffoldings/{scaffolding_id}/bundle": {
                     "parameters": [
@@ -243,7 +268,12 @@ class TestRoutes:
                             "schema": {"type": "string"},
                         }
                     ],
-                    "post": {"operationId": "bundle_scaffolding", "responses": {"200": {"description": "OK"}}},
+                    "post": {
+                        "operationId": "bundle_scaffolding",
+                        "summary": "Bundle scaffolding",
+                        "description": "Bundle a scaffolding.",
+                        "responses": {"200": {"description": "OK"}},
+                    },
                 },
                 "/scaffoldings/{scaffolding_id}/preview": {
                     "parameters": [
@@ -254,7 +284,12 @@ class TestRoutes:
                             "schema": {"type": "string"},
                         }
                     ],
-                    "get": {"operationId": "preview_scaffolding", "responses": {"200": {"description": "OK"}}},
+                    "get": {
+                        "operationId": "preview_scaffolding",
+                        "summary": "Preview scaffolding",
+                        "description": "Preview a scaffolding.",
+                        "responses": {"200": {"description": "OK"}},
+                    },
                 },
             }
         )
@@ -280,21 +315,25 @@ class TestRoutes:
                 "name": "converge_scaffoldings",
                 "href": "https://api.example.com/hypermedia/scaffoldings/converge",
                 "method": "POST",
+                "title": "Converge scaffoldings",
             },
             {
                 "name": "get_scaffolding_schema",
                 "href": "https://api.example.com/hypermedia/scaffoldings/scaffolding%2F42/schema",
                 "method": "GET",
+                "title": "Read scaffolding schema",
             },
             {
                 "name": "bundle_scaffolding",
                 "href": "https://api.example.com/hypermedia/scaffoldings/scaffolding%2F42/bundle",
                 "method": "POST",
+                "title": "Bundle scaffolding",
             },
             {
                 "name": "preview_scaffolding",
                 "href": "https://api.example.com/hypermedia/scaffoldings/scaffolding%2F42/preview",
                 "method": "GET",
+                "title": "Preview scaffolding",
             },
         ]
 
@@ -322,7 +361,12 @@ class TestRoutes:
         invalid = deepcopy(ROUTE_POLICY_SCHEMA)
         invalid["paths"]["/api/v2/archives/{team}/records"] = {
             "parameters": [{"name": "team", "in": "path", "required": True, "schema": {"type": "string"}}],
-            "get": {"operationId": "list_archived_records", "responses": {"200": {"description": "OK"}}},
+            "get": {
+                "operationId": "list_archived_records",
+                "summary": "List archived records",
+                "description": "List archived records.",
+                "responses": {"200": {"description": "OK"}},
+            },
         }
 
         with pytest.raises(SirenityError):
@@ -337,11 +381,21 @@ class TestRoutes:
         schema = deepcopy(SCHEMA)
         schema["paths"]["/sections/{section_id}/records"] = {
             "parameters": [{"name": "section_id", "in": "path", "required": True, "schema": {"type": "string"}}],
-            "get": {"operationId": "list_section_records", "responses": {"200": {"description": "OK"}}},
+            "get": {
+                "operationId": "list_section_records",
+                "summary": "List section records",
+                "description": "List records in a section.",
+                "responses": {"200": {"description": "OK"}},
+            },
         }
         schema["paths"]["/authors/{author_id}/records"] = {
             "parameters": [{"name": "author_id", "in": "path", "required": True, "schema": {"type": "string"}}],
-            "get": {"operationId": "list_author_records", "responses": {"200": {"description": "OK"}}},
+            "get": {
+                "operationId": "list_author_records",
+                "summary": "List author records",
+                "description": "List records by an author.",
+                "responses": {"200": {"description": "OK"}},
+            },
         }
         engine = siren(schema)
 
@@ -378,7 +432,12 @@ class TestRoutes:
         schema["paths"] = {f"/service{path}": item for path,
                            item in schema["paths"].items()}
         schema["paths"]["/service/"] = {
-            "get": {"operationId": "get_api_root", "responses": {"200": {"description": "OK"}}}
+            "get": {
+                "operationId": "get_api_root",
+                "summary": "Read API root",
+                "description": "Read the API root.",
+                "responses": {"200": {"description": "OK"}},
+            }
         }
         engine = siren(schema, source_path="/service/",
                        public_path="/hypermedia/")
@@ -387,14 +446,14 @@ class TestRoutes:
             base_url="https://api.example.com", scope="root", capabilities=frozenset({"get_api_root"})
         )).model_dump(by_alias=True, mode="json", exclude_none=True)
         assert document["links"] == [
-            {"title": "Modwire", "rel": [
+            {"title": "Sirenity", "rel": [
                 "self"], "href": "https://api.example.com/hypermedia"},
             {"rel": ["collection"],
                 "href": "https://api.example.com/hypermedia/records"},
         ]
         assert document["actions"] == [
             {"name": "get_api_root",
-                "href": "https://api.example.com/hypermedia", "method": "GET"}
+                "href": "https://api.example.com/hypermedia", "method": "GET", "title": "Read API root"}
         ]
 
     def test_public_facade_rejects_path_item_references_and_trace_operations_without_losing_operations(self):
@@ -429,5 +488,5 @@ class TestRoutes:
         )
         assert document.model_dump(by_alias=True, mode="json", exclude_none=True)["actions"] == [
             {"name": "list_records",
-                "href": "https://api.example.com/records", "method": "GET"}
+                "href": "https://api.example.com/records", "method": "GET", "title": "List records"}
         ]

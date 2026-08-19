@@ -1,6 +1,6 @@
 SCHEMA = {
     "openapi": "3.1.1",
-    "info": {"title": "Modwire", "version": "2"},
+    "info": {"title": "Sirenity", "version": "2"},
     "paths": {
         "/records": {
             "get": {
@@ -40,7 +40,7 @@ SCHEMA = {
 
 REFERENCED_SCHEMA = {
     "openapi": "3.1.1",
-    "info": {"title": "Modwire", "version": "2"},
+    "info": {"title": "Sirenity", "version": "2"},
     "paths": {
         "/records": {
             "get": {

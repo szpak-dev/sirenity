@@ -57,7 +57,7 @@ class TestQueries:
         )
         assert payload["links"] == [{"rel": ["self"], "href": href}]
         assert payload["actions"] == [
-            {"name": "list_records", "href": href, "method": "GET"}]
+            {"name": "list_records", "href": href, "method": "GET", "title": "List records"}]
 
     def test_public_facade_limits_root_query_values_to_the_self_link(self):
         document = siren(SCHEMA).project(
@@ -68,7 +68,7 @@ class TestQueries:
             by_alias=True, mode="json", exclude_none=True)
 
         assert payload["links"] == [
-            {"title": "Modwire", "rel": [
+            {"title": "Sirenity", "rel": [
                 "self"], "href": "https://api.example.com/?format=siren"},
             {"rel": ["collection"], "href": "https://api.example.com/records"},
         ]

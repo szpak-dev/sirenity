@@ -3,7 +3,7 @@ description: Report incorrect or unexpected existing behavior.
 title: "Bug: "
 type: Bug
 projects:
-  - modwire/1
+  - sirenity/1
 body:
   - type: markdown
     attributes:

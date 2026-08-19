@@ -198,7 +198,7 @@ class TestFacade:
         )
 
         assert document.model_dump(by_alias=True, mode="json", exclude_none=True)["links"] == [
-            {"title": "Modwire", "rel": ["self"],
+            {"title": "Sirenity", "rel": ["self"],
                 "href": "https://api.example.com/siren"},
             {"rel": ["collection"],
                 "href": "https://api.example.com/siren/records"},

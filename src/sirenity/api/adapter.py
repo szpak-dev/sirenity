@@ -96,7 +96,7 @@ def siren_adapter(
     Siren bytes; a 304 produced downstream is passed through because it has no representation to project.
     Unmatched errors also pass through because the bridge does not guess API ownership from a URL prefix.
     Direct middleware construction receives an explicit authorization policy; the standard Django
-    loader uses `SirenAllowAllPolicy` when `MODWIRE_SIREN["POLICY"]` is absent:
+    loader uses `SirenAllowAllPolicy` when `SIRENITY["POLICY"]` is absent:
 
     ```python
     from sirenity import SirenAdapterPolicy, SirenDjangoMiddleware

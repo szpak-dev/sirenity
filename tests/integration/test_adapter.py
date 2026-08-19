@@ -1375,7 +1375,7 @@ class TestAdapter:
         django_openapi_provider.calls = 0
         configuration = {
             "OPENAPI": (
-                "framework_fixtures.django_openapi_provider.django_openapi_provider"
+                "tests.framework_fixtures.django_openapi_provider.django_openapi_provider"
             ),
             "SOURCE_PATH": "/api",
             "PUBLIC_PATH": "/siren",
@@ -1386,8 +1386,8 @@ class TestAdapter:
         with override_settings(
             ALLOWED_HOSTS=["testserver"],
             MIDDLEWARE=["sirenity.SirenMiddleware"],
-            MODWIRE_SIREN=configuration,
-            ROOT_URLCONF="framework_fixtures.django_urls",
+            SIRENITY=configuration,
+            ROOT_URLCONF="tests.framework_fixtures.django_urls",
         ):
             handler = BaseHandler()
             handler.load_middleware()
@@ -1408,7 +1408,7 @@ class TestAdapter:
         assert siren["Content-Type"] == "application/vnd.siren+json"
         assert django_openapi_provider.calls == 1
 
-        with override_settings(MODWIRE_SIREN=configuration):
+        with override_settings(SIRENITY=configuration):
             SirenMiddleware(lambda request: JsonResponse(
                 {"article_id": "two", "title": "Fresh"}))
 
@@ -1420,7 +1420,7 @@ class TestAdapter:
                                ALLOWED_HOSTS=["testserver"])
         configuration = {
             "OPENAPI": (
-                "framework_fixtures.django_openapi_provider.django_openapi_provider"
+                "tests.framework_fixtures.django_openapi_provider.django_openapi_provider"
             ),
             "SOURCE_PATH": "/api",
             "PUBLIC_PATH": "/siren",
@@ -1430,8 +1430,8 @@ class TestAdapter:
         with override_settings(
             ALLOWED_HOSTS=["testserver"],
             MIDDLEWARE=["sirenity.SirenMiddleware"],
-            MODWIRE_SIREN=configuration,
-            ROOT_URLCONF="framework_fixtures.django_urls",
+            SIRENITY=configuration,
+            ROOT_URLCONF="tests.framework_fixtures.django_urls",
         ):
             handler = BaseHandler()
             handler.load_middleware()
@@ -1460,8 +1460,8 @@ class TestAdapter:
 
     def test_standard_django_loader_rejects_incomplete_configuration_at_startup(self):
         with (
-            override_settings(MODWIRE_SIREN={}),
-            pytest.raises(SirenityError, match=r"MODWIRE_SIREN\.OPENAPI"),
+            override_settings(SIRENITY={}),
+            pytest.raises(SirenityError, match=r"SIRENITY\.OPENAPI"),
         ):
             SirenMiddleware(lambda request: JsonResponse({}))
 

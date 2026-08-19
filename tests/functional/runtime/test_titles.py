@@ -13,6 +13,7 @@ class TestTitles:
                 "get": {
                     "operationId": "list_articles",
                     "summary": "Browse articles",
+                    "description": "Browse published articles.",
                     "responses": {
                         "200": {
                             "description": "Articles",
@@ -31,6 +32,7 @@ class TestTitles:
                 "post": {
                     "operationId": "create_article",
                     "summary": "Create article",
+                    "description": "Create an article.",
                     "responses": {
                         "201": {
                             "description": "Article",
@@ -53,6 +55,7 @@ class TestTitles:
                 "get": {
                     "operationId": "get_article",
                     "summary": "Read article",
+                    "description": "Read an article.",
                     "responses": {
                         "200": {
                             "description": "Article",
@@ -75,6 +78,7 @@ class TestTitles:
                 "get": {
                     "operationId": "get_author",
                     "summary": "Read author",
+                    "description": "Read an author.",
                     "responses": {
                         "200": {
                             "description": "Author",
@@ -97,6 +101,7 @@ class TestTitles:
                 "post": {
                     "operationId": "publish_article",
                     "summary": "Publish article",
+                    "description": "Publish an article.",
                     "responses": {
                         "202": {
                             "description": "Publication",
@@ -104,6 +109,7 @@ class TestTitles:
                                 "application/json": {
                                     "schema": {
                                         "type": "object",
+                                        "title": "Publication result",
                                         "properties": {"published": {"type": "boolean"}},
                                     }
                                 }
@@ -138,6 +144,8 @@ class TestTitles:
         }
         document["paths"]["/articles/{article_id}"]["patch"] = {
             "operationId": "update_article",
+            "summary": "Update article",
+            "description": "Update an article.",
             "responses": {
                 "200": {
                     "description": "Alternate article",
@@ -230,7 +238,7 @@ class TestTitles:
         assert entity["actions"][0]["title"] == "Read article"
         assert entity["links"][0]["title"] == "Article"
 
-    def test_framework_response_wrapper_defers_to_the_resource_schema_title(self):
+    def test_framework_response_wrapper_title_overrides_the_resource_schema_title(self):
         document = deepcopy(self.schema)
         response_schema = document["paths"]["/articles"]["get"]["responses"]["200"]["content"][
             "application/json"
@@ -246,8 +254,8 @@ class TestTitles:
             )
         ).model_dump(by_alias=True, mode="json", exclude_none=True)
 
-        assert projected["title"] == "Article"
-        assert projected["links"][0]["title"] == "Article"
+        assert projected["title"] == "Response"
+        assert projected["links"][0]["title"] == "Response"
 
     def test_item_dto_titles_do_not_leak_and_runtime_title_then_name_labels_items(self):
         document = deepcopy(self.schema)
@@ -255,7 +263,7 @@ class TestTitles:
         response_schema = document["paths"]["/articles"]["get"]["responses"]["200"]["content"][
             "application/json"
         ]["schema"]
-        response_schema.pop("title")
+        response_schema["title"] = "Scaffolding"
         response_schema["items"] = {
             "type": "object",
             "title": "ScaffoldingSummary",
@@ -475,7 +483,7 @@ class TestTitles:
         assert explicit["title"] == "Published"
         assert explicit["links"][0]["title"] == "Published"
 
-    def test_missing_resource_and_operation_metadata_does_not_generate_titles(self):
+    def test_operation_summary_generates_an_action_title_without_a_resource_title(self):
         document = {
             "openapi": "3.1.1",
             "info": {"title": "Untitled resources", "version": "1"},
@@ -491,6 +499,8 @@ class TestTitles:
                     ],
                     "get": {
                         "operationId": "get_record",
+                        "summary": "Read record",
+                        "description": "Read a record.",
                         "responses": {"200": {"description": "OK"}},
                     },
                 }
@@ -507,5 +517,5 @@ class TestTitles:
         ).model_dump(by_alias=True, mode="json", exclude_none=True)
 
         assert "title" not in projected
-        assert "title" not in projected["actions"][0]
+        assert projected["actions"][0]["title"] == "Read record"
         assert "title" not in projected["links"][0]

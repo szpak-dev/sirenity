@@ -14,18 +14,24 @@ class FastApiOpenApiFixture:
             self.controller.list_widgets,
             methods=["GET"],
             operation_id="list_widgets",
+            summary="List widgets",
+            description="List widgets.",
         )
         self.application.add_api_route(
             "/api/v1/widgets/{widget}",
             self.controller.get_widget,
             methods=["GET"],
             operation_id="get_widget",
+            summary="Read widget",
+            description="Read a widget.",
         )
         self.application.add_api_route(
             "/api/v1/widgets/{widget}",
             self.controller.rename_widget,
             methods=["PATCH"],
             operation_id="rename_widget",
+            summary="Rename widget",
+            description="Rename a widget.",
         )
 
     def document(self) -> dict[str, Any]:

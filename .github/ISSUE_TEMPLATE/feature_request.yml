@@ -3,7 +3,7 @@ description: Propose a new user-facing capability or behavior.
 title: "Feature: "
 type: Feature
 projects:
-  - modwire/1
+  - sirenity/1
 body:
   - type: markdown
     attributes:

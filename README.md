@@ -135,7 +135,7 @@ headers, and removes source-byte validators, digests, encodings, ranges, and fra
 Siren bytes; a 304 produced downstream is passed through because it has no representation to project.
 Unmatched errors also pass through because the bridge does not guess API ownership from a URL prefix.
 Direct middleware construction receives an explicit authorization policy; the standard Django
-loader uses `SirenAllowAllPolicy` when `MODWIRE_SIREN["POLICY"]` is absent:
+loader uses `SirenAllowAllPolicy` when `SIRENITY["POLICY"]` is absent:
 
 ```python
 from sirenity import SirenAdapterPolicy, SirenDjangoMiddleware
@@ -424,11 +424,11 @@ or CI output; `siren(openapi)` remains the strict fail-fast compilation entry po
 
 ### `SirenityError`
 
-Indicate a Modwire Siren operation failure.
+Indicate a Sirenity operation failure.
 
 ### `SirenStructuredFormProfile`
 
-Emit the versioned Modwire structured-form extension for delegated inputs.
+Emit the versioned structured-form extension for delegated inputs.
 
 This opt-in profile adds the non-standard action member
 `https://modwire.dev/siren/structured-form/v1`. Its value has `version: "1"` and ordered
@@ -512,7 +512,7 @@ MIDDLEWARE = [
     "django.middleware.http.ConditionalGetMiddleware",
     "sirenity.SirenMiddleware",
 ]
-MODWIRE_SIREN = {
+SIRENITY = {
     "OPENAPI": "example_project.api.siren_openapi",
     "SOURCE_PATH": "/api",
     "PUBLIC_PATH": "/siren",
@@ -528,7 +528,7 @@ urlpatterns = [path("api/", api.urls)]
 Django constructs this class with only `get_response`. Each middleware instance resolves the current
 settings and compiles after importing the configured API, once, so autoreload processes and overridden
 test settings receive a fresh completed route catalogue without process-global adapter state. Invalid or
-premature configuration raises `ModwireSirenError` during middleware startup.
+premature configuration raises `SirenityError` during middleware startup.
 
 ### `SirenMcpTool`
 
@@ -732,7 +732,7 @@ Attributes:
 
 ### `SirenContractError`
 
-Indicate a Modwire Siren operation failure.
+Indicate a Sirenity operation failure.
 
 ### `SirenContext`
 
@@ -876,7 +876,7 @@ The supported root imports below are generated from `sirenity.__all__`.
 | `SirenCompatibilityFinding` | Describe one OpenAPI construct outside the current official-Siren boundary. | — |
 | `SirenCompatibilityReport` | Expose deterministic OpenAPI-to-Siren compatibility findings. | `compatible: <class 'bool'>`<br>`render() -> <class 'str'>` |
 | `SirenContext` | Supply runtime state used to project a Siren document. | — |
-| `SirenContractError` | Indicate a Modwire Siren operation failure. | `location: <class 'str'>`<br>`category: <class 'str'>`<br>`detail: <class 'str'>` |
+| `SirenContractError` | Indicate a Sirenity operation failure. | `location: <class 'str'>`<br>`category: <class 'str'>`<br>`detail: <class 'str'>` |
 | `SirenDelegatedInput` | !!! abstract "Usage Documentation" | — |
 | `SirenDjangoMiddleware` | Render negotiated Django Ninja/Ninja Extra JSON responses as Siren. | — |
 | `SirenDocument` | Represent an official Siren entity document. | — |
@@ -894,8 +894,8 @@ The supported root imports below are generated from `sirenity.__all__`.
 | `SirenRelationship` | Describe a runtime relationship to another OpenAPI resource. | — |
 | `SirenResponseContext` | Supply an executed OpenAPI operation and result for operation-aware projection. | — |
 | `SirenScope` | Enum where members are also (and must be) strings | — |
-| `SirenStructuredFormProfile` | Emit the versioned Modwire structured-form extension for delegated inputs. | `apply(operation_id: <class 'str'>, operation_input: sirenity.contexts.graph.model.values.input.SirenInput | None, operation_inputs: collections.abc.Mapping[str, sirenity.contexts.graph.model.values.input.SirenInput | None], document: collections.abc.Mapping[str, JsonValue], context: <class 'sirenity.contexts.runtime.request.values.response.SirenResponseContext'>) -> collections.abc.Mapping[str, JsonValue]`<br>`enrich(entity: collections.abc.Mapping[str, JsonValue], operation_inputs: collections.abc.Mapping[str, sirenity.contexts.graph.model.values.input.SirenInput | None]) -> collections.abc.Mapping[str, JsonValue]`<br>`control(delegated: <class 'sirenity.contexts.graph.model.values.delegated_input.SirenDelegatedInput'>) -> collections.abc.Mapping[str, JsonValue]` |
-| `SirenityError` | Indicate a Modwire Siren operation failure. | — |
+| `SirenStructuredFormProfile` | Emit the versioned structured-form extension for delegated inputs. | `apply(operation_id: <class 'str'>, operation_input: sirenity.contexts.graph.model.values.input.SirenInput | None, operation_inputs: collections.abc.Mapping[str, sirenity.contexts.graph.model.values.input.SirenInput | None], document: collections.abc.Mapping[str, JsonValue], context: <class 'sirenity.contexts.runtime.request.values.response.SirenResponseContext'>) -> collections.abc.Mapping[str, JsonValue]`<br>`enrich(entity: collections.abc.Mapping[str, JsonValue], operation_inputs: collections.abc.Mapping[str, sirenity.contexts.graph.model.values.input.SirenInput | None]) -> collections.abc.Mapping[str, JsonValue]`<br>`control(delegated: <class 'sirenity.contexts.graph.model.values.delegated_input.SirenDelegatedInput'>) -> collections.abc.Mapping[str, JsonValue]` |
+| `SirenityError` | Indicate a Sirenity operation failure. | — |
 | `audit` | Inspect a valid OpenAPI document against the current official-Siren support boundary. | — |
 | `siren` | Compile a complete OpenAPI 3.1 document into a reusable Siren engine. | — |
 | `siren_adapter` | Compile a framework-neutral boundary for operation-aware Siren HTTP responses. | — |

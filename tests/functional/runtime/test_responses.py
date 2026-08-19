@@ -14,6 +14,8 @@ class TestResponses:
             "/articles": {
                 "get": {
                     "operationId": "list_articles",
+                    "summary": "List articles",
+                    "description": "List articles.",
                     "responses": {
                         "200": {
                             "description": "Articles",
@@ -21,6 +23,7 @@ class TestResponses:
                                 "application/json": {
                                     "schema": {
                                         "type": "array",
+                                        "title": "Articles",
                                         "items": {"$ref": "#/components/schemas/Article"},
                                     }
                                 }
@@ -30,6 +33,8 @@ class TestResponses:
                 },
                 "post": {
                     "operationId": "create_article",
+                    "summary": "Create article",
+                    "description": "Create an article.",
                     "responses": {
                         "201": {
                             "$ref": "#/components/responses/ArticleCreated",
@@ -48,6 +53,8 @@ class TestResponses:
                 ],
                 "get": {
                     "operationId": "get_article",
+                    "summary": "Read article",
+                    "description": "Read an article.",
                     "responses": {
                         "200": {
                             "description": "Article",
@@ -70,6 +77,8 @@ class TestResponses:
                 },
                 "patch": {
                     "operationId": "update_article",
+                    "summary": "Update article",
+                    "description": "Update an article.",
                     "responses": {
                         "200": {
                             "description": "Updated article",
@@ -81,6 +90,8 @@ class TestResponses:
                 },
                 "delete": {
                     "operationId": "delete_article",
+                    "summary": "Delete article",
+                    "description": "Delete an article.",
                     "responses": {"204": {"description": "Deleted"}},
                 },
             },
@@ -95,6 +106,8 @@ class TestResponses:
                 ],
                 "post": {
                     "operationId": "publish_article",
+                    "summary": "Publish article",
+                    "description": "Publish an article.",
                     "responses": {
                         "202": {
                             "description": "Publication result",
@@ -110,6 +123,8 @@ class TestResponses:
             "/maintenance/reindex": {
                 "post": {
                     "operationId": "reindex",
+                    "summary": "Reindex",
+                    "description": "Reindex content.",
                     "responses": {
                         "202": {
                             "description": "Reindex result",
@@ -135,6 +150,7 @@ class TestResponses:
             "schemas": {
                 "Article": {
                     "type": "object",
+                    "title": "Article",
                     "required": ["article_key", "title"],
                     "properties": {
                         "article_key": {"type": "string"},
@@ -143,15 +159,18 @@ class TestResponses:
                 },
                 "Problem": {
                     "type": "object",
+                    "title": "Problem",
                     "required": ["detail"],
                     "properties": {"detail": {"type": "string"}},
                 },
                 "PublicationResult": {
                     "type": "object",
+                    "title": "Publication result",
                     "properties": {"published": {"type": "boolean"}},
                 },
                 "ReindexResult": {
                     "type": "object",
+                    "title": "Reindex result",
                     "properties": {"accepted": {"type": "boolean"}},
                 },
             },
@@ -168,6 +187,7 @@ class TestResponses:
 
         assert document == {
             "class": ["collection", "article"],
+            "title": "Articles",
             "properties": {},
             "entities": [
                 {
@@ -184,14 +204,14 @@ class TestResponses:
                     ],
                 }
             ],
-            "links": [{"rel": ["self"], "href": "https://api.example.com/articles"}],
+            "links": [{"title": "Articles", "rel": ["self"], "href": "https://api.example.com/articles"}],
         }
 
     def test_public_engine_binds_response_values_into_item_action_fields(self):
         schema = deepcopy(self.schema)
         schema["paths"]["/articles/{article_key}"]["patch"]["requestBody"] = {
-            "content": {"application/json": {"schema": {"type": "object", "properties": {
-                "title": {"type": "string"},
+            "content": {"application/json": {"schema": {"type": "object", "title": "Article update", "properties": {
+                "title": {"type": "string", "title": "Title"},
             }}}}
         }
         schema["paths"]["/articles"]["get"]["responses"]["200"]["x-sirenity"] = {
@@ -207,7 +227,7 @@ class TestResponses:
         )).model_dump(by_alias=True, mode="json", exclude_none=True)
 
         assert document["entities"][0]["actions"][0]["fields"] == [
-            {"name": "title", "type": "text", "value": "Current"}
+            {"name": "title", "type": "text", "title": "Title", "value": "Current"}
         ]
 
     def test_public_engine_projects_openapi_response_links_without_runtime_relationship_policy(self):
@@ -240,12 +260,13 @@ class TestResponses:
         )).model_dump(by_alias=True, mode="json", exclude_none=True)
 
         assert entity["links"] == [
-            {"rel": ["self"], "href": "https://api.example.com/articles/42"},
-            {"rel": ["collection"], "href": "https://api.example.com/articles"},
+            {"title": "Article", "rel": ["self"], "href": "https://api.example.com/articles/42"},
+            {"title": "Articles", "rel": ["collection"], "href": "https://api.example.com/articles"},
         ]
         assert command["links"] == [
-            {"rel": ["self"], "href": "https://api.example.com/articles/42"},
+            {"title": "Article", "rel": ["self"], "href": "https://api.example.com/articles/42"},
             {
+                "title": "Article",
                 "rel": ["self", "canonical"],
                 "href": "https://api.example.com/articles/42",
             },
@@ -283,9 +304,11 @@ class TestResponses:
                     }],
                     "get": {
                         "operationId": "get_diagram_set",
+                        "summary": "Read diagram set",
+                        "description": "Read a diagram set.",
                         "responses": {"200": {
                             "description": "Diagram set",
-                            "content": {"application/json": {"schema": {"type": "object"}}},
+                            "content": {"application/json": {"schema": {"type": "object", "title": "Diagram set"}}},
                             "links": {"diagrams": {
                                 "operationId": "list_diagram_set_diagrams",
                                 "parameters": {
@@ -305,10 +328,12 @@ class TestResponses:
                     }],
                     "get": {
                         "operationId": "list_diagram_set_diagrams",
+                        "summary": "List diagram set diagrams",
+                        "description": "List diagrams in a diagram set.",
                         "responses": {"200": {
                             "description": "Diagrams",
                             "content": {"application/json": {"schema": {
-                                "type": "array", "items": {"type": "object"}
+                                "type": "array", "title": "Diagrams", "items": {"type": "object", "title": "Diagram"}
                             }}},
                         }},
                     },
@@ -324,8 +349,9 @@ class TestResponses:
         )).model_dump(by_alias=True, mode="json", exclude_none=True)
 
         assert document["links"] == [
-            {"rel": ["self"], "href": "https://api.example.com/diagram-sets/set-7"},
+            {"title": "Diagram set", "rel": ["self"], "href": "https://api.example.com/diagram-sets/set-7"},
             {
+                "title": "Diagrams",
                 "rel": ["collection"],
                 "href": "https://api.example.com/diagram-sets/set-7/diagrams",
             },
@@ -382,7 +408,7 @@ class TestResponses:
         assert document["properties"] == {
             "article_key": "created", "title": "Created"}
         assert document["links"] == [
-            {"rel": ["self"], "href": "https://api.example.com/articles/created"}
+            {"title": "Article", "rel": ["self"], "href": "https://api.example.com/articles/created"}
         ]
 
     def test_public_engine_derives_entity_responses_without_an_identifier_heuristic(self):
@@ -395,7 +421,7 @@ class TestResponses:
 
         assert document["class"] == ["article"]
         assert document["links"] == [
-            {"rel": ["self"], "href": "https://api.example.com/articles/alternate"}
+            {"title": "Article", "rel": ["self"], "href": "https://api.example.com/articles/alternate"}
         ]
 
     def test_public_engine_projects_command_results_without_resource_masquerading(self):
@@ -419,16 +445,18 @@ class TestResponses:
 
         assert publication == {
             "class": ["command-result"],
+            "title": "Publish article",
             "properties": {"published": True},
             "links": [
-                {"rel": [
+                {"title": "Publish article", "rel": [
                     "self"], "href": "https://api.example.com/articles/article%2F42/publish"}
             ],
         }
         assert reindex == {
             "class": ["command-result"],
+            "title": "Reindex",
             "properties": {"accepted": True},
-            "links": [{"rel": ["self"], "href": "https://api.example.com/maintenance/reindex"}],
+            "links": [{"title": "Reindex", "rel": ["self"], "href": "https://api.example.com/maintenance/reindex"}],
         }
 
     def test_public_engine_projects_empty_and_structured_error_outcomes(self):
@@ -450,13 +478,15 @@ class TestResponses:
 
         assert empty == {
             "class": ["empty"],
+            "title": "Delete article",
             "properties": {"status": 204},
-            "links": [{"rel": ["self"], "href": "https://api.example.com/articles/removed"}],
+            "links": [{"title": "Delete article", "rel": ["self"], "href": "https://api.example.com/articles/removed"}],
         }
         assert error == {
             "class": ["error"],
+            "title": "Read article",
             "properties": {"detail": "Article was not found", "status": 404},
-            "links": [{"rel": ["self"], "href": "https://api.example.com/articles/missing"}],
+            "links": [{"title": "Read article", "rel": ["self"], "href": "https://api.example.com/articles/missing"}],
         }
 
     def test_public_engine_rejects_undeclared_statuses_and_runtime_shape_mismatches(self):

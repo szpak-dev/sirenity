@@ -37,7 +37,7 @@ class TestConformance:
                 "name": "list_widgets",
                 "href": "https://api.example.com/api/v1/widgets",
                 "method": "GET",
-                "title": "List Widgets",
+                "title": "List widgets",
                 "type": "application/x-www-form-urlencoded",
                 "fields": [{"name": "page", "type": "number", "title": "Page", "value": 1}],
             }
@@ -64,7 +64,7 @@ class TestConformance:
                 "name": "rename_widget",
                 "href": "https://api.example.com/api/v1/widgets/42",
                 "method": "PATCH",
-                "title": "Rename Widget",
+                "title": "Rename widget",
                 "type": "application/json",
                 "fields": [{"name": "title", "type": "text", "title": "Title", "value": ""}],
             }
@@ -103,7 +103,7 @@ class TestConformance:
                 "name": "list_widgets",
                 "href": "https://api.example.com/api/v1/widgets",
                 "method": "GET",
-                "title": "List Widgets",
+                "title": "List widgets",
                 "type": "application/x-www-form-urlencoded",
                 "fields": [{"name": "page", "type": "number", "title": "Page", "value": 1}],
             }
@@ -130,7 +130,7 @@ class TestConformance:
                 "name": "rename_widget",
                 "href": "https://api.example.com/api/v1/widgets/42",
                 "method": "PATCH",
-                "title": "Rename Widget",
+                "title": "Rename widget",
                 "type": "application/json",
                 "fields": [{"name": "title", "type": "text", "title": "Title", "value": ""}],
             }
