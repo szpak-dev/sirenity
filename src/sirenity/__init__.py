@@ -1,4 +1,4 @@
-from .api import SirenMiddleware, audit, siren, siren_adapter, siren_mcp
+from .api import SirenMiddleware, audit, siren, siren_adapter, siren_configuration, siren_mcp
 from .contexts.compiler.compatibility import SirenCompatibilityFinding, SirenCompatibilityReport
 from .contexts.graph import SirenDelegatedInput, SirenInput
 from .contexts.runtime.adapter import (
@@ -13,6 +13,7 @@ from .contexts.runtime.adapter import (
     SirenDjangoMiddleware,
     SirenStructuredFormProfile,
 )
+from .contexts.runtime.configuration import SirenConfiguration
 from .contexts.runtime.document import (
     SirenAction,
     SirenDocument,
@@ -38,6 +39,7 @@ __all__ = [
     "SirenCapabilityPolicy",
     "SirenCompatibilityFinding",
     "SirenCompatibilityReport",
+    "SirenConfiguration",
     "SirenContext",
     "SirenContractError",
     "SirenDelegatedInput",
@@ -62,5 +64,6 @@ __all__ = [
     "audit",
     "siren",
     "siren_adapter",
+    "siren_configuration",
     "siren_mcp",
 ]
