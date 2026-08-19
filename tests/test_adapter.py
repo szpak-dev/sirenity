@@ -175,7 +175,11 @@ class TestAdapter:
                             "description": "Published",
                             "content": {
                                 "application/json": {
-                                    "schema": {"type": "object", "title": "Publication", "properties": {"published": {"type": "boolean"}}}
+                            "schema": {
+                                "type": "object",
+                                "title": "Publication",
+                                "properties": {"published": {"type": "boolean"}},
+                            }
                                 }
                             },
                         },
