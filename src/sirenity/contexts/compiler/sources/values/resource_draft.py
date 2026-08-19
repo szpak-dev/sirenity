@@ -1,10 +1,3 @@
-from sirenity.contexts.shared import BaseValue
+from .resource import Resource
 
-
-class ResourceDraft(BaseValue):
-    reference: str
-    name: str
-    resource_class: str
-    collection_path: str
-    entity_path: str | None
-    identifier: str
+ResourceDraft = Resource

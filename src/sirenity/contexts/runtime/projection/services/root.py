@@ -3,7 +3,7 @@ from dataclasses import dataclass
 
 from wireup import injectable
 
-from sirenity.contexts.shared import SirenHttpMethod, SirenScope
+from sirenity.contexts.shared import SirenHttpMethod, SirenRelation, SirenScope
 
 from ...document import SirenDocument, SirenLink
 from ...routing import SirenHrefService
@@ -35,7 +35,7 @@ class SirenRootScopeProjector(SirenScopeProjector):
         )]
         links.extend(
             SirenLink(
-                rel=("collection",),
+                rel=(SirenRelation.validate("collection"),),
                 href=self.hrefs.href(resource.collection.path, request.context, resource, include_query=False),
                 title=resource.collection_title or resource.title,
             )

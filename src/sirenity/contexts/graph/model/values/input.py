@@ -1,6 +1,6 @@
 from collections.abc import Mapping
 
-from pydantic import JsonValue
+from pydantic import JsonValue, model_validator
 
 from sirenity.contexts.shared import BaseValue, SirenMediaType
 
@@ -12,3 +12,9 @@ class SirenInput(BaseValue):
     definition: Mapping[str, JsonValue] | None = None
     official_fields: tuple[str, ...] = ()
     delegated_inputs: tuple[SirenDelegatedInput, ...] = ()
+
+    @model_validator(mode="after")
+    def validate_body_metadata(self) -> "SirenInput":
+        if (self.media_type is None) != (self.definition is None):
+            raise ValueError("Siren input media type and definition must be provided together")
+        return self

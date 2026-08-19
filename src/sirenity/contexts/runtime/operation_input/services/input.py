@@ -5,7 +5,7 @@ from wireup import injectable
 from sirenity.contexts.graph import SirenApi
 from sirenity.contexts.shared import SirenityError
 
-from ..values import SirenDelegatedInput, SirenOperationInput
+from ..values import SirenOperationInput
 
 
 @injectable
@@ -17,25 +17,4 @@ class SirenOperationInputService:
         if len(matches) != 1:
             raise SirenityError(
                 f"Siren input references unknown operation: {operation_id}")
-        value = matches[0].input
-        if value is None:
-            return None
-        return SirenOperationInput(
-            media_type=value.media_type,
-            definition=value.definition,
-            official_fields=value.official_fields,
-            delegated_inputs=tuple(
-                SirenDelegatedInput(
-                    name=item.name,
-                    location=item.location,
-                    kind=item.kind,
-                    required=item.required,
-                    media_type=item.media_type,
-                    style=item.style,
-                    explode=item.explode,
-                    allow_reserved=item.allow_reserved,
-                    definition=item.definition,
-                )
-                for item in value.delegated_inputs
-            ),
-        )
+        return matches[0].input

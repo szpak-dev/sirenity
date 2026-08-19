@@ -5,6 +5,7 @@ from .vocabulary import (
     SirenHttpMethod,
     SirenMediaType,
     SirenRelation,
+    SirenRepresentation,
     SirenScope,
     SirenUri,
 )
@@ -18,6 +19,7 @@ __all__ = [
     "SirenHttpMethod",
     "SirenMediaType",
     "SirenRelation",
+    "SirenRepresentation",
     "SirenScope",
     "SirenUri",
     "SirenityError",

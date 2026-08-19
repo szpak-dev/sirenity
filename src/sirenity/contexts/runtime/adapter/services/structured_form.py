@@ -70,7 +70,7 @@ class SirenStructuredFormProfile:
         return enriched
 
     def control(self, delegated: SirenDelegatedInput) -> Mapping[str, JsonValue]:
-        definition = deepcopy(dict(delegated.definition or {}))
+        definition = deepcopy(dict(delegated.definition))
         control_type = {
             "array": self.array_control,
             "object": self.object_control,
