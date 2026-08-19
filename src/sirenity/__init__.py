@@ -23,7 +23,14 @@ from .contexts.runtime.document import (
     SirenFieldValue,
     SirenLink,
 )
-from .contexts.runtime.mcp import SirenMcpInvocation, SirenMcpOperation, SirenMcpResult, SirenMcpTool
+from .contexts.runtime.mcp import (
+    SirenMcpExecution,
+    SirenMcpExecutor,
+    SirenMcpInvocation,
+    SirenMcpOperation,
+    SirenMcpResult,
+    SirenMcpTool,
+)
 from .contexts.runtime.request import SirenContext, SirenRelationship, SirenResponseContext
 from .contexts.shared import SirenContractError, SirenityError, SirenScope
 
@@ -51,6 +58,8 @@ __all__ = [
     "SirenFieldValue",
     "SirenInput",
     "SirenLink",
+    "SirenMcpExecution",
+    "SirenMcpExecutor",
     "SirenMcpInvocation",
     "SirenMcpOperation",
     "SirenMcpResult",

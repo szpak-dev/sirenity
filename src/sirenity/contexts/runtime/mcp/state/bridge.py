@@ -1,15 +1,24 @@
 import re
+from collections.abc import Callable
 
 from jsonschema import Draft202012Validator, ValidationError
 
-from sirenity.contexts.runtime.adapter import SirenAdapter, SirenAdapterRequest
+from sirenity.contexts.runtime.adapter import (
+    SirenAdapter,
+    SirenAdapterPolicy,
+    SirenAdapterRequest,
+    SirenCapabilityPolicy,
+)
 from sirenity.contexts.shared import BaseState, SirenContractError, SirenityError
 
-from ..values import SirenMcpInvocation, SirenMcpOperation, SirenMcpResult, SirenMcpTool
+from ..contracts import SirenMcpExecutor
+from ..values import SirenMcpExecution, SirenMcpInvocation, SirenMcpOperation, SirenMcpResult, SirenMcpTool
 
 
 class SirenMcpBridge(BaseState):
     adapter: SirenAdapter
+    policy: SirenCapabilityPolicy | Callable[..., object]
+    executor: SirenMcpExecutor
 
     def tools(self) -> tuple[SirenMcpTool, ...]:
         values = []
@@ -164,4 +173,47 @@ class SirenMcpBridge(BaseState):
                 is_error=True,
             )
         except SirenityError as error:
+            return SirenMcpResult(structured_content={"detail": str(error)}, is_error=True)
+
+    def invoke(self, invocation: SirenMcpInvocation) -> SirenMcpResult:
+        """Normalize, execute once, and project one MCP tool invocation."""
+
+        operation = self.operation(invocation)
+        try:
+            request = self.executor.execute(operation)
+        except Exception as error:
+            return SirenMcpResult(structured_content={"detail": str(error)}, is_error=True)
+        if not isinstance(request, SirenMcpExecution):
+            return SirenMcpResult(
+                structured_content={"detail": "Siren MCP executor must return SirenMcpExecution"},
+                is_error=True,
+            )
+        policy = self._policy(operation.operation_id, request)
+        if isinstance(policy, SirenMcpResult):
+            return policy
+        return self.respond(SirenAdapterRequest(
+            operation_id=operation.operation_id,
+            status=request.status,
+            result=request.result,
+            base_url=request.base_url,
+            request_url=request.request_url,
+            path_values=operation.path_values,
+            query=tuple(operation.query_values.items()),
+            headers=request.headers,
+            policy=policy,
+        ))
+
+    def _policy(
+        self, operation_id: str, request: SirenMcpExecution
+    ) -> SirenAdapterPolicy | SirenMcpResult:
+        try:
+            selected = (
+                self.policy.select(operation_id, request.status, request, request.result)
+                if isinstance(self.policy, SirenCapabilityPolicy)
+                else self.policy(operation_id, request.status, request, request.result)
+            )
+            if not isinstance(selected, SirenAdapterPolicy):
+                raise SirenityError("Siren capability policy must return SirenAdapterPolicy")
+            return selected
+        except Exception as error:
             return SirenMcpResult(structured_content={"detail": str(error)}, is_error=True)

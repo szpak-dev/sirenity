@@ -30,6 +30,8 @@ from sirenity import (
     SirenInput,
     SirenityError,
     SirenLink,
+    SirenMcpExecution,
+    SirenMcpExecutor,
     SirenMcpInvocation,
     SirenMcpOperation,
     SirenMcpResult,
@@ -89,6 +91,8 @@ class TestFacade:
             "SirenFieldValue",
             "SirenInput",
             "SirenLink",
+            "SirenMcpExecution",
+            "SirenMcpExecutor",
             "SirenMcpInvocation",
             "SirenMcpOperation",
             "SirenMcpResult",
@@ -129,6 +133,8 @@ class TestFacade:
             SirenFieldValue,
             SirenLink,
             SirenMcpInvocation,
+            SirenMcpExecutor,
+            SirenMcpExecution,
             SirenMcpOperation,
             SirenMcpResult,
             SirenMcpTool,
@@ -163,6 +169,8 @@ class TestFacade:
             sirenity.SirenFieldValue,
             sirenity.SirenLink,
             sirenity.SirenMcpInvocation,
+            sirenity.SirenMcpExecutor,
+            sirenity.SirenMcpExecution,
             sirenity.SirenMcpOperation,
             sirenity.SirenMcpResult,
             sirenity.SirenMcpTool,
@@ -201,7 +209,8 @@ class TestFacade:
         )
         assert configuration_parameters["policy"].kind is Parameter.KEYWORD_ONLY
         assert configuration_parameters["profiles"].default == ()
-        assert tuple(signature(siren_mcp).parameters) == ("adapter",)
+        assert tuple(signature(siren_mcp).parameters) == ("configuration", "executor")
+        assert signature(siren_mcp).parameters["executor"].kind is Parameter.KEYWORD_ONLY
 
     def test_public_facade_remounts_source_paths_without_mutating_the_openapi_document(self):
         schema = deepcopy(SCHEMA)
