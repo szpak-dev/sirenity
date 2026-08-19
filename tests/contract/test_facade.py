@@ -17,6 +17,7 @@ from sirenity import (
     SirenCapabilityPolicy,
     SirenCompatibilityFinding,
     SirenCompatibilityReport,
+    SirenConfiguration,
     SirenContext,
     SirenContractError,
     SirenDelegatedInput,
@@ -41,6 +42,7 @@ from sirenity import (
     audit,
     siren,
     siren_adapter,
+    siren_configuration,
     siren_mcp,
 )
 
@@ -75,6 +77,7 @@ class TestFacade:
             "SirenCapabilityPolicy",
             "SirenCompatibilityFinding",
             "SirenCompatibilityReport",
+            "SirenConfiguration",
             "SirenContext",
             "SirenContractError",
             "SirenDelegatedInput",
@@ -99,6 +102,7 @@ class TestFacade:
             "audit",
             "siren",
             "siren_adapter",
+            "siren_configuration",
             "siren_mcp",
         ]
         assert (
@@ -114,6 +118,7 @@ class TestFacade:
             SirenCapabilityPolicy,
             SirenCompatibilityFinding,
             SirenCompatibilityReport,
+            SirenConfiguration,
             SirenContractError,
             SirenDelegatedInput,
             SirenDjangoMiddleware,
@@ -147,6 +152,7 @@ class TestFacade:
             sirenity.SirenCapabilityPolicy,
             sirenity.SirenCompatibilityFinding,
             sirenity.SirenCompatibilityReport,
+            sirenity.SirenConfiguration,
             sirenity.SirenContractError,
             sirenity.SirenDelegatedInput,
             sirenity.SirenDjangoMiddleware,
@@ -185,6 +191,16 @@ class TestFacade:
         )
         assert adapter_parameters["profiles"].kind is Parameter.KEYWORD_ONLY
         assert adapter_parameters["profiles"].default == ()
+        configuration_parameters = signature(siren_configuration).parameters
+        assert tuple(configuration_parameters) == (
+            "openapi",
+            "source_path",
+            "public_path",
+            "policy",
+            "profiles",
+        )
+        assert configuration_parameters["policy"].kind is Parameter.KEYWORD_ONLY
+        assert configuration_parameters["profiles"].default == ()
         assert tuple(signature(siren_mcp).parameters) == ("adapter",)
 
     def test_public_facade_remounts_source_paths_without_mutating_the_openapi_document(self):
@@ -214,7 +230,7 @@ class TestFacade:
             siren(schema, source_path="/service", public_path="/siren")
 
     def test_generated_public_api_hides_framework_validator_hooks(self):
-        documentation = (Path(__file__).parents[2] / "README.md").read_text()
+        documentation = (Path(__file__).parents[2] / "docs" / "reference.md").read_text()
 
         assert "apply_default_media_type()" not in documentation
         assert "validate_field_names()" not in documentation

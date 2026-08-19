@@ -1,3 +1,8 @@
+"""MCP integration.
+
+<!-- docs:order=50 -->
+"""
+
 from ..contexts.runtime.adapter import SirenAdapter
 from ..contexts.runtime.mcp import SirenMcpBridge
 

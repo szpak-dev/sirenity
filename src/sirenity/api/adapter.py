@@ -1,3 +1,8 @@
+"""Framework-neutral adapter.
+
+<!-- docs:order=20 -->
+"""
+
 from collections.abc import Mapping
 from typing import Any
 

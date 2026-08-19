@@ -71,7 +71,7 @@ version-file = "src/sirenity/_version.py"
 packages = ["src/sirenity"]
 
 [tool.hatch.build.targets.sdist]
-include = ["src", "tests", "LICENSE", "README.md", "MIGRATION.md", "pyproject.toml"]
+include = ["src", "tests", "LICENSE", "README.md", "pyproject.toml"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

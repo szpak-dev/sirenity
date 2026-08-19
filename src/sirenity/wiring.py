@@ -48,3 +48,6 @@ class SirenApplication:
 
     def conformance_service(self) -> SirenConformanceService:
         return self.container.get(SirenConformanceService)
+
+
+application = SirenApplicationContainer().application()

@@ -23,6 +23,7 @@ from sirenity import (
     SirenAdapterPolicy,
     SirenAdapterRequest,
     SirenAllowAllPolicy,
+    SirenConfiguration,
     SirenDelegatedInput,
     SirenDjangoMiddleware,
     SirenInput,
@@ -31,6 +32,7 @@ from sirenity import (
     SirenResponseContext,
     SirenStructuredFormProfile,
     siren_adapter,
+    siren_configuration,
 )
 
 from ..framework_fixtures.capability_policy import CapabilityPolicy
@@ -1464,6 +1466,25 @@ class TestAdapter:
             pytest.raises(SirenityError, match=r"SIRENITY\.OPENAPI"),
         ):
             SirenMiddleware(lambda request: JsonResponse({}))
+
+    def test_public_configuration_resolves_one_adapter_lifecycle_for_django(self):
+        django_openapi_provider.calls = 0
+
+        configuration = siren_configuration(
+            openapi=(
+                "tests.framework_fixtures.django_openapi_provider.django_openapi_provider"
+            ),
+            source_path="/api",
+            public_path="/siren",
+            policy="tests.framework_fixtures.capability_policy.CapabilityPolicy",
+        )
+
+        assert isinstance(configuration, SirenConfiguration)
+        assert configuration.adapter() is configuration.adapter()
+        assert django_openapi_provider.calls == 1
+        middleware = configuration.django(lambda request: JsonResponse({}))
+        assert middleware.adapter is configuration.adapter()
+        assert isinstance(middleware.policy, CapabilityPolicy)
 
     def test_root_import_keeps_django_optional(self):
         script = (

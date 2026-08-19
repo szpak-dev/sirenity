@@ -1,3 +1,8 @@
+"""Siren compiler.
+
+<!-- docs:order=10 -->
+"""
+
 import json
 from collections.abc import Mapping
 from typing import Any
@@ -6,7 +11,7 @@ from openapi_spec_validator import validate
 
 from ..contexts.runtime.engine import SirenEngine
 from ..contexts.shared import SirenContractError, SirenityError
-from ..wiring import SirenApplicationContainer
+from ..wiring import application
 
 
 def siren(
@@ -289,7 +294,6 @@ def siren(
         raise SirenContractError(
             "#", "openapi", "OpenAPI document does not conform to OpenAPI 3.1.") from error
     try:
-        application = SirenApplicationContainer().application()
         api = application.api_service().build(document, source_path, public_path)
         return application.engine_factory().create(api)
     except SirenContractError:
