@@ -6,5 +6,5 @@ class FieldDraft(BaseValue):
     name: str
     type: SirenFieldType
     values: tuple[str | int | float, ...] = ()
-    title: str | None = None
+    title: str
     default: str | int | float | None = None

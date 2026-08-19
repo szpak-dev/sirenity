@@ -1,9 +1,7 @@
-from typing import Literal
-
 from pydantic import model_validator
 
 from sirenity.contexts.runtime.request import SirenRelationship
-from sirenity.contexts.shared import BaseValue, SirenityError
+from sirenity.contexts.shared import BaseValue, SirenityError, SirenRepresentation
 
 
 class SirenAdapterPolicy(BaseValue):
@@ -16,8 +14,7 @@ class SirenAdapterPolicy(BaseValue):
     """
 
     title: str | None = None
-    representation: Literal["root", "entity",
-                            "collection", "command"] | None = None
+    representation: SirenRepresentation | None = None
     capabilities: frozenset[str] = frozenset()
     all_capabilities: bool = False
     item_titles: tuple[str, ...] = ()

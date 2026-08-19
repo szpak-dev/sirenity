@@ -1,9 +1,13 @@
 from collections.abc import Mapping
-from typing import Literal
 
 from pydantic import Field, JsonValue, model_validator
 
-from sirenity.contexts.shared import BaseValue, SirenityError, SirenMediaType
+from sirenity.contexts.shared import (
+    BaseValue,
+    SirenityError,
+    SirenMediaType,
+    SirenRepresentation,
+)
 
 from .relationship import SirenRelationship
 
@@ -27,8 +31,7 @@ class SirenResponseContext(BaseValue):
     base_url: str
     title: str | None = None
     media_type: SirenMediaType | None = None
-    representation: Literal["root", "entity",
-                            "collection", "command"] | None = None
+    representation: SirenRepresentation | None = None
     path_values: Mapping[str, JsonValue] = Field(default_factory=dict)
     query: tuple[tuple[str, JsonValue], ...] = ()
     capabilities: frozenset[str] = frozenset()

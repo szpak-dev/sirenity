@@ -37,7 +37,7 @@ only official Siren members: navigational transitions are `links`; related sub-e
 
 Remove all use of these version 1 APIs:
 
-- `ModwireSiren` and `ModwireSirenFactory`
+- the legacy facade and factory
 - `SirenEntityRequest`, `SirenCollectionRequest`, and resource specs
 - `x-siren-resource` injection and validation
 - `siren_entity`, `siren_collection`, and `siren_resource`
@@ -107,17 +107,17 @@ construction path in version 2. Call `siren(openapi)` once at startup and handle
 error types at the boundary:
 
 ```python
-from sirenity import ModwireSirenError, siren
+from sirenity import SirenityError, siren
 
 try:
     engine = siren(openapi)
-except ModwireSirenError:
+except SirenityError:
     # Invalid OpenAPI or a source operation that official Siren cannot represent.
     raise
 
 try:
     document = engine.project(context)
-except ModwireSirenError:
+except SirenityError:
     # Invalid resource, capability, path value, or request context.
     raise
 ```

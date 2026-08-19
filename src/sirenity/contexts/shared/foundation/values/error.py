@@ -1,2 +1,2 @@
 class SirenityError(Exception):
-    """Indicate a Modwire Siren operation failure."""
+    """Indicate a Sirenity operation failure."""

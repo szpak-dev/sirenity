@@ -1,8 +1,7 @@
-from sirenity.contexts.graph import SirenApi
+from sirenity.contexts.graph import SirenApi, SirenInput
 from sirenity.contexts.shared import BaseState, SirenityError
 
 from ...document import SirenDocument
-from ...operation_input import SirenOperationInput, SirenOperationInputService
 from ...projection import SirenProjectionService, SirenResponseProjectionService
 from ...request import SirenContext, SirenResponseContext
 
@@ -11,7 +10,6 @@ class SirenEngine(BaseState):
     api: SirenApi
     projection: SirenProjectionService
     response_projection: SirenResponseProjectionService
-    operation_inputs: SirenOperationInputService
 
     def project(self, context: SirenContext) -> SirenDocument:
         try:
@@ -39,9 +37,14 @@ class SirenEngine(BaseState):
         except Exception as error:
             raise SirenityError("Siren error projection failed") from error
 
-    def operation_input(self, operation_id: str) -> SirenOperationInput | None:
+    def operation_input(self, operation_id: str) -> SirenInput | None:
         try:
-            return self.operation_inputs.input(self.api, operation_id)
+            matches = [
+                operation for operation in self.api.operations if operation.name == operation_id]
+            if len(matches) != 1:
+                raise SirenityError(
+                    f"Siren input references unknown operation: {operation_id}")
+            return matches[0].input
         except Exception as error:
             raise SirenityError(
                 "Siren operation input lookup failed") from error

@@ -5,14 +5,15 @@ from dataclasses import dataclass
 from pydantic import JsonValue
 from wireup import injectable
 
-from ...operation_input import SirenDelegatedInput, SirenOperationInput
+from sirenity.contexts.graph import SirenDelegatedInput, SirenInput
+
 from ...request import SirenResponseContext
 
 
 @injectable
 @dataclass(frozen=True)
 class SirenStructuredFormProfile:
-    """Emit the versioned Modwire structured-form extension for delegated inputs.
+    """Emit the versioned structured-form extension for delegated inputs.
 
     This opt-in profile adds the non-standard action member
     `https://modwire.dev/siren/structured-form/v1`. Its value has `version: "1"` and ordered
@@ -33,8 +34,8 @@ class SirenStructuredFormProfile:
     def apply(
         self,
         operation_id: str,
-        operation_input: SirenOperationInput | None,
-        operation_inputs: Mapping[str, SirenOperationInput | None],
+        operation_input: SirenInput | None,
+        operation_inputs: Mapping[str, SirenInput | None],
         document: Mapping[str, JsonValue],
         context: SirenResponseContext,
     ) -> Mapping[str, JsonValue]:
@@ -43,7 +44,7 @@ class SirenStructuredFormProfile:
     def enrich(
         self,
         entity: Mapping[str, JsonValue],
-        operation_inputs: Mapping[str, SirenOperationInput | None],
+        operation_inputs: Mapping[str, SirenInput | None],
     ) -> Mapping[str, JsonValue]:
         enriched = deepcopy(dict(entity))
         actions = enriched.get("actions")
@@ -70,7 +71,7 @@ class SirenStructuredFormProfile:
         return enriched
 
     def control(self, delegated: SirenDelegatedInput) -> Mapping[str, JsonValue]:
-        definition = deepcopy(dict(delegated.definition or {}))
+        definition = deepcopy(dict(delegated.definition))
         control_type = {
             "array": self.array_control,
             "object": self.object_control,

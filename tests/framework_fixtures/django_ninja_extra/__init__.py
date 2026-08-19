@@ -5,7 +5,7 @@ if not settings.configured:
         DEBUG=False,
         INSTALLED_APPS=(),
         ROOT_URLCONF=__name__,
-        SECRET_KEY="modwire-siren-test",
+        SECRET_KEY="sirenity-test",
     )
 
 import django

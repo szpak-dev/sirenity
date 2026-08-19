@@ -41,7 +41,7 @@ class SirenMiddleware:
         "django.middleware.http.ConditionalGetMiddleware",
         "sirenity.SirenMiddleware",
     ]
-    MODWIRE_SIREN = {
+    SIRENITY = {
         "OPENAPI": "example_project.api.siren_openapi",
         "SOURCE_PATH": "/api",
         "PUBLIC_PATH": "/siren",
@@ -57,7 +57,7 @@ class SirenMiddleware:
     Django constructs this class with only `get_response`. Each middleware instance resolves the current
     settings and compiles after importing the configured API, once, so autoreload processes and overridden
     test settings receive a fresh completed route catalogue without process-global adapter state. Invalid or
-    premature configuration raises `ModwireSirenError` during middleware startup.
+    premature configuration raises `SirenityError` during middleware startup.
     """
 
     get_response: Callable[[object], object]
@@ -68,28 +68,28 @@ class SirenMiddleware:
             from django.conf import settings
             from django.utils.module_loading import import_string
 
-            configuration = getattr(settings, "MODWIRE_SIREN", None)
+            configuration = getattr(settings, "SIRENITY", None)
             if not isinstance(configuration, Mapping):
-                raise SirenityError("MODWIRE_SIREN must be a mapping")
+                raise SirenityError("SIRENITY must be a mapping")
             openapi_path = configuration.get("OPENAPI")
             policy_path = configuration.get("POLICY")
             if not isinstance(openapi_path, str) or not openapi_path:
                 raise SirenityError(
-                    "MODWIRE_SIREN.OPENAPI must be a dotted import path")
+                    "SIRENITY.OPENAPI must be a dotted import path")
             if policy_path is not None and (not isinstance(policy_path, str) or not policy_path):
                 raise SirenityError(
-                    "MODWIRE_SIREN.POLICY must be a dotted import path")
+                    "SIRENITY.POLICY must be a dotted import path")
             source_path = configuration.get("SOURCE_PATH", "/")
             public_path = configuration.get("PUBLIC_PATH", "/")
             if not isinstance(source_path, str) or not isinstance(public_path, str):
                 raise SirenityError(
-                    "MODWIRE_SIREN source and public paths must be strings")
+                    "SIRENITY source and public paths must be strings")
             profile_paths = configuration.get("PROFILES", ())
             if not isinstance(profile_paths, list | tuple) or any(
                 not isinstance(path, str) or not path for path in profile_paths
             ):
                 raise SirenityError(
-                    "MODWIRE_SIREN.PROFILES must be a sequence of dotted import paths"
+                    "SIRENITY.PROFILES must be a sequence of dotted import paths"
                 )
 
             try:
@@ -106,11 +106,11 @@ class SirenMiddleware:
                     )
             except Exception as error:
                 raise SirenityError(
-                    f"MODWIRE_SIREN.OPENAPI could not be loaded: {error}"
+                    f"SIRENITY.OPENAPI could not be loaded: {error}"
                 ) from error
             if not isinstance(openapi, Mapping):
                 raise SirenityError(
-                    "MODWIRE_SIREN.OPENAPI did not produce an OpenAPI mapping")
+                    "SIRENITY.OPENAPI did not produce an OpenAPI mapping")
 
             policy = SirenAllowAllPolicy()
             if policy_path is not None:
@@ -120,11 +120,11 @@ class SirenMiddleware:
                         policy = policy()
                 except Exception as error:
                     raise SirenityError(
-                        f"MODWIRE_SIREN.POLICY could not be loaded: {error}"
+                        f"SIRENITY.POLICY could not be loaded: {error}"
                     ) from error
             if not isinstance(policy, SirenCapabilityPolicy) and not callable(policy):
                 raise SirenityError(
-                    "MODWIRE_SIREN.POLICY must resolve to a SirenCapabilityPolicy or callable"
+                    "SIRENITY.POLICY must resolve to a SirenCapabilityPolicy or callable"
                 )
 
             profiles = []
@@ -135,7 +135,7 @@ class SirenMiddleware:
                         profile, type) else profile)
                 except Exception as error:
                     raise SirenityError(
-                        f"MODWIRE_SIREN.PROFILES could not load {profile_path!r}: {error}"
+                        f"SIRENITY.PROFILES could not load {profile_path!r}: {error}"
                     ) from error
 
             try:
@@ -147,11 +147,11 @@ class SirenMiddleware:
                 )
             except Exception as error:
                 raise SirenityError(
-                    f"MODWIRE_SIREN.OPENAPI could not be compiled: {error}"
+                    f"SIRENITY.OPENAPI could not be compiled: {error}"
                 ) from error
             if not adapter.routes:
                 raise SirenityError(
-                    "MODWIRE_SIREN.OPENAPI has no registered operations; initialization may be premature"
+                    "SIRENITY.OPENAPI has no registered operations; initialization may be premature"
                 )
             middleware = SirenDjangoMiddleware(
                 get_response=self.get_response,

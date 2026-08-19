@@ -19,7 +19,7 @@ from sirenity.contexts.graph import (
 from sirenity.contexts.shared import SirenHttpMethod, SirenityError, SirenRelation, SirenScope
 
 from ..state import SirenAssembly
-from ..values import FieldDraft, OperationDraft, ResourceDraft
+from ..values import FieldDraft, OperationDraft, Resource
 
 
 @injectable
@@ -66,7 +66,9 @@ class SirenBuilder:
                     scope=operation.scope,
                     method=operation.method,
                     route=SirenRoute(path=operation.path),
+                    source_path=operation.source_path,
                     title=operation.title,
+                    description=operation.description,
                     media_type=operation.media_type,
                     fields=tuple(
                         SirenField(
@@ -143,7 +145,7 @@ class SirenBuilder:
         return tuple(values)
 
     def resource_title(
-        self, resource: ResourceDraft, operations: Mapping[str, OperationDraft], scope: SirenScope
+        self, resource: Resource, operations: Mapping[str, OperationDraft], scope: SirenScope
     ) -> str | None:
         candidates: list[tuple[int, int, str]] = []
         for operation in operations.values():
@@ -157,26 +159,19 @@ class SirenBuilder:
                 if not response.status.startswith("2") or response.definition is None:
                     continue
                 definition = response.definition
-                title: object = None
                 priority = 0
                 if scope == SirenScope.COLLECTION and exact_collection and response.shape == "array":
                     priority = 0 if operation.method == SirenHttpMethod.GET else 1
-                    title = definition.get("title")
-                    if title == "Response" or (
-                        isinstance(title, str) and title.startswith(
-                            "Response ")
-                    ):
-                        title = None
+                    title = definition["title"]
                 elif scope == SirenScope.ENTITY and exact_entity and response.shape == "object":
                     priority = 0 if operation.method == SirenHttpMethod.GET else 2
-                    title = definition.get("title")
+                    title = definition["title"]
                 elif scope == SirenScope.ENTITY and exact_collection and response.shape == "array":
                     priority = 1 if operation.method == SirenHttpMethod.GET else 3
-                    items = definition.get("items")
-                    title = items.get("title") if isinstance(
-                        items, Mapping) else None
-                if isinstance(title, str) and title:
-                    candidates.append((priority, len(candidates), title))
+                    title = definition["items"]["title"]
+                else:
+                    continue
+                candidates.append((priority, len(candidates), title))
         return min(candidates)[2] if candidates else None
 
     def link_operation(self, link, operations: Mapping[str, OperationDraft]) -> str:
@@ -228,8 +223,8 @@ class SirenBuilder:
                 )
         return target.name
 
-    def resource_index(self, resources: list[ResourceDraft]) -> dict[str, ResourceDraft]:
-        index: dict[str, ResourceDraft] = {}
+    def resource_index(self, resources: list[Resource]) -> dict[str, Resource]:
+        index: dict[str, Resource] = {}
         for resource in resources:
             if resource.reference in index:
                 raise SirenityError(
@@ -238,7 +233,7 @@ class SirenBuilder:
         return index
 
     def operation_index(
-        self, operations: list[OperationDraft], resources: Mapping[str, ResourceDraft]
+        self, operations: list[OperationDraft], resources: Mapping[str, Resource]
     ) -> dict[str, OperationDraft]:
         index: dict[str, OperationDraft] = {}
         for operation in operations:
@@ -259,7 +254,7 @@ class SirenBuilder:
             index[operation.name] = operation
         return index
 
-    def validate_operation_path(self, operation: OperationDraft, resource: ResourceDraft) -> None:
+    def validate_operation_path(self, operation: OperationDraft, resource: Resource) -> None:
         if operation.scope == SirenScope.ENTITY:
             if resource.entity_path is None:
                 raise SirenityError(

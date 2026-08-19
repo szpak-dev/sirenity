@@ -4,11 +4,11 @@ from urllib.parse import quote, unquote
 
 from pydantic import JsonValue, model_validator
 
+from sirenity.contexts.graph import SirenInput
 from sirenity.contexts.shared import BaseState, SirenityError
 
 from ...document import SirenDocument, SirenLink
 from ...engine import SirenEngine
-from ...operation_input import SirenOperationInput
 from ...request import SirenResponseContext
 from ..contracts import SirenAdapterProfile
 from ..values import SirenAdapterMatch, SirenAdapterRequest, SirenAdapterResponse, SirenAdapterRoute
@@ -184,7 +184,7 @@ class SirenAdapter(BaseState):
             payload = document.model_dump(
                 by_alias=True, mode="json", exclude_none=True)
             if self.profiles and operation_id is not None:
-                operation_inputs: dict[str, SirenOperationInput | None] = {}
+                operation_inputs: dict[str, SirenInput | None] = {}
                 for route in self.routes:
                     if route.operation_id not in operation_inputs:
                         value = self.engine.operation_input(route.operation_id)

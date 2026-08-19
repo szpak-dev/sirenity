@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from wireup import injectable
 
 from sirenity.contexts.graph import SirenApi, SirenOperation, SirenResource, SirenResponse
-from sirenity.contexts.shared import SirenityError, SirenScope
+from sirenity.contexts.shared import SirenityError, SirenRepresentation, SirenScope
 
 from ...document import SirenDocument, SirenLink
 from ...request import SirenContext, SirenRelationship, SirenResponseContext
@@ -25,13 +25,13 @@ class SirenResponseProjectionService:
         self.validate_result(response, context.result)
         if context.status >= 400:
             return self.error(operation, resource, context)
-        if context.representation == "root" and response.shape != "object":
+        if context.representation == SirenRepresentation.ROOT and response.shape != "object":
             raise SirenityError(
                 "Siren root response requires an OpenAPI object response")
         if response.shape == "empty":
             return self.empty(operation, resource, context)
         if response.shape == "array":
-            if context.representation not in {None, "collection"}:
+            if context.representation not in {None, SirenRepresentation.COLLECTION}:
                 raise SirenityError(
                     "OpenAPI array response requires collection representation")
             return self.collection(api, resource, context, response)
@@ -41,20 +41,20 @@ class SirenResponseProjectionService:
             and operation.scope == SirenScope.ROOT
             and operation.route == api.root.route
         ):
-            representation = "root"
-        if representation == "root":
+            representation = SirenRepresentation.ROOT
+        if representation == SirenRepresentation.ROOT:
             return self.root(api, operation, context)
         if (
             representation is None
             and resource is not None
             and operation.route in {resource.collection, resource.entity}
         ):
-            representation = "entity"
+            representation = SirenRepresentation.ENTITY
         if representation is None:
-            representation = "command"
-        if representation == "entity":
+            representation = SirenRepresentation.COMMAND
+        if representation == SirenRepresentation.ENTITY:
             return self.entity(api, resource, context, response)
-        if representation == "command":
+        if representation == SirenRepresentation.COMMAND:
             return self.command(api, operation, resource, context, response)
         raise SirenityError(
             "OpenAPI object response cannot use collection representation")

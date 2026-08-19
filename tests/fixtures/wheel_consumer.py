@@ -6,7 +6,12 @@ schema = {
     "info": {"title": "Consumer", "version": "1"},
     "paths": {
         "/widgets": {
-            "get": {"operationId": "list_widgets", "responses": {"200": {"description": "OK"}}}
+            "get": {
+                "operationId": "list_widgets",
+                "summary": "List widgets",
+                "description": "List widgets.",
+                "responses": {"200": {"description": "OK"}},
+            }
         }
     },
 }

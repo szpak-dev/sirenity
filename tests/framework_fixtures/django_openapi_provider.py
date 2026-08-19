@@ -14,6 +14,8 @@ class DjangoOpenApiProvider:
                 "/api/": {
                     "get": {
                         "operationId": "get_api_root",
+                        "summary": "Read API entry point",
+                        "description": "Read the API entry point.",
                         "responses": {
                             "200": {
                                 "description": "API root",
@@ -21,6 +23,7 @@ class DjangoOpenApiProvider:
                                     "application/json": {
                                         "schema": {
                                             "type": "object",
+                                            "title": "API entry point",
                                             "properties": {"status": {"type": "string"}},
                                         }
                                     }
@@ -40,6 +43,8 @@ class DjangoOpenApiProvider:
                     ],
                     "get": {
                         "operationId": "get_article",
+                        "summary": "Read article",
+                        "description": "Read one article.",
                         "responses": {
                             "200": {
                                 "description": "Article",
@@ -47,6 +52,7 @@ class DjangoOpenApiProvider:
                                     "application/json": {
                                         "schema": {
                                             "type": "object",
+                                            "title": "Article",
                                             "properties": {
                                                 "article_id": {"type": "string"},
                                                 "title": {"type": "string"},

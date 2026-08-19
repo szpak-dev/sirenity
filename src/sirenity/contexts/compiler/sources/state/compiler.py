@@ -53,9 +53,13 @@ class OpenApiOperationCompiler(BaseState):
                     raise SirenityError(
                         f"OpenAPI operation requires operationId: {method.upper()} {path}")
                 title = operation.get("summary")
-                if title is not None and not isinstance(title, str):
+                if not isinstance(title, str) or not title:
                     raise SirenityError(
-                        f"OpenAPI operation summary must be a string: {method.upper()} {path}")
+                        f"OpenAPI operation requires a non-empty summary: {method.upper()} {path}")
+                description = operation.get("description")
+                if not isinstance(description, str) or not description:
+                    raise SirenityError(
+                        f"OpenAPI operation requires a non-empty description: {method.upper()} {path}")
                 ownership = self.routes.ownership(path)
                 fields, input = self.input(path_item, operation)
                 media_type = input.media_type if input else None
@@ -68,7 +72,9 @@ class OpenApiOperationCompiler(BaseState):
                         name,
                         operation_method,
                         self.routes.public(path),
-                        title or None,
+                        path,
+                        title,
+                        description,
                         media_type,
                         input,
                         responses,
@@ -76,7 +82,7 @@ class OpenApiOperationCompiler(BaseState):
                     self.assembly.add_root_operation(name)
                     for field in fields:
                         self.assembly.add_field(
-                            name, field.name, field.type, field.values, field.title, field.default)
+                            name, field.name, field.type, field.title, field.values, field.default)
                     continue
                 resource, scope = ownership
                 self.assembly.add_operation(
@@ -85,14 +91,16 @@ class OpenApiOperationCompiler(BaseState):
                     name,
                     operation_method,
                     self.routes.public(path),
-                    title or None,
+                    path,
+                    title,
+                    description,
                     media_type,
                     input,
                     responses,
                 )
                 for field in fields:
                     self.assembly.add_field(
-                        name, field.name, field.type, field.values, field.title, field.default)
+                        name, field.name, field.type, field.title, field.values, field.default)
                 if (
                     scope == SirenScope.COLLECTION
                     and path == resource.collection_path
