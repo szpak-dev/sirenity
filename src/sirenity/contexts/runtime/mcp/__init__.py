@@ -1,4 +1,10 @@
 from .state import SirenMcpBridge
-from .values import SirenMcpResult, SirenMcpTool
+from .values import SirenMcpInvocation, SirenMcpOperation, SirenMcpResult, SirenMcpTool
 
-__all__ = ["SirenMcpBridge", "SirenMcpResult", "SirenMcpTool"]
+__all__ = [
+    "SirenMcpBridge",
+    "SirenMcpInvocation",
+    "SirenMcpOperation",
+    "SirenMcpResult",
+    "SirenMcpTool",
+]

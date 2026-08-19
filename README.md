@@ -28,7 +28,28 @@ This section is generated from the docstrings of the supported root imports. Run
 
 ### `siren_mcp`
 
-Expose compiled Siren operation tools for a caller-owned MCP server.
+Expose every compiled OpenAPI operation as a correctly described MCP tool.
+
+Turn each already-executed application result into Siren-aware MCP content. The caller owns
+the MCP SDK, server lifecycle, and application execution; this bridge owns neither.
+
+```python
+from sirenity import SirenAdapterRequest, SirenMcpInvocation, siren_adapter, siren_mcp
+
+example_bridge = siren_mcp(siren_adapter(example_openapi))
+example_tools = example_bridge.tools()
+example_operation = example_bridge.operation(SirenMcpInvocation(
+    operation_id="get_example_widget",
+    arguments={"example_widget_id": "example-widget-42"},
+))
+example_result = example_bridge.respond(SirenAdapterRequest(
+    operation_id=example_operation.operation_id,
+    status=200,
+    result=example_application_result,
+    base_url="https://example.invalid",
+    path_values=example_operation.path_values,
+))
+```
 
 ### `siren_adapter`
 
@@ -506,6 +527,84 @@ settings and compiles after importing the configured API, once, so autoreload pr
 test settings receive a fresh completed route catalogue without process-global adapter state. Invalid or
 premature configuration raises `ModwireSirenError` during middleware startup.
 
+### `SirenMcpTool`
+
+!!! abstract "Usage Documentation"
+    [Models](../concepts/models.md)
+
+A base class for creating Pydantic models.
+
+Attributes:
+    __class_vars__: The names of the class variables defined on the model.
+    __private_attributes__: Metadata about the private attributes of the model.
+    __signature__: The synthesized `__init__` [`Signature`][inspect.Signature] of the model.
+
+    __pydantic_complete__: Whether model building is completed, or if there are still undefined fields.
+    __pydantic_core_schema__: The core schema of the model.
+    __pydantic_custom_init__: Whether the model has a custom `__init__` function.
+    __pydantic_decorators__: Metadata containing the decorators defined on the model.
+        This replaces `Model.__validators__` and `Model.__root_validators__` from Pydantic V1.
+    __pydantic_generic_metadata__: A dictionary containing metadata about generic Pydantic models.
+        The `origin` and `args` items map to the [`__origin__`][genericalias.__origin__]
+        and [`__args__`][genericalias.__args__] attributes of [generic aliases][types-genericalias],
+        and the `parameter` item maps to the `__parameter__` attribute of generic classes.
+    __pydantic_parent_namespace__: Parent namespace of the model, used for automatic rebuilding of models.
+    __pydantic_post_init__: The name of the post-init method for the model, if defined.
+    __pydantic_root_model__: Whether the model is a [`RootModel`][pydantic.root_model.RootModel].
+    __pydantic_serializer__: The `pydantic-core` `SchemaSerializer` used to dump instances of the model.
+    __pydantic_validator__: The `pydantic-core` `SchemaValidator` used to validate instances of the model.
+
+    __pydantic_fields__: A dictionary of field names and their corresponding [`FieldInfo`][pydantic.fields.FieldInfo] objects.
+    __pydantic_computed_fields__: A dictionary of computed field names and their corresponding [`ComputedFieldInfo`][pydantic.fields.ComputedFieldInfo] objects.
+
+    __pydantic_extra__: A dictionary containing extra values, if [`extra`][pydantic.config.ConfigDict.extra]
+        is set to `'allow'`.
+    __pydantic_fields_set__: The names of fields explicitly set during instantiation.
+    __pydantic_private__: Values of private attributes set on the model instance.
+
+### `SirenMcpResult`
+
+!!! abstract "Usage Documentation"
+    [Models](../concepts/models.md)
+
+A base class for creating Pydantic models.
+
+Attributes:
+    __class_vars__: The names of the class variables defined on the model.
+    __private_attributes__: Metadata about the private attributes of the model.
+    __signature__: The synthesized `__init__` [`Signature`][inspect.Signature] of the model.
+
+    __pydantic_complete__: Whether model building is completed, or if there are still undefined fields.
+    __pydantic_core_schema__: The core schema of the model.
+    __pydantic_custom_init__: Whether the model has a custom `__init__` function.
+    __pydantic_decorators__: Metadata containing the decorators defined on the model.
+        This replaces `Model.__validators__` and `Model.__root_validators__` from Pydantic V1.
+    __pydantic_generic_metadata__: A dictionary containing metadata about generic Pydantic models.
+        The `origin` and `args` items map to the [`__origin__`][genericalias.__origin__]
+        and [`__args__`][genericalias.__args__] attributes of [generic aliases][types-genericalias],
+        and the `parameter` item maps to the `__parameter__` attribute of generic classes.
+    __pydantic_parent_namespace__: Parent namespace of the model, used for automatic rebuilding of models.
+    __pydantic_post_init__: The name of the post-init method for the model, if defined.
+    __pydantic_root_model__: Whether the model is a [`RootModel`][pydantic.root_model.RootModel].
+    __pydantic_serializer__: The `pydantic-core` `SchemaSerializer` used to dump instances of the model.
+    __pydantic_validator__: The `pydantic-core` `SchemaValidator` used to validate instances of the model.
+
+    __pydantic_fields__: A dictionary of field names and their corresponding [`FieldInfo`][pydantic.fields.FieldInfo] objects.
+    __pydantic_computed_fields__: A dictionary of computed field names and their corresponding [`ComputedFieldInfo`][pydantic.fields.ComputedFieldInfo] objects.
+
+    __pydantic_extra__: A dictionary containing extra values, if [`extra`][pydantic.config.ConfigDict.extra]
+        is set to `'allow'`.
+    __pydantic_fields_set__: The names of fields explicitly set during instantiation.
+    __pydantic_private__: Values of private attributes set on the model instance.
+
+### `SirenMcpOperation`
+
+Represent compiled MCP arguments separated by their HTTP placement.
+
+### `SirenMcpInvocation`
+
+Describe arguments supplied to one compiled MCP operation tool.
+
 ### `SirenLink`
 
 Describe a navigational Siren link.
@@ -784,6 +883,10 @@ The supported root imports below are generated from `sirenity.__all__`.
 | `SirenFieldValue` | Describe a selectable Siren action field value. | — |
 | `SirenInput` | !!! abstract "Usage Documentation" | — |
 | `SirenLink` | Describe a navigational Siren link. | — |
+| `SirenMcpInvocation` | Describe arguments supplied to one compiled MCP operation tool. | — |
+| `SirenMcpOperation` | Represent compiled MCP arguments separated by their HTTP placement. | — |
+| `SirenMcpResult` | !!! abstract "Usage Documentation" | — |
+| `SirenMcpTool` | !!! abstract "Usage Documentation" | — |
 | `SirenMiddleware` | Install Siren through Django's standard middleware loader. | — |
 | `SirenRelationship` | Describe a runtime relationship to another OpenAPI resource. | — |
 | `SirenResponseContext` | Supply an executed OpenAPI operation and result for operation-aware projection. | — |
@@ -793,5 +896,5 @@ The supported root imports below are generated from `sirenity.__all__`.
 | `audit` | Inspect a valid OpenAPI document against the current official-Siren support boundary. | — |
 | `siren` | Compile a complete OpenAPI 3.1 document into a reusable Siren engine. | — |
 | `siren_adapter` | Compile a framework-neutral boundary for operation-aware Siren HTTP responses. | — |
-| `siren_mcp` | Expose compiled Siren operation tools for a caller-owned MCP server. | — |
+| `siren_mcp` | Expose every compiled OpenAPI operation as a correctly described MCP tool. | — |
 <!-- generated:public-api:end -->
