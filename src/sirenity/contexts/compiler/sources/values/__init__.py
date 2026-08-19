@@ -4,7 +4,6 @@ from .field_draft import FieldDraft
 from .input_draft import InputDraft
 from .operation_draft import OperationDraft
 from .resource import Resource
-from .resource_draft import ResourceDraft
 from .response_draft import ResponseDraft
 from .response_link_draft import ResponseLinkDraft
 from .runtime_binding_draft import RuntimeBindingDraft
@@ -16,7 +15,6 @@ __all__ = [
     "InputDraft",
     "OperationDraft",
     "Resource",
-    "ResourceDraft",
     "ResponseDraft",
     "ResponseLinkDraft",
     "RuntimeBindingDraft",

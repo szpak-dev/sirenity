@@ -5,7 +5,8 @@ from dataclasses import dataclass
 from pydantic import JsonValue
 from wireup import injectable
 
-from ...operation_input import SirenDelegatedInput, SirenOperationInput
+from sirenity.contexts.graph import SirenDelegatedInput, SirenInput
+
 from ...request import SirenResponseContext
 
 
@@ -33,8 +34,8 @@ class SirenStructuredFormProfile:
     def apply(
         self,
         operation_id: str,
-        operation_input: SirenOperationInput | None,
-        operation_inputs: Mapping[str, SirenOperationInput | None],
+        operation_input: SirenInput | None,
+        operation_inputs: Mapping[str, SirenInput | None],
         document: Mapping[str, JsonValue],
         context: SirenResponseContext,
     ) -> Mapping[str, JsonValue]:
@@ -43,7 +44,7 @@ class SirenStructuredFormProfile:
     def enrich(
         self,
         entity: Mapping[str, JsonValue],
-        operation_inputs: Mapping[str, SirenOperationInput | None],
+        operation_inputs: Mapping[str, SirenInput | None],
     ) -> Mapping[str, JsonValue]:
         enriched = deepcopy(dict(entity))
         actions = enriched.get("actions")

@@ -2,14 +2,14 @@ from pydantic import Field
 
 from sirenity.contexts.shared import BaseState, SirenFieldType, SirenHttpMethod, SirenMediaType, SirenScope
 
-from ..values import FieldDraft, InputDraft, OperationDraft, ResourceDraft, ResponseDraft
+from ..values import FieldDraft, InputDraft, OperationDraft, Resource, ResponseDraft
 
 
 class SirenAssembly(BaseState):
     root_path: str = "/"
     root_title: str = ""
     root_version: str = ""
-    resources: list[ResourceDraft] = Field(default_factory=list)
+    resources: list[Resource] = Field(default_factory=list)
     operations: list[OperationDraft] = Field(default_factory=list)
     fields: list[FieldDraft] = Field(default_factory=list)
     root_operations: list[str] = Field(default_factory=list)
@@ -29,7 +29,7 @@ class SirenAssembly(BaseState):
         entity_path: str | None = None,
         identifier: str = "id",
     ) -> "SirenAssembly":
-        self.resources.append(ResourceDraft(
+        self.resources.append(Resource(
             reference=reference,
             name=name,
             resource_class=resource_class,

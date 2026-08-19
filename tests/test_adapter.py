@@ -28,9 +28,9 @@ from sirenity import (
     SirenAllowAllPolicy,
     SirenDelegatedInput,
     SirenDjangoMiddleware,
+    SirenInput,
     SirenityError,
     SirenMiddleware,
-    SirenOperationInput,
     SirenResponseContext,
     SirenStructuredFormProfile,
     siren_adapter,
@@ -740,7 +740,7 @@ class TestAdapter:
         adapter = siren_adapter(
             self.schema, source_path="/api", public_path="/siren")
         operation_input = adapter.engine.operation_input("get_article")
-        delegated = SirenOperationInput(
+        delegated = SirenInput(
             delegated_inputs=(
                 SirenDelegatedInput(
                     name="payload",

@@ -1,5 +1,6 @@
 from .api import SirenMiddleware, audit, siren, siren_adapter, siren_mcp
 from .contexts.compiler.compatibility import SirenCompatibilityFinding, SirenCompatibilityReport
+from .contexts.graph import SirenDelegatedInput, SirenInput
 from .contexts.runtime.adapter import (
     SirenAdapter,
     SirenAdapterMatch,
@@ -21,7 +22,6 @@ from .contexts.runtime.document import (
     SirenFieldValue,
     SirenLink,
 )
-from .contexts.runtime.operation_input import SirenDelegatedInput, SirenOperationInput
 from .contexts.runtime.request import SirenContext, SirenRelationship, SirenResponseContext
 from .contexts.shared import SirenContractError, SirenityError, SirenScope
 
@@ -46,9 +46,9 @@ __all__ = [
     "SirenEmbeddedRepresentation",
     "SirenField",
     "SirenFieldValue",
+    "SirenInput",
     "SirenLink",
     "SirenMiddleware",
-    "SirenOperationInput",
     "SirenRelationship",
     "SirenResponseContext",
     "SirenScope",

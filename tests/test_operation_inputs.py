@@ -6,8 +6,8 @@ from openapi_documents import PARAMETER_MEDIA_SCHEMA
 from sirenity import (
     SirenContext,
     SirenDelegatedInput,
+    SirenInput,
     SirenityError,
-    SirenOperationInput,
     audit,
     siren,
 )
@@ -84,7 +84,7 @@ class TestOperationInputs:
         collection_input = engine.operation_input("list_records")
         body_input = engine.operation_input("replace_record")
 
-        assert isinstance(collection_input, SirenOperationInput)
+        assert isinstance(collection_input, SirenInput)
         assert collection_input.media_type is None
         assert collection_input.definition is None
         assert collection_input.official_fields == ("page",)
@@ -122,7 +122,7 @@ class TestOperationInputs:
             ("session", "cookie", "json", False,
              "form", False, False, {"type": "string"}),
         ]
-        assert isinstance(body_input, SirenOperationInput)
+        assert isinstance(body_input, SirenInput)
         assert body_input.media_type == "application/json"
         assert body_input.official_fields == ("title",)
         assert body_input.definition == {
@@ -189,7 +189,7 @@ class TestOperationInputs:
 
         operation_input = siren(document).operation_input("replace_record")
 
-        assert operation_input == SirenOperationInput(
+        assert operation_input == SirenInput(
             media_type="text/plain",
             definition={"type": "string", "minLength": 1},
             delegated_inputs=(

@@ -457,14 +457,6 @@ relationship = SirenRelationship(
 )
 ```
 
-### `SirenOperationInput`
-
-Expose normalized input metadata for one compiled OpenAPI operation.
-
-`official_fields` names the values emitted as standard Siren action fields.
-`delegated_inputs` retains structured query values, headers, cookies, and body values for an
-adapter or transport. `definition` is the normalized request-body schema when one is declared.
-
 ### `SirenMiddleware`
 
 Install Siren through Django's standard middleware loader.
@@ -518,6 +510,41 @@ premature configuration raises `ModwireSirenError` during middleware startup.
 
 Describe a navigational Siren link.
 
+### `SirenInput`
+
+!!! abstract "Usage Documentation"
+    [Models](../concepts/models.md)
+
+A base class for creating Pydantic models.
+
+Attributes:
+    __class_vars__: The names of the class variables defined on the model.
+    __private_attributes__: Metadata about the private attributes of the model.
+    __signature__: The synthesized `__init__` [`Signature`][inspect.Signature] of the model.
+
+    __pydantic_complete__: Whether model building is completed, or if there are still undefined fields.
+    __pydantic_core_schema__: The core schema of the model.
+    __pydantic_custom_init__: Whether the model has a custom `__init__` function.
+    __pydantic_decorators__: Metadata containing the decorators defined on the model.
+        This replaces `Model.__validators__` and `Model.__root_validators__` from Pydantic V1.
+    __pydantic_generic_metadata__: A dictionary containing metadata about generic Pydantic models.
+        The `origin` and `args` items map to the [`__origin__`][genericalias.__origin__]
+        and [`__args__`][genericalias.__args__] attributes of [generic aliases][types-genericalias],
+        and the `parameter` item maps to the `__parameter__` attribute of generic classes.
+    __pydantic_parent_namespace__: Parent namespace of the model, used for automatic rebuilding of models.
+    __pydantic_post_init__: The name of the post-init method for the model, if defined.
+    __pydantic_root_model__: Whether the model is a [`RootModel`][pydantic.root_model.RootModel].
+    __pydantic_serializer__: The `pydantic-core` `SchemaSerializer` used to dump instances of the model.
+    __pydantic_validator__: The `pydantic-core` `SchemaValidator` used to validate instances of the model.
+
+    __pydantic_fields__: A dictionary of field names and their corresponding [`FieldInfo`][pydantic.fields.FieldInfo] objects.
+    __pydantic_computed_fields__: A dictionary of computed field names and their corresponding [`ComputedFieldInfo`][pydantic.fields.ComputedFieldInfo] objects.
+
+    __pydantic_extra__: A dictionary containing extra values, if [`extra`][pydantic.config.ConfigDict.extra]
+        is set to `'allow'`.
+    __pydantic_fields_set__: The names of fields explicitly set during instantiation.
+    __pydantic_private__: Values of private attributes set on the model instance.
+
 ### `SirenFieldValue`
 
 Describe a selectable Siren action field value.
@@ -568,11 +595,38 @@ source route before Django dispatch and restores the public request path before 
 
 ### `SirenDelegatedInput`
 
-Describe a normalized OpenAPI input delegated to an adapter or transport.
+!!! abstract "Usage Documentation"
+    [Models](../concepts/models.md)
 
-`kind` is the compiler-normalized structured control shape. Parameter serialization defaults
-are materialized in `style`, `explode`, and `allow_reserved`; body inputs instead carry their
-selected `media_type`.
+A base class for creating Pydantic models.
+
+Attributes:
+    __class_vars__: The names of the class variables defined on the model.
+    __private_attributes__: Metadata about the private attributes of the model.
+    __signature__: The synthesized `__init__` [`Signature`][inspect.Signature] of the model.
+
+    __pydantic_complete__: Whether model building is completed, or if there are still undefined fields.
+    __pydantic_core_schema__: The core schema of the model.
+    __pydantic_custom_init__: Whether the model has a custom `__init__` function.
+    __pydantic_decorators__: Metadata containing the decorators defined on the model.
+        This replaces `Model.__validators__` and `Model.__root_validators__` from Pydantic V1.
+    __pydantic_generic_metadata__: A dictionary containing metadata about generic Pydantic models.
+        The `origin` and `args` items map to the [`__origin__`][genericalias.__origin__]
+        and [`__args__`][genericalias.__args__] attributes of [generic aliases][types-genericalias],
+        and the `parameter` item maps to the `__parameter__` attribute of generic classes.
+    __pydantic_parent_namespace__: Parent namespace of the model, used for automatic rebuilding of models.
+    __pydantic_post_init__: The name of the post-init method for the model, if defined.
+    __pydantic_root_model__: Whether the model is a [`RootModel`][pydantic.root_model.RootModel].
+    __pydantic_serializer__: The `pydantic-core` `SchemaSerializer` used to dump instances of the model.
+    __pydantic_validator__: The `pydantic-core` `SchemaValidator` used to validate instances of the model.
+
+    __pydantic_fields__: A dictionary of field names and their corresponding [`FieldInfo`][pydantic.fields.FieldInfo] objects.
+    __pydantic_computed_fields__: A dictionary of computed field names and their corresponding [`ComputedFieldInfo`][pydantic.fields.ComputedFieldInfo] objects.
+
+    __pydantic_extra__: A dictionary containing extra values, if [`extra`][pydantic.config.ConfigDict.extra]
+        is set to `'allow'`.
+    __pydantic_fields_set__: The names of fields explicitly set during instantiation.
+    __pydantic_private__: Values of private attributes set on the model instance.
 
 ### `SirenContractError`
 
@@ -712,7 +766,7 @@ The supported root imports below are generated from `sirenity.__all__`.
 | `SirenAdapter` | Project already-executed framework results through a startup-compiled Siren engine. | `match(method: <class 'str'>, path: <class 'str'>) -> sirenity.contexts.runtime.adapter.values.match.SirenAdapterMatch | None`<br>`dispatch_path(method: <class 'str'>, path: <class 'str'>) -> str | None`<br>`render_path(template: <class 'str'>, values: collections.abc.Mapping[str, JsonValue]) -> <class 'str'>`<br>`respond(request: <class 'sirenity.contexts.runtime.adapter.values.request.SirenAdapterRequest'>) -> <class 'sirenity.contexts.runtime.adapter.values.response.SirenAdapterResponse'>`<br>`capabilities(operation_id: <class 'str'>) -> frozenset[str]`<br>`error(request: <class 'sirenity.contexts.runtime.adapter.values.request.SirenAdapterRequest'>) -> <class 'sirenity.contexts.runtime.document.values.document.SirenDocument'>` |
 | `SirenAdapterMatch` | !!! abstract "Usage Documentation" | — |
 | `SirenAdapterPolicy` | Declare application-owned authorization and optional projection overrides. | — |
-| `SirenAdapterProfile` | Extend a fresh adapter document using public normalized operation metadata. | `apply(operation_id: <class 'str'>, operation_input: sirenity.contexts.runtime.operation_input.values.operation.SirenOperationInput | None, operation_inputs: collections.abc.Mapping[str, sirenity.contexts.runtime.operation_input.values.operation.SirenOperationInput | None], document: collections.abc.Mapping[str, JsonValue], context: <class 'sirenity.contexts.runtime.request.values.response.SirenResponseContext'>) -> collections.abc.Mapping[str, JsonValue]` |
+| `SirenAdapterProfile` | Extend a fresh adapter document using public normalized operation metadata. | `apply(operation_id: <class 'str'>, operation_input: sirenity.contexts.graph.model.values.input.SirenInput | None, operation_inputs: collections.abc.Mapping[str, sirenity.contexts.graph.model.values.input.SirenInput | None], document: collections.abc.Mapping[str, JsonValue], context: <class 'sirenity.contexts.runtime.request.values.response.SirenResponseContext'>) -> collections.abc.Mapping[str, JsonValue]` |
 | `SirenAdapterRequest` | Describe one already-executed HTTP operation for Siren projection. | — |
 | `SirenAdapterResponse` | Represent an HTTP-ready official Siren response without framework dependencies. | — |
 | `SirenAllowAllPolicy` | Permit every capability owned by the matched operation's compiled graph scope. | `select(operation_id: str | None, status: <class 'int'>, request: <class 'object'>, result: JsonValue) -> <class 'sirenity.contexts.runtime.adapter.values.policy.SirenAdapterPolicy'>` |
@@ -721,20 +775,20 @@ The supported root imports below are generated from `sirenity.__all__`.
 | `SirenCompatibilityReport` | Expose deterministic OpenAPI-to-Siren compatibility findings. | `compatible: <class 'bool'>`<br>`render() -> <class 'str'>` |
 | `SirenContext` | Supply runtime state used to project a Siren document. | — |
 | `SirenContractError` | Indicate a Modwire Siren operation failure. | `location: <class 'str'>`<br>`category: <class 'str'>`<br>`detail: <class 'str'>` |
-| `SirenDelegatedInput` | Describe a normalized OpenAPI input delegated to an adapter or transport. | — |
+| `SirenDelegatedInput` | !!! abstract "Usage Documentation" | — |
 | `SirenDjangoMiddleware` | Render negotiated Django Ninja/Ninja Extra JSON responses as Siren. | — |
 | `SirenDocument` | Represent an official Siren entity document. | — |
 | `SirenEmbeddedLink` | Represent a Siren sub-entity linked by URI. | — |
 | `SirenEmbeddedRepresentation` | Represent a Siren sub-entity embedded in full. | — |
 | `SirenField` | Describe an official Siren action field. | — |
 | `SirenFieldValue` | Describe a selectable Siren action field value. | — |
+| `SirenInput` | !!! abstract "Usage Documentation" | — |
 | `SirenLink` | Describe a navigational Siren link. | — |
 | `SirenMiddleware` | Install Siren through Django's standard middleware loader. | — |
-| `SirenOperationInput` | Expose normalized input metadata for one compiled OpenAPI operation. | — |
 | `SirenRelationship` | Describe a runtime relationship to another OpenAPI resource. | — |
 | `SirenResponseContext` | Supply an executed OpenAPI operation and result for operation-aware projection. | — |
 | `SirenScope` | Enum where members are also (and must be) strings | — |
-| `SirenStructuredFormProfile` | Emit the versioned Modwire structured-form extension for delegated inputs. | `apply(operation_id: <class 'str'>, operation_input: sirenity.contexts.runtime.operation_input.values.operation.SirenOperationInput | None, operation_inputs: collections.abc.Mapping[str, sirenity.contexts.runtime.operation_input.values.operation.SirenOperationInput | None], document: collections.abc.Mapping[str, JsonValue], context: <class 'sirenity.contexts.runtime.request.values.response.SirenResponseContext'>) -> collections.abc.Mapping[str, JsonValue]`<br>`enrich(entity: collections.abc.Mapping[str, JsonValue], operation_inputs: collections.abc.Mapping[str, sirenity.contexts.runtime.operation_input.values.operation.SirenOperationInput | None]) -> collections.abc.Mapping[str, JsonValue]`<br>`control(delegated: <class 'sirenity.contexts.runtime.operation_input.values.delegated.SirenDelegatedInput'>) -> collections.abc.Mapping[str, JsonValue]` |
+| `SirenStructuredFormProfile` | Emit the versioned Modwire structured-form extension for delegated inputs. | `apply(operation_id: <class 'str'>, operation_input: sirenity.contexts.graph.model.values.input.SirenInput | None, operation_inputs: collections.abc.Mapping[str, sirenity.contexts.graph.model.values.input.SirenInput | None], document: collections.abc.Mapping[str, JsonValue], context: <class 'sirenity.contexts.runtime.request.values.response.SirenResponseContext'>) -> collections.abc.Mapping[str, JsonValue]`<br>`enrich(entity: collections.abc.Mapping[str, JsonValue], operation_inputs: collections.abc.Mapping[str, sirenity.contexts.graph.model.values.input.SirenInput | None]) -> collections.abc.Mapping[str, JsonValue]`<br>`control(delegated: <class 'sirenity.contexts.graph.model.values.delegated_input.SirenDelegatedInput'>) -> collections.abc.Mapping[str, JsonValue]` |
 | `SirenityError` | Indicate a Modwire Siren operation failure. | — |
 | `audit` | Inspect a valid OpenAPI document against the current official-Siren support boundary. | — |
 | `siren` | Compile a complete OpenAPI 3.1 document into a reusable Siren engine. | — |

@@ -3,7 +3,8 @@ from typing import Protocol, runtime_checkable
 
 from pydantic import JsonValue
 
-from ...operation_input import SirenOperationInput
+from sirenity.contexts.graph import SirenInput
+
 from ...request import SirenResponseContext
 
 
@@ -20,8 +21,8 @@ class SirenAdapterProfile(Protocol):
     def apply(
         self,
         operation_id: str,
-        operation_input: SirenOperationInput | None,
-        operation_inputs: Mapping[str, SirenOperationInput | None],
+        operation_input: SirenInput | None,
+        operation_inputs: Mapping[str, SirenInput | None],
         document: Mapping[str, JsonValue],
         context: SirenResponseContext,
     ) -> Mapping[str, JsonValue]: ...
