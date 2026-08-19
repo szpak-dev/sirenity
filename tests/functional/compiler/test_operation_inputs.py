@@ -1,7 +1,6 @@
 from copy import deepcopy
 
 import pytest
-from openapi_documents import PARAMETER_MEDIA_SCHEMA
 
 from sirenity import (
     SirenContext,
@@ -12,13 +11,15 @@ from sirenity import (
     siren,
 )
 
+from .openapi_documents import PARAMETER_MEDIA_SCHEMA
+
 
 class TestOperationInputs:
     def test_public_facade_exposes_resolved_official_and_delegated_input_metadata(self):
         document = deepcopy(PARAMETER_MEDIA_SCHEMA)
         document["paths"]["/records"]["parameters"] = []
         document["paths"]["/records"]["get"]["parameters"] = [
-            {"name": "page", "in": "query", "schema": {"type": "integer"}},
+            {"name": "page", "in": "query", "schema": {"type": "integer", "title": "Page"}},
             {
                 "name": "filter",
                 "in": "query",
@@ -59,7 +60,7 @@ class TestOperationInputs:
                     "type": "object",
                     "required": ["metadata", "items", "record_ids"],
                     "properties": {
-                        "title": {"type": "string"},
+                        "title": {"type": "string", "title": "Title"},
                         "metadata": {"$ref": "#/components/schemas/Metadata"},
                         "items": {
                             "type": "array",
@@ -129,7 +130,7 @@ class TestOperationInputs:
             "type": "object",
             "required": ["metadata", "items", "record_ids"],
             "properties": {
-                "title": {"type": "string"},
+                "title": {"type": "string", "title": "Title"},
                 "metadata": {
                     "type": "object",
                     "required": ["source"],
@@ -175,9 +176,9 @@ class TestOperationInputs:
         ).model_dump(by_alias=True, mode="json", exclude_none=True)
 
         assert projected["actions"][0]["fields"] == [
-            {"name": "title", "type": "text"}]
+            {"name": "title", "type": "text", "title": "Title"}]
         assert set(projected["actions"][0]) == {
-            "name", "href", "method", "type", "fields"}
+            "name", "href", "method", "title", "type", "fields"}
         assert audit(document).compatible is True
 
     def test_public_facade_exposes_one_non_json_body_as_delegated_input(self):

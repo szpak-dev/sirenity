@@ -1,5 +1,4 @@
 import pytest
-from openapi_documents import SCHEMA
 from pydantic import ValidationError
 
 from sirenity import (
@@ -13,6 +12,8 @@ from sirenity import (
     siren,
 )
 
+from ..compiler.openapi_documents import SCHEMA
+
 
 class TestProjection:
     def test_public_facade_projects_a_relationship_link(self):
@@ -21,15 +22,15 @@ class TestProjection:
             "info": {"title": "Relationships", "version": "1"},
             "paths": {
                 "/records": {
-                    "get": {"operationId": "list_records", "responses": {"200": {"description": "OK"}}},
+                    "get": {"operationId": "list_records", "summary": "List records", "description": "List records.", "responses": {"200": {"description": "OK"}}},
                 },
                 "/records/{record_id}": {
                     "parameters": [{"name": "record_id", "in": "path", "required": True, "schema": {"type": "string"}}],
-                    "get": {"operationId": "get_record", "responses": {"200": {"description": "OK"}}},
+                    "get": {"operationId": "get_record", "summary": "Read record", "description": "Read a record.", "responses": {"200": {"description": "OK"}}},
                 },
                 "/users/{user_id}": {
                     "parameters": [{"name": "user_id", "in": "path", "required": True, "schema": {"type": "string"}}],
-                    "get": {"operationId": "get_user", "responses": {"200": {"description": "OK"}}},
+                    "get": {"operationId": "get_user", "summary": "Read user", "description": "Read a user.", "responses": {"200": {"description": "OK"}}},
                 },
             },
         }
@@ -82,10 +83,10 @@ class TestProjection:
                             "schema": {"type": "string"},
                         }
                     ],
-                    "get": {"operationId": "get_diagram_set", "responses": {"200": {"description": "OK"}}},
+                    "get": {"operationId": "get_diagram_set", "summary": "Read diagram set", "description": "Read a diagram set.", "responses": {"200": {"description": "OK"}}},
                 },
                 "/diagrams": {
-                    "get": {"operationId": "list_diagrams", "responses": {"200": {"description": "OK"}}},
+                    "get": {"operationId": "list_diagrams", "summary": "List diagrams", "description": "List diagrams.", "responses": {"200": {"description": "OK"}}},
                 },
                 "/diagram-sets/{diagram_set_id}/diagrams": {
                     "parameters": [
@@ -187,7 +188,7 @@ class TestProjection:
                             "schema": {"type": "string"},
                         }
                     ],
-                    "get": {"operationId": "get_diagram_set", "responses": {"200": {"description": "OK"}}},
+                    "get": {"operationId": "get_diagram_set", "summary": "Read diagram set", "description": "Read a diagram set.", "responses": {"200": {"description": "OK"}}},
                 },
                 "/diagram-sets/{diagram_set_id}/diagrams": {
                     "parameters": [
@@ -200,6 +201,8 @@ class TestProjection:
                     ],
                     "get": {
                         "operationId": "list_diagram_set_diagrams",
+                        "summary": "List diagram set diagrams",
+                        "description": "List diagrams in a diagram set.",
                         "responses": {"200": {"description": "OK"}},
                     },
                 },
@@ -226,11 +229,11 @@ class TestProjection:
             "paths": {
                 "/records/{record_id}": {
                     "parameters": [{"name": "record_id", "in": "path", "required": True, "schema": {"type": "string"}}],
-                    "get": {"operationId": "get_record", "responses": {"200": {"description": "OK"}}},
+                    "get": {"operationId": "get_record", "summary": "Read record", "description": "Read a record.", "responses": {"200": {"description": "OK"}}},
                 },
                 "/users/{user_id}": {
                     "parameters": [{"name": "user_id", "in": "path", "required": True, "schema": {"type": "string"}}],
-                    "get": {"operationId": "get_user", "responses": {"200": {"description": "OK"}}},
+                    "get": {"operationId": "get_user", "summary": "Read user", "description": "Read a user.", "responses": {"200": {"description": "OK"}}},
                 },
             },
         }
@@ -412,16 +415,18 @@ class TestProjection:
             "openapi": "3.1.1",
             "info": {"title": "Root actions", "version": "1"},
             "paths": {
-                "/records": {"get": {"operationId": "list_records", "responses": {"200": {"description": "OK"}}}},
+                "/records": {"get": {"operationId": "list_records", "summary": "List records", "description": "List records.", "responses": {"200": {"description": "OK"}}}},
                 "/searches": {
                     "post": {
                         "operationId": "search_records",
+                        "summary": "Search records",
+                        "description": "Search records.",
                         "requestBody": {
                             "content": {
                                 "application/json": {
                                     "schema": {
                                         "type": "object",
-                                        "properties": {"phrase": {"type": "string"}},
+                                        "properties": {"phrase": {"type": "string", "title": "Phrase"}},
                                     }
                                 }
                             }
@@ -429,16 +434,18 @@ class TestProjection:
                         "responses": {"200": {"description": "OK"}},
                     }
                 },
-                "/outboxes": {"post": {"operationId": "clear_outbox", "responses": {"204": {"description": "OK"}}}},
+                "/outboxes": {"post": {"operationId": "clear_outbox", "summary": "Clear outbox", "description": "Clear the outbox.", "responses": {"204": {"description": "OK"}}}},
                 "/commands/rebuild": {
                     "post": {
                         "operationId": "rebuild_index",
+                        "summary": "Rebuild index",
+                        "description": "Rebuild the index.",
                         "requestBody": {
                             "content": {
                                 "application/json": {
                                     "schema": {
                                         "type": "object",
-                                        "properties": {"scope": {"type": "string"}},
+                                        "properties": {"scope": {"type": "string", "title": "Scope"}},
                                     }
                                 }
                             }
@@ -451,14 +458,14 @@ class TestProjection:
                         {"name": "record_id", "in": "path",
                             "required": True, "schema": {"type": "string"}}
                     ],
-                    "get": {"operationId": "get_record", "responses": {"200": {"description": "OK"}}},
+                    "get": {"operationId": "get_record", "summary": "Read record", "description": "Read a record.", "responses": {"200": {"description": "OK"}}},
                 },
                 "/commands/{command_id}/run": {
                     "parameters": [
                         {"name": "command_id", "in": "path",
                             "required": True, "schema": {"type": "string"}}
                     ],
-                    "post": {"operationId": "run_command", "responses": {"202": {"description": "Accepted"}}},
+                    "post": {"operationId": "run_command", "summary": "Run command", "description": "Run a command.", "responses": {"202": {"description": "Accepted"}}},
                 },
             },
         }

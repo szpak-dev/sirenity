@@ -1,9 +1,10 @@
 from copy import deepcopy
 
 import pytest
-from openapi_documents import SCHEMA
 
 from sirenity import SirenContext, SirenContractError, SirenityError, siren
+
+from .openapi_documents import SCHEMA
 
 
 class TestErrors:
@@ -19,7 +20,11 @@ class TestErrors:
         document = deepcopy(SCHEMA)
         document["paths"]["/records/{record_id}"]["patch"]["requestBody"]["content"]["application/json"][
             "schema"
-        ]["properties"]["title"] = {"type": "string", "enum": ["draft", "published"]}
+        ]["properties"]["title"] = {
+            "type": "string",
+            "title": "Publication state",
+            "enum": ["draft", "published"],
+        }
 
         result = siren(document).project(
             SirenContext(
@@ -34,6 +39,7 @@ class TestErrors:
             {
                 "name": "title",
                 "type": "radio",
+                "title": "Publication state",
                 "value": [{"value": "draft", "selected": False}, {"value": "published", "selected": False}],
             }
         ]

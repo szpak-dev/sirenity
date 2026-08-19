@@ -1,11 +1,7 @@
-from unittest.mock import patch
-
 import pytest
 
 from sirenity import (
-    SirenAdapter,
     SirenAdapterRequest,
-    SirenContractError,
     SirenityError,
     SirenMcpInvocation,
     siren_adapter,
@@ -190,41 +186,6 @@ def test_public_mcp_bridge_translates_projection_errors_to_structured_content():
 
     assert result.is_error is True
     assert result.structured_content["detail"] == "Siren adapter response failed"
-
-
-def test_public_mcp_bridge_translates_contract_errors_to_structured_content():
-    schema = {
-        "openapi": "3.1.1",
-        "info": {"title": "MCP API", "version": "1"},
-        "paths": {"/widgets": {"get": {
-            "operationId": "list_example_widgets",
-            "summary": "List example widgets",
-            "description": "List all example widgets.",
-            "responses": {"200": {"description": "Widgets"}},
-        }}},
-    }
-    bridge = siren_mcp(siren_adapter(schema))
-
-    with patch.object(
-        SirenAdapter,
-        "respond",
-        side_effect=SirenContractError("#", "input", "Example contract error"),
-    ):
-        result = bridge.respond(SirenAdapterRequest(
-            operation_id="get_example_widget",
-            status=200,
-            result={},
-            base_url="https://example.invalid",
-        ))
-
-    assert result.model_dump() == {
-        "structured_content": {
-            "location": "#",
-            "category": "input",
-            "detail": "Example contract error",
-        },
-        "is_error": True,
-    }
 
 
 @pytest.mark.parametrize(

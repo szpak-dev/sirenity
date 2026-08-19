@@ -3,7 +3,6 @@ from inspect import Parameter, signature
 from pathlib import Path
 
 import pytest
-from openapi_documents import SCHEMA
 
 import sirenity
 from sirenity import (
@@ -44,6 +43,8 @@ from sirenity import (
     siren_adapter,
     siren_mcp,
 )
+
+from ..functional.compiler.openapi_documents import SCHEMA
 
 
 class TestFacade:
@@ -213,7 +214,7 @@ class TestFacade:
             siren(schema, source_path="/service", public_path="/siren")
 
     def test_generated_public_api_hides_framework_validator_hooks(self):
-        documentation = (Path(__file__).parents[1] / "README.md").read_text()
+        documentation = (Path(__file__).parents[2] / "README.md").read_text()
 
         assert "apply_default_media_type()" not in documentation
         assert "validate_field_names()" not in documentation

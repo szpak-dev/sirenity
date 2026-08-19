@@ -1,9 +1,10 @@
 from copy import deepcopy
 
 import pytest
-from openapi_documents import PARAMETER_MEDIA_SCHEMA
 
 from sirenity import SirenContext, SirenityError, siren
+
+from .openapi_documents import PARAMETER_MEDIA_SCHEMA
 
 
 class TestFields:
@@ -23,7 +24,7 @@ class TestFields:
             )
         )
         assert document.model_dump(by_alias=True, mode="json", exclude_none=True)["actions"][0]["fields"] == [
-            {"name": "page", "type": "text"}
+            {"name": "page", "type": "text", "title": "Page"}
         ]
 
     def test_public_facade_rejects_a_schema_less_parameter(self):
@@ -80,7 +81,7 @@ class TestFields:
         document = deepcopy(PARAMETER_MEDIA_SCHEMA)
         document["paths"]["/records"]["parameters"] = []
         document["paths"]["/records"]["get"]["parameters"] = [
-            {"name": "page", "in": "query", "schema": {"type": "integer"}},
+            {"name": "page", "in": "query", "schema": {"type": "integer", "title": "Page"}},
             {"name": "filter", "in": "query", "schema": {
                 "$ref": "#/components/schemas/Filter"}},
             {"name": "matrix", "in": "query", "schema": {
@@ -97,7 +98,7 @@ class TestFields:
             "application/json"
         ]["schema"]
         body["properties"] = {
-            "title": {"type": "string"},
+            "title": {"type": "string", "title": "Title"},
             "metadata": {"$ref": "#/components/schemas/Metadata"},
             "items": {"type": "array", "items": {"$ref": "#/components/schemas/Metadata"}},
         }
@@ -117,9 +118,9 @@ class TestFields:
         )).model_dump(by_alias=True, mode="json", exclude_none=True)
 
         assert collection["actions"][0]["fields"] == [
-            {"name": "page", "type": "number"}]
+            {"name": "page", "type": "number", "title": "Page"}]
         assert entity["actions"][0]["fields"] == [
-            {"name": "title", "type": "text"}]
+            {"name": "title", "type": "text", "title": "Title"}]
 
         document["paths"]["/records/{record_id}"]["patch"]["requestBody"]["content"] = {
             "text/plain": {}}
@@ -134,6 +135,7 @@ class TestFields:
             "name": "replace_record",
             "href": "https://api.example.com/records/42",
             "method": "PATCH",
+            "title": "Replace record",
             "type": "text/plain",
         }
 
@@ -142,7 +144,7 @@ class TestFields:
         document["paths"]["/records"]["parameters"] = []
         document["paths"]["/records"]["get"]["parameters"] = [
             {"name": "request_id", "in": "query", "required": True,
-                "schema": {"type": "string", "format": "uuid"}},
+                "schema": {"type": "string", "format": "uuid", "title": "Request ID"}},
             {"name": "tags", "in": "query", "schema": {
                 "type": "array", "items": {"type": "string"}}},
             {
@@ -173,23 +175,23 @@ class TestFields:
                 },
             },
             {"name": "status", "in": "query", "schema": {
-                "type": "string", "enum": ["draft", "published"]}},
+                "type": "string", "title": "Status", "enum": ["draft", "published"]}},
             {
                 "name": "scopes",
                 "in": "query",
-                "schema": {"type": "array", "items": {"type": "string", "enum": ["read", "write"]}},
+                "schema": {"type": "array", "title": "Scopes", "items": {"type": "string", "enum": ["read", "write"]}},
             },
             {"name": "nickname", "in": "query",
-                "schema": {"type": ["string", "null"]}},
+                "schema": {"type": ["string", "null"], "title": "Nickname"}},
             {
                 "name": "external_id",
                 "in": "query",
-                "schema": {"oneOf": [{"type": "string", "format": "uuid"}, {"type": "null"}]},
+                "schema": {"title": "External ID", "oneOf": [{"type": "string", "format": "uuid"}, {"type": "null"}]},
             },
             {
                 "name": "reference",
                 "in": "query",
-                "schema": {"allOf": [{"type": "string"}, {"format": "uuid"}]},
+                "schema": {"title": "Reference", "allOf": [{"type": "string"}, {"format": "uuid"}]},
             },
         ]
         body = document["paths"]["/records/{record_id}"]["patch"]["requestBody"]["content"][
@@ -197,7 +199,7 @@ class TestFields:
         ]["schema"]
         body["required"] = ["title"]
         body["properties"] = {
-            "title": {"type": "string"},
+            "title": {"type": "string", "title": "Title"},
             "visibility": {
                 "type": "string",
                 "title": "Visibility",
@@ -225,20 +227,22 @@ class TestFields:
         ).model_dump(by_alias=True, mode="json", exclude_none=True)
 
         assert collection["actions"][0]["fields"] == [
-            {"name": "request_id", "type": "text"},
+            {"name": "request_id", "type": "text", "title": "Request ID"},
             {
                 "name": "status",
                 "type": "radio",
+                "title": "Status",
                 "value": [{"value": "draft", "selected": False}, {"value": "published", "selected": False}],
             },
             {
                 "name": "scopes",
                 "type": "checkbox",
+                "title": "Scopes",
                 "value": [{"value": "read", "selected": False}, {"value": "write", "selected": False}],
             },
-            {"name": "nickname", "type": "text"},
-            {"name": "external_id", "type": "text"},
-            {"name": "reference", "type": "text"},
+            {"name": "nickname", "type": "text", "title": "Nickname"},
+            {"name": "external_id", "type": "text", "title": "External ID"},
+            {"name": "reference", "type": "text", "title": "Reference"},
         ]
         operation_input = engine.operation_input("list_records")
         assert operation_input is not None
@@ -280,7 +284,7 @@ class TestFields:
             },
         ]
         assert entity["actions"][0]["fields"] == [
-            {"name": "title", "type": "text"},
+            {"name": "title", "type": "text", "title": "Title"},
             {
                 "name": "visibility",
                 "type": "radio",
@@ -313,41 +317,41 @@ class TestFields:
             by_alias=True, mode="json", exclude_none=True)
 
         assert document["actions"][0]["fields"] == [
-            {"name": "title", "type": "text"}]
+            {"name": "title", "type": "text", "title": "Title"}]
 
     def test_public_facade_maps_supported_query_and_json_body_fields(self):
         document = deepcopy(PARAMETER_MEDIA_SCHEMA)
         document["paths"]["/records"]["parameters"] = []
         document["paths"]["/records"]["get"]["parameters"] = [
             {"name": "text", "in": "query", "required": False,
-                "schema": {"type": "string"}},
+                "schema": {"type": "string", "title": "Text"}},
             {"name": "email", "in": "query", "required": False,
-                "schema": {"type": "string", "format": "email"}},
+                "schema": {"type": "string", "format": "email", "title": "Email"}},
             {"name": "uri", "in": "query", "required": False,
-                "schema": {"type": "string", "format": "uri"}},
+                "schema": {"type": "string", "format": "uri", "title": "URI"}},
             {"name": "date", "in": "query", "required": False,
-                "schema": {"type": "string", "format": "date"}},
+                "schema": {"type": "string", "format": "date", "title": "Date"}},
             {
                 "name": "date_time",
                 "in": "query",
                 "required": False,
-                "schema": {"type": "string", "format": "date-time"},
+                "schema": {"type": "string", "format": "date-time", "title": "Date time"},
             },
             {"name": "time", "in": "query", "required": False,
-                "schema": {"type": "string", "format": "time"}},
+                "schema": {"type": "string", "format": "time", "title": "Time"}},
             {"name": "integer", "in": "query", "required": False,
-                "schema": {"type": "integer"}},
+                "schema": {"type": "integer", "title": "Integer"}},
             {"name": "number", "in": "query", "required": False,
-                "schema": {"type": "number"}},
+                "schema": {"type": "number", "title": "Number"}},
             {"name": "boolean", "in": "query", "required": False,
-                "schema": {"type": "boolean"}},
+                "schema": {"type": "boolean", "title": "Boolean"}},
         ]
         document["paths"]["/records/{record_id}"]["patch"]["requestBody"]["content"]["application/json"][
             "schema"
         ]["properties"] = {
-            "title": {"type": "string"},
-            "priority": {"type": "integer"},
-            "published": {"type": "boolean"},
+            "title": {"type": "string", "title": "Title"},
+            "priority": {"type": "integer", "title": "Priority"},
+            "published": {"type": "boolean", "title": "Published"},
         }
         engine = siren(document)
 
@@ -373,20 +377,20 @@ class TestFields:
             by_alias=True, mode="json", exclude_none=True)
 
         assert collection["actions"][0]["fields"] == [
-            {"name": "text", "type": "text"},
-            {"name": "email", "type": "email"},
-            {"name": "uri", "type": "url"},
-            {"name": "date", "type": "date"},
-            {"name": "date_time", "type": "datetime-local"},
-            {"name": "time", "type": "time"},
-            {"name": "integer", "type": "number"},
-            {"name": "number", "type": "number"},
-            {"name": "boolean", "type": "checkbox"},
+            {"name": "text", "type": "text", "title": "Text"},
+            {"name": "email", "type": "email", "title": "Email"},
+            {"name": "uri", "type": "url", "title": "URI"},
+            {"name": "date", "type": "date", "title": "Date"},
+            {"name": "date_time", "type": "datetime-local", "title": "Date time"},
+            {"name": "time", "type": "time", "title": "Time"},
+            {"name": "integer", "type": "number", "title": "Integer"},
+            {"name": "number", "type": "number", "title": "Number"},
+            {"name": "boolean", "type": "checkbox", "title": "Boolean"},
         ]
         assert entity["actions"][0]["fields"] == [
-            {"name": "title", "type": "text"},
-            {"name": "priority", "type": "number"},
-            {"name": "published", "type": "checkbox"},
+            {"name": "title", "type": "text", "title": "Title"},
+            {"name": "priority", "type": "number", "title": "Priority"},
+            {"name": "published", "type": "checkbox", "title": "Published"},
         ]
 
     def test_public_facade_omits_boolean_defaults_that_siren_cannot_represent(self):

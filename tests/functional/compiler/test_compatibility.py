@@ -1,9 +1,10 @@
 from copy import deepcopy
 
 import pytest
-from openapi_documents import PARAMETER_MEDIA_SCHEMA
 
 from sirenity import SirenityError, audit, siren
+
+from .openapi_documents import PARAMETER_MEDIA_SCHEMA
 
 
 class TestCompatibility:
@@ -13,7 +14,7 @@ class TestCompatibility:
             {"name": "session", "in": "header",
                 "required": False, "schema": {"type": "string"}},
             {"name": "query", "in": "query", "required": True,
-                "schema": {"type": "string"}},
+                "schema": {"type": "string", "title": "Query"}},
             {
                 "name": "tags",
                 "in": "query",

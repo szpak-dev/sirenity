@@ -1,7 +1,8 @@
 import pytest
-from openapi_documents import ROUTE_POLICY_SCHEMA, SCHEMA
 
 from sirenity import SirenContext, SirenityError, siren
+
+from .openapi_documents import ROUTE_POLICY_SCHEMA, SCHEMA
 
 
 class TestQueries:

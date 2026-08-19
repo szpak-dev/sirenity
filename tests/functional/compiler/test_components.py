@@ -1,9 +1,10 @@
 from copy import deepcopy
 
 import pytest
-from openapi_documents import REFERENCED_SCHEMA
 
 from sirenity import SirenContext, SirenityError, siren
+
+from .openapi_documents import REFERENCED_SCHEMA
 
 
 class TestComponents:
@@ -26,7 +27,7 @@ class TestComponents:
             by_alias=True, mode="json", exclude_none=True)
 
         assert document["actions"][0]["fields"] == [
-            {"name": "page_size", "type": "number"}]
+            {"name": "page_size", "type": "number", "title": "Page size"}]
 
     @pytest.mark.parametrize(
         "reference",
@@ -65,6 +66,7 @@ class TestComponents:
             "name": "rename_record",
             "method": "PATCH",
             "href": "https://api.example.com/records/42",
+            "title": "Rename record",
             "type": "application/json",
-            "fields": [{"name": "title", "type": "text"}],
+            "fields": [{"name": "title", "type": "text", "title": "Title"}],
         }

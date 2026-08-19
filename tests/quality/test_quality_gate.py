@@ -3,7 +3,7 @@ from pathlib import Path
 
 class TestQualityGate:
     def test_ci_runs_the_complete_quality_gate_and_retains_package_evidence(self):
-        project = Path(__file__).parents[1]
+        project = Path(__file__).parents[2]
         workflow = (project / ".github/workflows/ci.yml").read_text()
         makefile = (project / "Makefile").read_text()
         pyproject = (project / "pyproject.toml").read_text()

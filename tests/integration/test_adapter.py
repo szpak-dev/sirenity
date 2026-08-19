@@ -17,9 +17,6 @@ from django.http import (
     StreamingHttpResponse,
 )
 from django.test import RequestFactory, override_settings
-from framework_fixtures.capability_policy import CapabilityPolicy
-from framework_fixtures.django_openapi_provider import django_openapi_provider
-from framework_fixtures.root_capability_policy import RootCapabilityPolicy
 
 from sirenity import (
     SirenAdapter,
@@ -35,6 +32,10 @@ from sirenity import (
     SirenStructuredFormProfile,
     siren_adapter,
 )
+
+from ..framework_fixtures.capability_policy import CapabilityPolicy
+from ..framework_fixtures.django_openapi_provider import django_openapi_provider
+from ..framework_fixtures.root_capability_policy import RootCapabilityPolicy
 
 
 class TestAdapter:

@@ -55,7 +55,7 @@ class TestWiring:
         assert "SirenDefaultHrefService constructs injectable SirenDefaultResourceResolver" in result.stdout
 
     def test_service_check_resolves_every_public_composition_entry_point(self):
-        result = self.command(Path(__file__).parents[1])
+        result = self.command(Path(__file__).parents[2])
 
         assert result.returncode == 0, result.stdout
 
@@ -70,7 +70,7 @@ class TestWiring:
         )
 
     def workspace(self, tmp_path: Path) -> Path:
-        project = Path(__file__).parents[1]
+        project = Path(__file__).parents[2]
         workspace = tmp_path / "workspace"
         shutil.copytree(project / "src", workspace / "src")
         shutil.copytree(project / "scripts", workspace / "scripts")

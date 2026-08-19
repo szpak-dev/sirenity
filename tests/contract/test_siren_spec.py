@@ -90,7 +90,7 @@ class TestSirenSpecCommand:
         assert "Unsupported Siren schema terms: minLength" in result.stderr
 
     def test_command_prints_the_unified_siren_conformance_ledger(self):
-        result = self.command(Path(__file__).parents[1])
+        result = self.command(Path(__file__).parents[2])
 
         assert result.returncode == 0, result.stderr
         assert "Siren conformance ledger" in result.stdout
@@ -138,7 +138,7 @@ class TestSirenSpecCommand:
         )
 
     def workspace(self, tmp_path: Path) -> Path:
-        project = Path(__file__).parents[1]
+        project = Path(__file__).parents[2]
         workspace = tmp_path / "workspace"
         shutil.copytree(project / "src", workspace / "src")
         shutil.copytree(project / "tests/conformance", workspace / "tests/conformance")

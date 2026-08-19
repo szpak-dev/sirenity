@@ -5,10 +5,11 @@ from copy import deepcopy
 from pathlib import Path
 
 import pytest
-from framework_fixtures.django_ninja_extra.openapi_fixture import DjangoNinjaExtraOpenApiFixture
-from framework_fixtures.fastapi.openapi_fixture import FastApiOpenApiFixture
 
 from sirenity import SirenContext, SirenityError, siren
+
+from ..framework_fixtures.django_ninja_extra.openapi_fixture import DjangoNinjaExtraOpenApiFixture
+from ..framework_fixtures.fastapi.openapi_fixture import FastApiOpenApiFixture
 
 
 class TestConformance:
@@ -136,7 +137,7 @@ class TestConformance:
         ]
 
     def test_built_wheel_supports_the_documented_public_consumer_flow(self, tmp_path: Path):
-        project = Path(__file__).parents[1]
+        project = Path(__file__).parents[2]
         artifacts = tmp_path / "artifacts"
         environment = tmp_path / "consumer"
         fixture = project / "tests" / "fixtures" / "wheel_consumer.py"
