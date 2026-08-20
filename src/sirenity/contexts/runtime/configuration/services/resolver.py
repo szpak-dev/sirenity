@@ -1,4 +1,5 @@
 import importlib
+import json
 from collections.abc import Mapping
 from dataclasses import dataclass
 
@@ -70,7 +71,8 @@ class SirenDefaultConfigurationResolver(SirenConfigurationResolver):
                     f"Siren configuration profile could not load {profile_path!r}: {error}"
                 ) from error
         try:
-            api = self.api_service.build(schema, declaration.source_path, declaration.public_path)
+            document = json.loads(json.dumps(schema))
+            api = self.api_service.build(document, declaration.source_path, declaration.public_path)
             engine = self.engine_factory.create(api)
             adapter = SirenAdapter(
                 engine=engine,
