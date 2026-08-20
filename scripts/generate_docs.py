@@ -146,9 +146,25 @@ class DocumentationGenerator:
         return tuple(f"- [{guide.title}]({prefix}{guide.path.name})" for guide in guides)
 
     @classmethod
-    def readme(cls, current: str, guides: tuple[Guide, ...]) -> str:
+    def readme(
+        cls,
+        current: str,
+        guides: tuple[Guide, ...],
+        definitions: tuple[tuple[str, object], ...],
+    ) -> str:
+        configuration = dict(definitions)["siren_configuration"]
+        integration_guide = inspect.getdoc(configuration)
+        if not integration_guide:
+            raise ValueError("Public symbol siren_configuration must have a docstring")
         generated = "\n".join((
             START,
+            "## Supported integrations",
+            "",
+            "This task-oriented guide is generated from the same public source as "
+            "[`docs/configuration.md`](docs/configuration.md).",
+            "",
+            integration_guide,
+            "",
             "## Documentation",
             "",
             "Guides are generated from marked public modules. Run `make docs` after changing public guidance.",
@@ -189,7 +205,10 @@ class DocumentationGenerator:
         package = cls.package()
         guides = cls.guides(package)
         definitions = cls.definitions(package)
-        targets = [(ROOT / "README.md", cls.readme((ROOT / "README.md").read_text(), guides))]
+        targets = [(
+            ROOT / "README.md",
+            cls.readme((ROOT / "README.md").read_text(), guides, definitions),
+        )]
         targets.append((ROOT / "docs" / "index.md", cls.index(guides)))
         targets.append((ROOT / "docs" / "reference.md", cls.reference(package, definitions)))
         targets.extend((guide.path, cls.guide(guide, definitions)) for guide in guides)

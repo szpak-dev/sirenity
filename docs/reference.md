@@ -44,5 +44,5 @@ The supported root imports below are generated from `sirenity.__all__`.
 | `audit` | Inspect a valid OpenAPI document against the current official-Siren support boundary. | — |
 | `siren` | Compile a complete OpenAPI 3.1 document into a reusable Siren engine. | — |
 | `siren_adapter` | Compile a framework-neutral boundary for operation-aware Siren HTTP responses. | — |
-| `siren_configuration` | Resolve one immutable, shared Siren integration configuration. | — |
+| `siren_configuration` | Resolve one immutable configuration for every supported integration. | — |
 | `siren_mcp` | Expose every compiled OpenAPI operation as a correctly described MCP tool. | — |
