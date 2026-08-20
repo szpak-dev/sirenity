@@ -317,29 +317,31 @@ class TestResponses:
     def test_public_engine_projects_a_nested_collection_response_link(self):
         schema = {
             "openapi": "3.1.1",
-            "info": {"title": "Diagram sets", "version": "1"},
+            "info": {"title": "Example groups", "version": "1"},
             "paths": {
-                "/diagram-sets/{diagram_set_id}": {
+                "/example-groups/{example_group_id}": {
                     "parameters": [
                         {
-                            "name": "diagram_set_id",
+                            "name": "example_group_id",
                             "in": "path",
                             "required": True,
                             "schema": {"type": "string"},
                         }
                     ],
                     "get": {
-                        "operationId": "get_diagram_set",
-                        "summary": "Read diagram set",
-                        "description": "Read a diagram set.",
+                        "operationId": "get_example_group",
+                        "summary": "Read example group",
+                        "description": "Read an example group.",
                         "responses": {
                             "200": {
-                                "description": "Diagram set",
-                                "content": {"application/json": {"schema": {"type": "object", "title": "Diagram set"}}},
+                                "description": "Example group",
+                                "content": {
+                                    "application/json": {"schema": {"type": "object", "title": "Example group"}}
+                                },
                                 "links": {
-                                    "diagrams": {
-                                        "operationId": "list_diagram_set_diagrams",
-                                        "parameters": {"path.diagram_set_id": "$response.body#/diagram_set_id"},
+                                    "example_resources": {
+                                        "operationId": "list_example_group_resources",
+                                        "parameters": {"path.example_group_id": "$response.body#/example_group_id"},
                                         "x-sirenity": {"rel": "collection", "scope": "collection"},
                                     }
                                 },
@@ -347,28 +349,28 @@ class TestResponses:
                         },
                     },
                 },
-                "/diagram-sets/{diagram_set_id}/diagrams": {
+                "/example-groups/{example_group_id}/example_resources": {
                     "parameters": [
                         {
-                            "name": "diagram_set_id",
+                            "name": "example_group_id",
                             "in": "path",
                             "required": True,
                             "schema": {"type": "string"},
                         }
                     ],
                     "get": {
-                        "operationId": "list_diagram_set_diagrams",
-                        "summary": "List diagram set diagrams",
-                        "description": "List diagrams in a diagram set.",
+                        "operationId": "list_example_group_resources",
+                        "summary": "List example group resources",
+                        "description": "List example resources in an example group.",
                         "responses": {
                             "200": {
-                                "description": "Diagrams",
+                                "description": "Example resources",
                                 "content": {
                                     "application/json": {
                                         "schema": {
                                             "type": "array",
-                                            "title": "Diagrams",
-                                            "items": {"type": "object", "title": "Diagram"},
+                                            "title": "Example resources",
+                                            "items": {"type": "object", "title": "Example resource"},
                                         }
                                     }
                                 },
@@ -383,9 +385,9 @@ class TestResponses:
             siren(schema)
             .project_response(
                 SirenResponseContext(
-                    operation_id="get_diagram_set",
+                    operation_id="get_example_group",
                     status=200,
-                    result={"diagram_set_id": "set-7"},
+                    result={"example_group_id": "example-group-7"},
                     base_url="https://api.example.com",
                 )
             )
@@ -393,11 +395,15 @@ class TestResponses:
         )
 
         assert document["links"] == [
-            {"title": "Diagram set", "rel": ["self"], "href": "https://api.example.com/diagram-sets/set-7"},
             {
-                "title": "Diagram",
+                "title": "Example group",
+                "rel": ["self"],
+                "href": "https://api.example.com/example-groups/example-group-7",
+            },
+            {
+                "title": "Example resource",
                 "rel": ["collection"],
-                "href": "https://api.example.com/diagram-sets/set-7/diagrams",
+                "href": "https://api.example.com/example-groups/example-group-7/example_resources",
             },
         ]
 

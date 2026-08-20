@@ -247,7 +247,7 @@ class TestTitles:
         response_schema = document["paths"]["/example_resources"]["get"]["responses"]["200"]["content"][
             "application/json"
         ]["schema"]
-        response_schema["title"] = "Generated collection wrapper"
+        response_schema["title"] = "Example collection wrapper"
 
         engine = siren(document)
         root = engine.project(
