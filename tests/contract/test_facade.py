@@ -95,6 +95,7 @@ class TestFacade:
             "SirenMcpOperation",
             "SirenMcpResult",
             "SirenMcpTool",
+            "SirenMcpToolCatalogue",
             "SirenMiddleware",
             "SirenParameterInput",
             "SirenRelationship",

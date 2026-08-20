@@ -1,3 +1,5 @@
+from copy import deepcopy
+
 import pytest
 
 from sirenity import (
@@ -26,13 +28,17 @@ class ExampleMcpExecutor:
         )
 
 
-def mcp_bridge(schema, executor=None):
+def example_mcp_policy(*arguments):
+    return None
+
+
+def mcp_bridge(schema, executor=None, policy="sirenity.SirenAllowAllPolicy"):
     global mcp_openapi
     mcp_openapi = schema
     return siren_mcp(
         siren_configuration(
             openapi="tests.integration.test_mcp.mcp_openapi",
-            policy="sirenity.SirenAllowAllPolicy",
+            policy=policy,
         ),
         executor=executor or ExampleMcpExecutor(),
     )
@@ -421,3 +427,109 @@ def test_public_mcp_bridge_executes_once_through_shared_configuration():
     }
     assert result.is_error is False
     assert result.structured_content["properties"] == {"title": "Example resource"}
+
+
+def test_public_mcp_catalogue_fingerprint_is_stable_across_configuration_lifecycles():
+    schema = {
+        "openapi": "3.1.1",
+        "info": {"title": "Example MCP API", "version": "1"},
+        "paths": {
+            "/example_resources/{example_resource_id}": {
+                "parameters": [
+                    {"name": "example_resource_id", "in": "path", "required": True, "schema": {"type": "string"}}
+                ],
+                "get": {
+                    "operationId": "get_example_resource",
+                    "summary": "Read example resource",
+                    "description": "Read one example resource.",
+                    "parameters": [
+                        {
+                            "name": "example_filter",
+                            "in": "query",
+                            "schema": {"type": "string", "title": "Example filter"},
+                        },
+                        {
+                            "name": "example_limit",
+                            "in": "query",
+                            "schema": {"type": "integer", "title": "Example limit"},
+                        },
+                    ],
+                    "responses": {"200": {"description": "Example resource."}},
+                },
+            }
+        },
+    }
+
+    first = mcp_bridge(schema)
+    second = mcp_bridge(deepcopy(schema))
+    reordered = deepcopy(schema)
+    reordered["paths"]["/example_resources/{example_resource_id}"]["get"]["parameters"].reverse()
+
+    assert first.catalogue_fingerprint == second.catalogue_fingerprint
+    assert first.catalogue_fingerprint == mcp_bridge(reordered).catalogue_fingerprint
+    assert first.tools() == second.tools()
+    first_tools = first.tools()
+    first_tools[0].input_schema["properties"]["example_resource_id"]["type"] = "integer"
+    assert first.tools()[0].input_schema["properties"]["example_resource_id"] == {"type": "string"}
+
+
+def test_public_mcp_catalogue_fingerprint_changes_only_with_visible_contract_data():
+    schema = {
+        "openapi": "3.1.1",
+        "info": {"title": "Example MCP API", "version": "1"},
+        "paths": {
+            "/example_resources/{example_resource_id}": {
+                "parameters": [
+                    {"name": "example_resource_id", "in": "path", "required": True, "schema": {"type": "string"}}
+                ],
+                "get": {
+                    "operationId": "get_example_resource",
+                    "summary": "Read example resource",
+                    "description": "Read one example resource.",
+                    "responses": {"200": {"description": "Example resource."}},
+                },
+            }
+        },
+    }
+    baseline = mcp_bridge(schema).catalogue_fingerprint
+    summary = deepcopy(schema)
+    summary["paths"]["/example_resources/{example_resource_id}"]["get"]["summary"] = "Inspect example resource"
+    description = deepcopy(schema)
+    description["paths"]["/example_resources/{example_resource_id}"]["get"]["description"] = (
+        "Inspect one example resource."
+    )
+    operation = deepcopy(schema)
+    operation["paths"]["/example_resources/{example_resource_id}"]["get"]["operationId"] = "inspect_example_resource"
+    input_schema = deepcopy(schema)
+    input_schema["paths"]["/example_resources/{example_resource_id}"]["parameters"][0]["schema"] = {"type": "integer"}
+
+    assert baseline != mcp_bridge(summary).catalogue_fingerprint
+    assert baseline != mcp_bridge(description).catalogue_fingerprint
+    assert baseline != mcp_bridge(operation).catalogue_fingerprint
+    assert baseline != mcp_bridge(input_schema).catalogue_fingerprint
+
+
+def test_public_mcp_catalogue_fingerprint_excludes_executor_policy_and_runtime_result():
+    schema = {
+        "openapi": "3.1.1",
+        "info": {"title": "Example MCP API", "version": "1"},
+        "paths": {
+            "/example_resources": {
+                "get": {
+                    "operationId": "list_example_resources",
+                    "summary": "List example resources",
+                    "description": "List all example resources.",
+                    "responses": {"200": {"description": "Example resources."}},
+                }
+            }
+        },
+    }
+
+    default = mcp_bridge(schema, executor=ExampleMcpExecutor(result={"status": "first"}))
+    alternate = mcp_bridge(
+        deepcopy(schema),
+        executor=ExampleMcpExecutor(result={"status": "second"}),
+        policy="tests.integration.test_mcp.example_mcp_policy",
+    )
+
+    assert default.catalogue_fingerprint == alternate.catalogue_fingerprint

@@ -8,6 +8,7 @@ from sirenity.contexts.compiler import SirenApiService
 from sirenity.contexts.runtime.adapter import SirenAdapter, SirenAdapterProfile, SirenCapabilityPolicy
 from sirenity.contexts.runtime.adapter.values import SirenAdapterRoute
 from sirenity.contexts.runtime.engine import SirenEngineFactory
+from sirenity.contexts.runtime.mcp import SirenMcpToolCatalogueService
 from sirenity.contexts.shared import SirenityError
 
 from ..contracts import SirenConfigurationResolver
@@ -19,6 +20,7 @@ from ..values import SirenConfiguration, SirenConfigurationDeclaration
 class SirenDefaultConfigurationResolver(SirenConfigurationResolver):
     api_service: SirenApiService
     engine_factory: SirenEngineFactory
+    catalogue_service: SirenMcpToolCatalogueService
 
     def resolve(self, declaration: SirenConfigurationDeclaration) -> SirenConfiguration:
         if not isinstance(declaration.openapi, str) or not declaration.openapi:
@@ -89,4 +91,8 @@ class SirenDefaultConfigurationResolver(SirenConfigurationResolver):
             raise SirenityError(
                 "Siren configuration openapi has no registered operations; initialization may be premature"
             )
-        return SirenConfiguration(adapter_value=adapter, policy=selected_policy)
+        return SirenConfiguration(
+            adapter_value=adapter,
+            policy=selected_policy,
+            catalogue_value=self.catalogue_service.build(adapter),
+        )

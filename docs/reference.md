@@ -15,7 +15,7 @@ The supported root imports below are generated from `sirenity.__all__`.
 | `SirenCapabilityPolicy` | Select application authorization and optional projection overrides for one response. | `select(operation_id: str | None, status: <class 'int'>, request: <class 'object'>, result: JsonValue) -> <class 'sirenity.contexts.runtime.adapter.values.policy.SirenAdapterPolicy'>` |
 | `SirenCompatibilityFinding` | Describe one OpenAPI construct outside the current official-Siren boundary. | — |
 | `SirenCompatibilityReport` | Expose deterministic OpenAPI-to-Siren compatibility findings. | `compatible: <class 'bool'>`<br>`render() -> <class 'str'>` |
-| `SirenConfiguration` | Retain one resolved Siren adapter and policy for an application lifecycle. | `adapter() -> <class 'sirenity.contexts.runtime.adapter.state.adapter.SirenAdapter'>`<br>`django(get_response: collections.abc.Callable[[object], object]) -> <class 'sirenity.contexts.runtime.adapter.state.django.SirenDjangoMiddleware'>` |
+| `SirenConfiguration` | Retain one resolved Siren adapter and policy for an application lifecycle. | `adapter() -> <class 'sirenity.contexts.runtime.adapter.state.adapter.SirenAdapter'>`<br>`catalogue() -> <class 'sirenity.contexts.runtime.mcp.values.catalogue.SirenMcpToolCatalogue'>`<br>`django(get_response: collections.abc.Callable[[object], object]) -> <class 'sirenity.contexts.runtime.adapter.state.django.SirenDjangoMiddleware'>` |
 | `SirenContext` | Supply runtime state used to project a Siren document. | — |
 | `SirenContractError` | Indicate a Sirenity operation failure. | `location: <class 'str'>`<br>`category: <class 'str'>`<br>`detail: <class 'str'>` |
 | `SirenDelegatedInput` | !!! abstract "Usage Documentation" | — |
@@ -33,6 +33,7 @@ The supported root imports below are generated from `sirenity.__all__`.
 | `SirenMcpOperation` | Represent compiled MCP arguments separated by their HTTP placement. | — |
 | `SirenMcpResult` | !!! abstract "Usage Documentation" | — |
 | `SirenMcpTool` | !!! abstract "Usage Documentation" | — |
+| `SirenMcpToolCatalogue` | Retain one versioned, immutable MCP tool contract for a configuration lifecycle. | `tool(operation_id: <class 'str'>) -> <class 'sirenity.contexts.runtime.mcp.values.tool.SirenMcpTool'>`<br>`snapshot() -> tuple[sirenity.contexts.runtime.mcp.values.tool.SirenMcpTool, ...]` |
 | `SirenMiddleware` | Install Siren through Django's standard middleware loader. | — |
 | `SirenParameterInput` | !!! abstract "Usage Documentation" | — |
 | `SirenRelationship` | Describe a runtime relationship to another OpenAPI resource. | — |

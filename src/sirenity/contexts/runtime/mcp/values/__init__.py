@@ -1,3 +1,4 @@
+from .catalogue import SirenMcpToolCatalogue
 from .execution import SirenMcpExecution
 from .invocation import SirenMcpInvocation
 from .operation import SirenMcpOperation
@@ -10,4 +11,5 @@ __all__ = [
     "SirenMcpOperation",
     "SirenMcpResult",
     "SirenMcpTool",
+    "SirenMcpToolCatalogue",
 ]
