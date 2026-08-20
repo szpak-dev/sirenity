@@ -81,14 +81,15 @@ class OpenApiResponseProjection(BaseState):
                         raise SirenityError(
                             f"OpenAPI array response items require a non-empty title: {status} {media_name}")
                     definition = definition | {"items": item_definition}
-                elif shape != "object":
+                elif shape == "object":
+                    title = definition.get("title")
+                    if not isinstance(title, str) or not title:
+                        raise SirenityError(
+                            f"OpenAPI response schema requires a non-empty title: {status} {media_name}")
+                else:
                     raise SirenityError(
                         f"OpenAPI response schema must be an object or array: {status} {media_name}"
                     )
-                title = definition.get("title")
-                if not isinstance(title, str) or not title:
-                    raise SirenityError(
-                        f"OpenAPI response schema requires a non-empty title: {status} {media_name}")
                 projected.append(ResponseDraft(
                     status=status,
                     media_type=SirenMediaType.validate(media_name),

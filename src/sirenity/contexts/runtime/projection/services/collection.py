@@ -58,7 +58,7 @@ class SirenCollectionScopeProjector(SirenScopeProjector):
             value, SirenEmbeddedRepresentation))
         links = tuple(
             value for value in relationships if isinstance(value, SirenLink))
-        title = request.context.title or request.resource.collection_title or request.resource.title
+        title = request.context.title or request.resource.title
         return SirenDocument(
             class_=(SirenScope.COLLECTION, request.resource.resource_class),
             title=title,

@@ -181,7 +181,7 @@ class TestResponses:
 
         assert document == {
             "class": ["collection", "example-resource"],
-            "title": "Example resources",
+            "title": "Example resource",
             "properties": {},
             "entities": [
                 {
@@ -199,7 +199,7 @@ class TestResponses:
                 }
             ],
             "links": [
-                {"title": "Example resources", "rel": ["self"], "href": "https://api.example.com/example_resources"}
+                {"title": "Example resource", "rel": ["self"], "href": "https://api.example.com/example_resources"}
             ],
         }
 
@@ -283,7 +283,7 @@ class TestResponses:
 
         assert entity["links"] == [
             {"title": "Example resource", "rel": ["self"], "href": "https://api.example.com/example_resources/42"},
-            {"title": "Example resources", "rel": ["collection"], "href": "https://api.example.com/example_resources"},
+            {"title": "Example resource", "rel": ["collection"], "href": "https://api.example.com/example_resources"},
         ]
         assert command["links"] == [
             {"title": "Example resource", "rel": ["self"], "href": "https://api.example.com/example_resources/42"},
@@ -395,7 +395,7 @@ class TestResponses:
         assert document["links"] == [
             {"title": "Diagram set", "rel": ["self"], "href": "https://api.example.com/diagram-sets/set-7"},
             {
-                "title": "Diagrams",
+                "title": "Diagram",
                 "rel": ["collection"],
                 "href": "https://api.example.com/diagram-sets/set-7/diagrams",
             },

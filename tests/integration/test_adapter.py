@@ -896,7 +896,7 @@ class TestAdapter:
                     "href": "https://example.test/siren?view=full",
                 },
                 {
-                    "title": "Example resources",
+                    "title": "Example resource",
                     "rel": ["collection"],
                     "href": "https://example.test/siren/example_resources",
                 },
@@ -1435,7 +1435,10 @@ class TestAdapter:
 
         assert response.status_code == 200
         assert response["Content-Type"] == "application/vnd.siren+json"
-        assert json.loads(response.content)["entities"][0]["properties"] == {
+        payload = json.loads(response.content)
+        assert payload["title"] == "ExampleResource"
+        assert payload["links"][0]["title"] == "ExampleResource"
+        assert payload["entities"][0]["properties"] == {
             "example_resource_id": "example-resource-one",
             "title": "Example resource",
         }

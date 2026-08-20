@@ -37,7 +37,7 @@ class SirenRootScopeProjector(SirenScopeProjector):
             SirenLink(
                 rel=(SirenRelation.validate("collection"),),
                 href=self.hrefs.href(resource.collection.path, request.context, resource, include_query=False),
-                title=resource.collection_title or resource.title,
+                title=resource.title,
             )
             for resource in request.api.resources
             if not _PARAMETER.search(resource.collection.path)

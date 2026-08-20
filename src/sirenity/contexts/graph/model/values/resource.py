@@ -8,7 +8,6 @@ class SirenResource(BaseValue):
     name: str
     resource_class: str
     title: str | None = None
-    collection_title: str | None = None
     identifier: str = "id"
     collection: SirenRoute
     entity: SirenRoute | None = None
