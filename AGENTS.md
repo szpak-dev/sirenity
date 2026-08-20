@@ -1,7 +1,7 @@
 Treat Enclosure projects and linked guidance records as execution policy.
 
 At the start of every task, inspect Enclosure's advertised actions, find the registered project matching the
-workspace, read its insights, and retrieve relevant guidance. State the applicable constraints before acting; report
+workspace, and retrieve relevant guidance. State the applicable constraints before acting; report
 if no project matches or Enclosure is unavailable.
 
 Before any mutation, refresh the project and relevant guidance. Check project health before and after structural,

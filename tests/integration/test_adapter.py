@@ -1406,6 +1406,40 @@ class TestAdapter:
 
         assert django_openapi_provider.calls == 2
 
+    def test_standard_django_loader_accepts_a_direct_django_ninja_api(self):
+        if not settings.configured:
+            settings.configure(DEFAULT_CHARSET="utf-8", ALLOWED_HOSTS=["testserver"])
+        configuration = {
+            "OPENAPI": "tests.framework_fixtures.django_ninja_api.django_ninja_api",
+            "SOURCE_PATH": "/api",
+            "PUBLIC_PATH": "/siren",
+        }
+
+        with override_settings(
+            ALLOWED_HOSTS=["testserver"],
+            ROOT_URLCONF="tests.framework_fixtures.django_ninja_urls",
+            SIRENITY=configuration,
+        ):
+            middleware = SirenMiddleware(
+                lambda request: JsonResponse(
+                    [{"example_resource_id": "example-resource-one", "title": "Example resource"}],
+                    safe=False,
+                )
+            )
+            response = middleware(
+                RequestFactory().get(
+                    "/siren/example_resources",
+                    HTTP_ACCEPT="application/vnd.siren+json",
+                )
+            )
+
+        assert response.status_code == 200
+        assert response["Content-Type"] == "application/vnd.siren+json"
+        assert json.loads(response.content)["entities"][0]["properties"] == {
+            "example_resource_id": "example-resource-one",
+            "title": "Example resource",
+        }
+
     def test_standard_django_loader_follows_the_projected_root_action_across_trailing_slash_mounts(self):
         if not settings.configured:
             settings.configure(DEFAULT_CHARSET="utf-8", ALLOWED_HOSTS=["testserver"])
