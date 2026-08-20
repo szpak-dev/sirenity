@@ -200,7 +200,7 @@ class TestTitles:
                     "href": "https://api.example.com/",
                 },
                 {
-                    "title": "Published example resources",
+                    "title": "Example resource",
                     "rel": ["collection"],
                     "href": "https://api.example.com/example_resources",
                 },
@@ -227,10 +227,10 @@ class TestTitles:
             )
         ).model_dump(by_alias=True, mode="json", exclude_none=True)
 
-        assert collection["title"] == "Published example resources"
+        assert collection["title"] == "Example resource"
         assert collection["links"] == [
             {
-                "title": "Published example resources",
+                "title": "Example resource",
                 "rel": ["self"],
                 "href": "https://api.example.com/example_resources",
             }
@@ -242,16 +242,22 @@ class TestTitles:
         assert entity["actions"][0]["title"] == "Read example resource"
         assert entity["links"][0]["title"] == "Example resource"
 
-    def test_framework_response_wrapper_title_overrides_the_resource_schema_title(self):
+    def test_array_response_title_does_not_replace_the_resource_schema_title(self):
         document = deepcopy(self.schema)
         response_schema = document["paths"]["/example_resources"]["get"]["responses"]["200"]["content"][
             "application/json"
         ]["schema"]
-        response_schema["title"] = "Response"
+        response_schema["title"] = "Example collection wrapper"
 
-        projected = (
-            siren(document)
-            .project(
+        engine = siren(document)
+        root = engine.project(
+            SirenContext(
+                base_url="https://api.example.com",
+                scope="root",
+            )
+        ).model_dump(by_alias=True, mode="json", exclude_none=True)
+        collection = (
+            engine.project(
                 SirenContext(
                     base_url="https://api.example.com",
                     scope="collection",
@@ -262,8 +268,9 @@ class TestTitles:
             .model_dump(by_alias=True, mode="json", exclude_none=True)
         )
 
-        assert projected["title"] == "Response"
-        assert projected["links"][0]["title"] == "Response"
+        assert root["links"][1]["title"] == "Example resource"
+        assert collection["title"] == "Example resource"
+        assert collection["links"][0]["title"] == "Example resource"
 
     def test_item_dto_titles_do_not_leak_and_runtime_title_then_name_labels_items(self):
         document = deepcopy(self.schema)

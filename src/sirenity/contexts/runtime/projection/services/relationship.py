@@ -55,11 +55,7 @@ class SirenDefaultRelationshipDocumentService(SirenRelationshipDocumentService):
             return SirenLink(
                 rel=relationship.rel,
                 href=self.hrefs.href(path, related_context, resource),
-                title=relationship.title or (
-                    resource.collection_title or resource.title
-                    if relationship.scope == SirenScope.COLLECTION
-                    else resource.title
-                ),
+                title=relationship.title or resource.title,
             )
         if resource.entity is None:
             raise SirenityError(

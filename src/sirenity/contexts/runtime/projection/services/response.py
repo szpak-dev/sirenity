@@ -227,7 +227,7 @@ class SirenResponseProjectionService:
                     f"Siren response link target has no entity route: {target.name}")
             links.append(SirenLink(
                 rel=relationship.rel,
-                title=target.collection_title if relationship.scope == SirenScope.COLLECTION else target.title,
+                title=target.title,
                 href=self.hrefs.href(
                     path,
                     request.model_copy(

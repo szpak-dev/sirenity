@@ -45,10 +45,7 @@ class SirenBuilder:
                     reference=resource.reference,
                     name=resource.name,
                     resource_class=resource.resource_class,
-                    title=self.resource_title(
-                        resource, operations, SirenScope.ENTITY),
-                    collection_title=self.resource_title(
-                        resource, operations, SirenScope.COLLECTION),
+                    title=self.resource_title(resource, operations),
                     identifier=resource.identifier,
                     collection=SirenRoute(path=resource.collection_path),
                     entity=SirenRoute(
@@ -155,7 +152,7 @@ class SirenBuilder:
         return tuple(values)
 
     def resource_title(
-        self, resource: Resource, operations: Mapping[str, OperationDraft], scope: SirenScope
+        self, resource: Resource, operations: Mapping[str, OperationDraft]
     ) -> str | None:
         candidates: list[tuple[int, int, str]] = []
         for operation in operations.values():
@@ -170,13 +167,10 @@ class SirenBuilder:
                     continue
                 definition = response.definition
                 priority = 0
-                if scope == SirenScope.COLLECTION and exact_collection and response.shape == "array":
-                    priority = 0 if operation.method == SirenHttpMethod.GET else 1
-                    title = definition["title"]
-                elif scope == SirenScope.ENTITY and exact_entity and response.shape == "object":
+                if exact_entity and response.shape == "object":
                     priority = 0 if operation.method == SirenHttpMethod.GET else 2
                     title = definition["title"]
-                elif scope == SirenScope.ENTITY and exact_collection and response.shape == "array":
+                elif exact_collection and response.shape == "array":
                     priority = 1 if operation.method == SirenHttpMethod.GET else 3
                     title = definition["items"]["title"]
                 else:

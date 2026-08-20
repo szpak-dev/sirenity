@@ -167,17 +167,16 @@ the OpenAPI contract.
 
 The root document uses `info.title`, and exposes `info.version` as the official Siren
 `properties.version` value. Every operation needs a non-empty `summary`; it becomes the action
-title. Every scalar action-field schema and every successful object or array response schema
-needs a non-empty `title`; an array response also needs a non-empty title on its item schema.
+title. Every scalar action-field schema and every successful object response schema needs a
+non-empty `title`; an array response needs a non-empty title on its item schema.
 Titles are an explicit OpenAPI authoring requirement: Sirenity never derives them from operation
 IDs, URLs, DTO names, or property names.
 
 Resource titles come only from explicitly connected successful response schemas: an object
-schema on the exact entity route names an entity, while an array schema on the exact collection
-route names its collection and its item schema names embedded items and entities. A meaningful
-array title names the collection; framework-generated `Response` wrapper titles and item DTO
-titles do not replace the resource title for collection navigation. Self and root collection
-links reuse those compiled titles.
+schema on the exact entity route names the resource, while an array schema on the exact collection
+route uses its item schema to name that resource. An array response title describes only its
+response wrapper and never replaces the resource title. Collection documents, self links, and
+root collection links reuse the same compiled resource title.
 
 ```yaml
 info:
@@ -206,8 +205,8 @@ components:
 relevant compiled default. For collections, `item_titles` supplies one runtime title per item.
 Without explicit item titles, a non-empty string `title` property, then a non-empty string `name`
 property, supplies the item and self-link title before the compiled resource title. Collection
-title precedence is an explicit runtime title, a meaningful array-schema title, then the resource
-title. When operations declare different schema titles, the exact GET representation takes
+title precedence is an explicit runtime title, then the compiled resource title. When operations
+declare different schema titles, the exact GET representation takes
 precedence, followed by other operations in OpenAPI declaration order.
 
 #### Framework integration is one startup call

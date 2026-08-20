@@ -227,7 +227,7 @@ class TestRoutes:
             }
         ]
         assert collection["links"] == [
-            {"title": "Example events", "rel": ["self"], "href": "https://api.example.com/examples/one/events"}
+            {"title": "Example event", "rel": ["self"], "href": "https://api.example.com/examples/one/events"}
         ]
         assert [action["name"] for action in collection["actions"]] == ["list_example_events"]
 

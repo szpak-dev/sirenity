@@ -100,45 +100,45 @@ class TestProjection:
     def test_public_facade_projects_a_nested_collection_relationship(self):
         schema = {
             "openapi": "3.1.1",
-            "info": {"title": "Relationships", "version": "1"},
+            "info": {"title": "Example relationships", "version": "1"},
             "paths": {
-                "/diagram-sets/{diagram_set_id}": {
+                "/example-groups/{example_group_id}": {
                     "parameters": [
                         {
-                            "name": "diagram_set_id",
+                            "name": "example_group_id",
                             "in": "path",
                             "required": True,
                             "schema": {"type": "string"},
                         }
                     ],
                     "get": {
-                        "operationId": "get_diagram_set",
-                        "summary": "Read diagram set",
-                        "description": "Read a diagram set.",
+                        "operationId": "get_example_group",
+                        "summary": "Read example group",
+                        "description": "Read an example group.",
                         "responses": {"200": {"description": "OK"}},
                     },
                 },
-                "/diagrams": {
+                "/example_resources": {
                     "get": {
-                        "operationId": "list_diagrams",
-                        "summary": "List diagrams",
-                        "description": "List diagrams.",
+                        "operationId": "list_example_resources",
+                        "summary": "List example resources",
+                        "description": "List example resources.",
                         "responses": {"200": {"description": "OK"}},
                     },
                 },
-                "/diagram-sets/{diagram_set_id}/diagrams": {
+                "/example-groups/{example_group_id}/example_resources": {
                     "parameters": [
                         {
-                            "name": "diagram_set_id",
+                            "name": "example_group_id",
                             "in": "path",
                             "required": True,
                             "schema": {"type": "string"},
                         }
                     ],
                     "get": {
-                        "operationId": "list_diagram_set_diagrams",
-                        "summary": "List diagram set diagrams",
-                        "description": "List diagrams in a diagram set.",
+                        "operationId": "list_example_group_resources",
+                        "summary": "List example group resources",
+                        "description": "List example resources in an example group.",
                         "responses": {
                             "200": {
                                 "description": "OK",
@@ -146,8 +146,8 @@ class TestProjection:
                                     "application/json": {
                                         "schema": {
                                             "type": "array",
-                                            "title": "Diagrams",
-                                            "items": {"type": "object", "title": "Diagram"},
+                                            "title": "Example resources",
+                                            "items": {"type": "object", "title": "Example resource"},
                                         },
                                     }
                                 },
@@ -162,26 +162,26 @@ class TestProjection:
         document = engine.project(
             SirenContext(
                 base_url="https://api.example.com",
-                resource="diagram_set",
-                value={"diagram_set_id": "set-7"},
+                resource="example_group",
+                value={"example_group_id": "example-group-7"},
                 relationships=(
                     SirenRelationship(
                         rel=("collection",),
-                        resource="diagram",
+                        resource="example_resource",
                         scope=SirenScope.COLLECTION,
-                        path_values={"diagram_set_id": "set-7"},
-                        capabilities=frozenset({"list_diagram_set_diagrams"}),
+                        path_values={"example_group_id": "example-group-7"},
+                        capabilities=frozenset({"list_example_group_resources"}),
                     ),
                 ),
             )
         ).model_dump(by_alias=True, mode="json", exclude_none=True)
 
         assert document["links"] == [
-            {"rel": ["self"], "href": "https://api.example.com/diagram-sets/set-7"},
+            {"rel": ["self"], "href": "https://api.example.com/example-groups/example-group-7"},
             {
                 "rel": ["collection"],
-                "title": "Diagrams",
-                "href": "https://api.example.com/diagram-sets/set-7/diagrams",
+                "title": "Example resource",
+                "href": "https://api.example.com/example-groups/example-group-7/example_resources",
             },
         ]
 
@@ -189,15 +189,15 @@ class TestProjection:
             engine.project(
                 SirenContext(
                     base_url="https://api.example.com",
-                    resource="diagram_set",
-                    value={"diagram_set_id": "set-7"},
+                    resource="example_group",
+                    value={"example_group_id": "example-group-7"},
                     relationships=(
                         SirenRelationship(
                             rel=("collection",),
-                            resource="diagram",
+                            resource="example_resource",
                             scope=SirenScope.ENTITY,
-                            path_values={"diagram_set_id": "set-7"},
-                            capabilities=frozenset({"list_diagram_set_diagrams"}),
+                            path_values={"example_group_id": "example-group-7"},
+                            capabilities=frozenset({"list_example_group_resources"}),
                         ),
                     ),
                 )
@@ -205,47 +205,49 @@ class TestProjection:
 
     def test_public_facade_rejects_invalid_collection_relationships(self):
         with pytest.raises(ValidationError, match="scope"):
-            SirenRelationship(rel=("collection",), resource="diagram")
+            SirenRelationship(rel=("collection",), resource="example_resource")
         with pytest.raises(SirenityError, match="Siren collection relationships cannot be embedded"):
-            SirenRelationship(rel=("collection",), resource="diagram", scope=SirenScope.COLLECTION, embedded=True)
+            SirenRelationship(
+                rel=("collection",), resource="example_resource", scope=SirenScope.COLLECTION, embedded=True
+            )
         with pytest.raises(SirenityError, match="Siren relationship scope must be entity or collection"):
-            SirenRelationship(rel=("collection",), resource="diagram", scope=SirenScope.ROOT)
+            SirenRelationship(rel=("collection",), resource="example_resource", scope=SirenScope.ROOT)
 
     def test_public_facade_requires_nested_collection_relationship_path_values(self):
         schema = {
             "openapi": "3.1.1",
-            "info": {"title": "Relationships", "version": "1"},
+            "info": {"title": "Example relationships", "version": "1"},
             "paths": {
-                "/diagram-sets/{diagram_set_id}": {
+                "/example-groups/{example_group_id}": {
                     "parameters": [
                         {
-                            "name": "diagram_set_id",
+                            "name": "example_group_id",
                             "in": "path",
                             "required": True,
                             "schema": {"type": "string"},
                         }
                     ],
                     "get": {
-                        "operationId": "get_diagram_set",
-                        "summary": "Read diagram set",
-                        "description": "Read a diagram set.",
-                        "responses": {"200": {"description": "OK"}},
+                        "operationId": "get_example_group",
+                        "summary": "Read example group",
+                        "description": "Read an example group.",
+                        "responses": {"200": {"description": "Example response"}},
                     },
                 },
-                "/diagram-sets/{diagram_set_id}/diagrams": {
+                "/example-groups/{example_group_id}/example_resources": {
                     "parameters": [
                         {
-                            "name": "diagram_set_id",
+                            "name": "example_group_id",
                             "in": "path",
                             "required": True,
                             "schema": {"type": "string"},
                         }
                     ],
                     "get": {
-                        "operationId": "list_diagram_set_diagrams",
-                        "summary": "List diagram set diagrams",
-                        "description": "List diagrams in a diagram set.",
-                        "responses": {"200": {"description": "OK"}},
+                        "operationId": "list_example_group_resources",
+                        "summary": "List example group resources",
+                        "description": "List example resources in an example group.",
+                        "responses": {"200": {"description": "Example response"}},
                     },
                 },
             },
@@ -255,10 +257,12 @@ class TestProjection:
             siren(schema).project(
                 SirenContext(
                     base_url="https://api.example.com",
-                    resource="diagram_set",
-                    value={"diagram_set_id": "set-7"},
+                    resource="example_group",
+                    value={"example_group_id": "example-group-7"},
                     relationships=(
-                        SirenRelationship(rel=("collection",), resource="diagram", scope=SirenScope.COLLECTION),
+                        SirenRelationship(
+                            rel=("collection",), resource="example_resource", scope=SirenScope.COLLECTION
+                        ),
                     ),
                 )
             )
