@@ -11,61 +11,32 @@ from sirenity.contexts.runtime.adapter import (
 from sirenity.contexts.shared import BaseState, SirenContractError, SirenityError
 
 from ..contracts import SirenMcpExecutor
-from ..values import SirenMcpExecution, SirenMcpInvocation, SirenMcpOperation, SirenMcpResult, SirenMcpTool
+from ..values import (
+    SirenMcpExecution,
+    SirenMcpInvocation,
+    SirenMcpOperation,
+    SirenMcpResult,
+    SirenMcpTool,
+    SirenMcpToolCatalogue,
+)
 
 
 class SirenMcpBridge(BaseState):
     adapter: SirenAdapter
     policy: SirenCapabilityPolicy | Callable[..., object]
     executor: SirenMcpExecutor
+    catalogue: SirenMcpToolCatalogue
 
     def tools(self) -> tuple[SirenMcpTool, ...]:
-        values = []
-        for operation in self.adapter.engine.api.operations:
-            input = self.adapter.engine.operation_input(operation.name)
-            properties = {}
-            required = []
-            definition = input.definition if input is not None else None
-            body_properties = (
-                definition.get("properties", {})
-                if isinstance(definition, dict)
-                else {}
-            )
-            body_required = (
-                definition.get("required", ())
-                if isinstance(definition, dict)
-                else ()
-            )
-            if input is not None:
-                for parameter in input.parameters:
-                    properties[parameter.name] = parameter.definition
-                    if parameter.required:
-                        required.append(parameter.name)
-            for name, schema in body_properties.items():
-                if isinstance(schema, dict):
-                    properties[name] = schema
-                    if name in body_required:
-                        required.append(name)
-            if input is not None:
-                for delegated in input.delegated_inputs:
-                    if delegated.location == "body":
-                        properties[delegated.name] = delegated.definition
-                        if delegated.required:
-                            required.append(delegated.name)
-            schema = {
-                "type": "object",
-                "properties": properties,
-                "additionalProperties": False,
-            }
-            if required:
-                schema["required"] = list(dict.fromkeys(required))
-            values.append(SirenMcpTool(
-                name=operation.name,
-                title=operation.title,
-                description=operation.description,
-                input_schema=schema,
-            ))
-        return tuple(values)
+        """Return defensive snapshots of this configuration's immutable catalogue."""
+
+        return self.catalogue.snapshot()
+
+    @property
+    def catalogue_fingerprint(self) -> str:
+        """Return the deterministic caller-visible contract fingerprint for this catalogue."""
+
+        return self.catalogue.fingerprint
 
     def operation(self, invocation: SirenMcpInvocation) -> SirenMcpOperation:
         operations = [
@@ -140,8 +111,7 @@ class SirenMcpBridge(BaseState):
         if missing:
             raise SirenityError(
                 f"Siren MCP invocation is missing required arguments for {operation.name}: {missing}")
-        tool = next(
-            tool for tool in self.tools() if tool.name == operation.name)
+        tool = self.catalogue.tool(operation.name)
         try:
             Draft202012Validator(dict(tool.input_schema)).validate(arguments)
         except ValidationError as error:
