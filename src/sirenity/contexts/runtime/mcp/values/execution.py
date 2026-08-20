@@ -1,6 +1,6 @@
 from collections.abc import Mapping
 
-from pydantic import JsonValue
+from pydantic import Field, JsonValue
 
 from sirenity.contexts.shared import BaseValue
 
@@ -12,4 +12,4 @@ class SirenMcpExecution(BaseValue):
     result: JsonValue = None
     base_url: str
     request_url: str | None = None
-    headers: Mapping[str, str] = {}
+    headers: Mapping[str, str] = Field(default_factory=dict)

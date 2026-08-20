@@ -21,6 +21,6 @@ class TestQualityGate:
         assert "UV_CACHE_DIR: ${{ github.workspace }}/.dump/uv-cache" in workflow
         assert 'cache_dir = ".dump/pytest-cache"' in pyproject
         assert 'cache-dir = ".dump/ruff-cache"' in pyproject
-        assert "python -m pip install -e \".[dev]\"" not in workflow
+        assert 'python -m pip install -e ".[dev]"' not in workflow
         assert "if: always()" in workflow
         assert "path: dist/quality/" in workflow

@@ -14,12 +14,12 @@ class EntitySteps:
     def public_root_entity_with_official_members() -> None:
         EntitySteps.payload = None
         EntitySteps.document = SirenDocument(
-            class_=("record",),
+            class_=("example_resource",),
             title="Architecture",
             properties={"id": "42"},
-            entities=(SirenEmbeddedLink(rel=("item",), href="https://api.example.com/records/43"),),
-            actions=(SirenAction(name="update", href="https://api.example.com/records/42"),),
-            links=(SirenLink(rel=("self",), href="https://api.example.com/records/42"),),
+            entities=(SirenEmbeddedLink(rel=("item",), href="https://api.example.com/example_resources/43"),),
+            actions=(SirenAction(name="update", href="https://api.example.com/example_resources/42"),),
+            links=(SirenLink(rel=("self",), href="https://api.example.com/example_resources/42"),),
         )
 
     @staticmethod
@@ -27,7 +27,7 @@ class EntitySteps:
     def public_root_entity_with_a_self_link() -> None:
         EntitySteps.payload = None
         EntitySteps.document = SirenDocument(
-            links=(SirenLink(rel=("self",), href="https://api.example.com/records/42"),),
+            links=(SirenLink(rel=("self",), href="https://api.example.com/example_resources/42"),),
         )
 
     @staticmethod
@@ -40,12 +40,12 @@ class EntitySteps:
     @then("it has its class, title, and properties", stacklevel=2)
     def root_entity_has_its_state_members() -> None:
         assert EntitySteps.payload == {
-            "class": ["record"],
+            "class": ["example_resource"],
             "title": "Architecture",
             "properties": {"id": "42"},
-            "entities": [{"rel": ["item"], "href": "https://api.example.com/records/43"}],
-            "actions": [{"name": "update", "method": "GET", "href": "https://api.example.com/records/42"}],
-            "links": [{"rel": ["self"], "href": "https://api.example.com/records/42"}],
+            "entities": [{"rel": ["item"], "href": "https://api.example.com/example_resources/43"}],
+            "actions": [{"name": "update", "method": "GET", "href": "https://api.example.com/example_resources/42"}],
+            "links": [{"rel": ["self"], "href": "https://api.example.com/example_resources/42"}],
         }
 
     @staticmethod
@@ -57,7 +57,9 @@ class EntitySteps:
     @staticmethod
     @then("it has a self link to its URI", stacklevel=2)
     def root_entity_has_a_self_link_to_its_uri() -> None:
-        assert EntitySteps.payload == {"links": [{"rel": ["self"], "href": "https://api.example.com/records/42"}]}
+        assert EntitySteps.payload == {
+            "links": [{"rel": ["self"], "href": "https://api.example.com/example_resources/42"}]
+        }
 
 
 scenarios("../features/entity.feature")

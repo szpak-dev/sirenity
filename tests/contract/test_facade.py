@@ -60,9 +60,7 @@ class TestFacade:
             (SCHEMA, "/", "siren"),
         ],
     )
-    def test_public_facade_rejects_invalid_inputs_before_the_happy_path(
-        self, openapi, source_path, public_path
-    ):
+    def test_public_facade_rejects_invalid_inputs_before_the_happy_path(self, openapi, source_path, public_path):
         with pytest.raises(SirenityError):
             siren(openapi, source_path=source_path, public_path=public_path)
 
@@ -98,6 +96,7 @@ class TestFacade:
             "SirenMcpResult",
             "SirenMcpTool",
             "SirenMiddleware",
+            "SirenParameterInput",
             "SirenRelationship",
             "SirenResponseContext",
             "SirenScope",
@@ -214,8 +213,7 @@ class TestFacade:
 
     def test_public_facade_remounts_source_paths_without_mutating_the_openapi_document(self):
         schema = deepcopy(SCHEMA)
-        schema["paths"] = {f"/service{path}": item for path,
-                           item in schema["paths"].items()}
+        schema["paths"] = {f"/service{path}": item for path, item in schema["paths"].items()}
         original = deepcopy(schema)
 
         document = siren(schema, source_path="/service/", public_path="/siren/").project(
@@ -223,17 +221,14 @@ class TestFacade:
         )
 
         assert document.model_dump(by_alias=True, mode="json", exclude_none=True)["links"] == [
-            {"title": "Sirenity", "rel": ["self"],
-                "href": "https://api.example.com/siren"},
-            {"rel": ["collection"],
-                "href": "https://api.example.com/siren/records"},
+            {"title": "Sirenity", "rel": ["self"], "href": "https://api.example.com/siren"},
+            {"rel": ["collection"], "href": "https://api.example.com/siren/example_resources"},
         ]
         assert schema == original
 
     def test_public_facade_rejects_paths_outside_the_segment_aware_source_prefix(self):
         schema = deepcopy(SCHEMA)
-        schema["paths"] = {f"/services{path}": item for path,
-                           item in schema["paths"].items()}
+        schema["paths"] = {f"/services{path}": item for path, item in schema["paths"].items()}
 
         with pytest.raises(SirenityError):
             siren(schema, source_path="/service", public_path="/siren")

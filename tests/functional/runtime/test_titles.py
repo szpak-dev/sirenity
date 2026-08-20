@@ -9,20 +9,20 @@ class TestTitles:
         "openapi": "3.1.1",
         "info": {"title": "Example Service", "version": "4.0.0"},
         "paths": {
-            "/articles": {
+            "/example_resources": {
                 "get": {
-                    "operationId": "list_articles",
-                    "summary": "Browse articles",
-                    "description": "Browse published articles.",
+                    "operationId": "list_example_resources",
+                    "summary": "Browse example resources",
+                    "description": "Browse published example resources.",
                     "responses": {
                         "200": {
-                            "description": "Articles",
+                            "description": "Example resources.",
                             "content": {
                                 "application/json": {
                                     "schema": {
                                         "type": "array",
-                                        "title": "Published articles",
-                                        "items": {"$ref": "#/components/schemas/Article"},
+                                        "title": "Published example resources",
+                                        "items": {"$ref": "#/components/schemas/ExampleResource"},
                                     }
                                 }
                             },
@@ -30,78 +30,76 @@ class TestTitles:
                     },
                 },
                 "post": {
-                    "operationId": "create_article",
-                    "summary": "Create article",
-                    "description": "Create an article.",
+                    "operationId": "create_example_resource",
+                    "summary": "Create example resource",
+                    "description": "Create an example resource.",
                     "responses": {
                         "201": {
-                            "description": "Article",
+                            "description": "Example resource.",
                             "content": {
-                                "application/json": {"schema": {"$ref": "#/components/schemas/Article"}}
+                                "application/json": {"schema": {"$ref": "#/components/schemas/ExampleResource"}}
                             },
                         }
                     },
                 },
             },
-            "/articles/{article_id}": {
+            "/example_resources/{example_resource_id}": {
                 "parameters": [
                     {
-                        "name": "article_id",
+                        "name": "example_resource_id",
                         "in": "path",
                         "required": True,
                         "schema": {"type": "string"},
                     }
                 ],
                 "get": {
-                    "operationId": "get_article",
-                    "summary": "Read article",
-                    "description": "Read an article.",
+                    "operationId": "get_example_resource",
+                    "summary": "Read example resource",
+                    "description": "Read an example resource.",
                     "responses": {
                         "200": {
-                            "description": "Article",
+                            "description": "Example resource.",
                             "content": {
-                                "application/json": {"schema": {"$ref": "#/components/schemas/Article"}}
+                                "application/json": {"schema": {"$ref": "#/components/schemas/ExampleResource"}}
                             },
                         }
                     },
                 },
             },
-            "/authors/{author_id}": {
+            "/example_owners/{example_owner_id}": {
                 "parameters": [
                     {
-                        "name": "author_id",
+                        "name": "example_owner_id",
                         "in": "path",
                         "required": True,
                         "schema": {"type": "string"},
                     }
                 ],
                 "get": {
-                    "operationId": "get_author",
-                    "summary": "Read author",
-                    "description": "Read an author.",
+                    "operationId": "get_example_owner",
+                    "summary": "Read example owner",
+                    "description": "Read an example owner.",
                     "responses": {
                         "200": {
-                            "description": "Author",
-                            "content": {
-                                "application/json": {"schema": {"$ref": "#/components/schemas/Author"}}
-                            },
+                            "description": "Example owner.",
+                            "content": {"application/json": {"schema": {"$ref": "#/components/schemas/ExampleOwner"}}},
                         }
                     },
                 },
             },
-            "/articles/{article_id}/publish": {
+            "/example_resources/{example_resource_id}/publish": {
                 "parameters": [
                     {
-                        "name": "article_id",
+                        "name": "example_resource_id",
                         "in": "path",
                         "required": True,
                         "schema": {"type": "string"},
                     }
                 ],
                 "post": {
-                    "operationId": "publish_article",
-                    "summary": "Publish article",
-                    "description": "Publish an article.",
+                    "operationId": "publish_example_resource",
+                    "summary": "Publish example resource",
+                    "description": "Publish an example resource.",
                     "responses": {
                         "202": {
                             "description": "Publication",
@@ -121,15 +119,15 @@ class TestTitles:
         },
         "components": {
             "schemas": {
-                "Article": {
+                "ExampleResource": {
                     "type": "object",
-                    "title": "Article",
-                    "properties": {"article_id": {"type": "string"}},
+                    "title": "Example resource",
+                    "properties": {"example_resource_id": {"type": "string"}},
                 },
-                "Author": {
+                "ExampleOwner": {
                     "type": "object",
-                    "title": "Author",
-                    "properties": {"author_id": {"type": "string"}},
+                    "title": "Example owner",
+                    "properties": {"example_owner_id": {"type": "string"}},
                 },
             }
         },
@@ -137,45 +135,51 @@ class TestTitles:
 
     def test_public_facade_prefers_exact_get_representation_titles_over_other_operations(self):
         document = deepcopy(self.schema)
-        document["components"]["schemas"]["AlternateArticle"] = {
+        document["components"]["schemas"]["AlternateExampleResource"] = {
             "type": "object",
-            "title": "Alternate article",
-            "properties": {"article_id": {"type": "string"}},
+            "title": "Alternate example resource",
+            "properties": {"example_resource_id": {"type": "string"}},
         }
-        document["paths"]["/articles/{article_id}"]["patch"] = {
-            "operationId": "update_article",
-            "summary": "Update article",
-            "description": "Update an article.",
+        document["paths"]["/example_resources/{example_resource_id}"]["patch"] = {
+            "operationId": "update_example_resource",
+            "summary": "Update example resource",
+            "description": "Update an example resource.",
             "responses": {
                 "200": {
-                    "description": "Alternate article",
+                    "description": "Alternate example resource.",
                     "content": {
-                        "application/json": {
-                            "schema": {"$ref": "#/components/schemas/AlternateArticle"}
-                        }
+                        "application/json": {"schema": {"$ref": "#/components/schemas/AlternateExampleResource"}}
                     },
                 }
             },
         }
 
-        projected = siren(document).project(
-            SirenContext(
-                base_url="https://api.example.com",
-                resource="article",
-                value={"article_id": "42"},
+        projected = (
+            siren(document)
+            .project(
+                SirenContext(
+                    base_url="https://api.example.com",
+                    resource="example_resource",
+                    value={"example_resource_id": "42"},
+                )
             )
-        ).model_dump(by_alias=True, mode="json", exclude_none=True)
+            .model_dump(by_alias=True, mode="json", exclude_none=True)
+        )
 
-        assert projected["title"] == "Article"
+        assert projected["title"] == "Example resource"
 
     def test_public_facade_projects_root_metadata_action_summaries_and_collection_link_titles(self):
-        document = siren(self.schema).project(
-            SirenContext(
-                base_url="https://api.example.com",
-                scope="root",
-                capabilities=frozenset({"create_article"}),
+        document = (
+            siren(self.schema)
+            .project(
+                SirenContext(
+                    base_url="https://api.example.com",
+                    scope="root",
+                    capabilities=frozenset({"create_example_resource"}),
+                )
             )
-        ).model_dump(by_alias=True, mode="json", exclude_none=True)
+            .model_dump(by_alias=True, mode="json", exclude_none=True)
+        )
 
         assert document == {
             "class": ["api", "entry-point"],
@@ -183,10 +187,10 @@ class TestTitles:
             "properties": {"version": "4.0.0"},
             "actions": [
                 {
-                    "name": "create_article",
-                    "href": "https://api.example.com/articles",
+                    "name": "create_example_resource",
+                    "href": "https://api.example.com/example_resources",
                     "method": "POST",
-                    "title": "Create article",
+                    "title": "Create example resource",
                 }
             ],
             "links": [
@@ -196,9 +200,9 @@ class TestTitles:
                     "href": "https://api.example.com/",
                 },
                 {
-                    "title": "Published articles",
+                    "title": "Published example resources",
                     "rel": ["collection"],
-                    "href": "https://api.example.com/articles",
+                    "href": "https://api.example.com/example_resources",
                 },
             ],
         }
@@ -209,88 +213,96 @@ class TestTitles:
             SirenContext(
                 base_url="https://api.example.com",
                 scope="collection",
-                resource="article",
-                items=({"article_id": "42"},),
-                capabilities=frozenset({"list_articles"}),
+                resource="example_resource",
+                items=({"example_resource_id": "42"},),
+                capabilities=frozenset({"list_example_resources"}),
             )
         ).model_dump(by_alias=True, mode="json", exclude_none=True)
         entity = engine.project(
             SirenContext(
                 base_url="https://api.example.com",
-                resource="article",
-                value={"article_id": "42"},
-                capabilities=frozenset({"get_article"}),
+                resource="example_resource",
+                value={"example_resource_id": "42"},
+                capabilities=frozenset({"get_example_resource"}),
             )
         ).model_dump(by_alias=True, mode="json", exclude_none=True)
 
-        assert collection["title"] == "Published articles"
+        assert collection["title"] == "Published example resources"
         assert collection["links"] == [
             {
-                "title": "Published articles",
+                "title": "Published example resources",
                 "rel": ["self"],
-                "href": "https://api.example.com/articles",
+                "href": "https://api.example.com/example_resources",
             }
         ]
-        assert collection["actions"][0]["title"] == "Browse articles"
-        assert collection["entities"][0]["title"] == "Article"
-        assert collection["entities"][0]["links"][0]["title"] == "Article"
-        assert entity["title"] == "Article"
-        assert entity["actions"][0]["title"] == "Read article"
-        assert entity["links"][0]["title"] == "Article"
+        assert collection["actions"][0]["title"] == "Browse example resources"
+        assert collection["entities"][0]["title"] == "Example resource"
+        assert collection["entities"][0]["links"][0]["title"] == "Example resource"
+        assert entity["title"] == "Example resource"
+        assert entity["actions"][0]["title"] == "Read example resource"
+        assert entity["links"][0]["title"] == "Example resource"
 
     def test_framework_response_wrapper_title_overrides_the_resource_schema_title(self):
         document = deepcopy(self.schema)
-        response_schema = document["paths"]["/articles"]["get"]["responses"]["200"]["content"][
+        response_schema = document["paths"]["/example_resources"]["get"]["responses"]["200"]["content"][
             "application/json"
         ]["schema"]
         response_schema["title"] = "Response"
 
-        projected = siren(document).project(
-            SirenContext(
-                base_url="https://api.example.com",
-                scope="collection",
-                resource="article",
-                items=({"article_id": "42"},),
+        projected = (
+            siren(document)
+            .project(
+                SirenContext(
+                    base_url="https://api.example.com",
+                    scope="collection",
+                    resource="example_resource",
+                    items=({"example_resource_id": "42"},),
+                )
             )
-        ).model_dump(by_alias=True, mode="json", exclude_none=True)
+            .model_dump(by_alias=True, mode="json", exclude_none=True)
+        )
 
         assert projected["title"] == "Response"
         assert projected["links"][0]["title"] == "Response"
 
     def test_item_dto_titles_do_not_leak_and_runtime_title_then_name_labels_items(self):
         document = deepcopy(self.schema)
-        document["components"]["schemas"]["Article"]["title"] = "Scaffolding"
-        response_schema = document["paths"]["/articles"]["get"]["responses"]["200"]["content"][
+        document["components"]["schemas"]["ExampleResource"]["title"] = "Scaffolding"
+        response_schema = document["paths"]["/example_resources"]["get"]["responses"]["200"]["content"][
             "application/json"
         ]["schema"]
         response_schema["title"] = "Scaffolding"
         response_schema["items"] = {
             "type": "object",
-            "title": "ScaffoldingSummary",
+            "title": "Scaffolding summary",
             "properties": {
-                "article_id": {"type": "string"},
+                "example_resource_id": {"type": "string"},
                 "title": {"type": "string"},
                 "name": {"type": "string"},
             },
         }
         engine = siren(document)
 
-        root = engine.project(SirenContext(
-            base_url="https://api.example.com",
-            scope="root",
-        )).model_dump(by_alias=True, mode="json", exclude_none=True)
-        collection = engine.project(SirenContext(
-            base_url="https://api.example.com",
-            scope="collection",
-            resource="article",
-            items=(
-                {"article_id": "42", "title": "Visible title", "name": "Ignored name"},
-                {"article_id": "43", "name": "Visible name"},
-                {"article_id": "44", "title": "   ", "name": "Name after blank title"},
-                {"article_id": "45", "title": 45, "name": "Name after numeric title"},
-                {"article_id": "46"},
-            ),
-        )).model_dump(by_alias=True, mode="json", exclude_none=True)
+        root = engine.project(
+            SirenContext(
+                base_url="https://api.example.com",
+                scope="root",
+            )
+        ).model_dump(by_alias=True, mode="json", exclude_none=True)
+        collection = engine.project(
+            SirenContext(
+                base_url="https://api.example.com",
+                scope="collection",
+                resource="example_resource",
+                items=(
+                    {"example_resource_id": "42", "title": "Visible title", "name": "Ignored name"},
+                    {"example_resource_id": "43", "name": "Visible name"},
+                    {"example_resource_id": "44", "title": "   ", "name": "Name after blank title"},
+                    {"example_resource_id": "45", "title": 45, "name": "Name after numeric title"},
+                    {"example_resource_id": "46"},
+                ),
+            )
+        ).model_dump(by_alias=True, mode="json", exclude_none=True)
 
         assert root["links"][1]["title"] == "Scaffolding"
         assert collection["title"] == "Scaffolding"
@@ -312,75 +324,81 @@ class TestTitles:
     def test_runtime_item_titles_remain_aligned_with_nested_collection_capabilities(self):
         document = deepcopy(self.schema)
         document["paths"] = {
-            "/authors/{author_id}/articles": document["paths"]["/articles"],
-            "/authors/{author_id}/articles/{article_id}": document["paths"][
-                "/articles/{article_id}"
+            "/example_owners/{example_owner_id}/example_resources": document["paths"]["/example_resources"],
+            "/example_owners/{example_owner_id}/example_resources/{example_resource_id}": document["paths"][
+                "/example_resources/{example_resource_id}"
             ],
         }
-        document["paths"]["/authors/{author_id}/articles"]["parameters"] = [
+        document["paths"]["/example_owners/{example_owner_id}/example_resources"]["parameters"] = [
             {
-                "name": "author_id",
+                "name": "example_owner_id",
                 "in": "path",
                 "required": True,
                 "schema": {"type": "string"},
             }
         ]
-        document["paths"]["/authors/{author_id}/articles/{article_id}"]["parameters"] = [
+        document["paths"]["/example_owners/{example_owner_id}/example_resources/{example_resource_id}"][
+            "parameters"
+        ] = [
             {
-                "name": "author_id",
+                "name": "example_owner_id",
                 "in": "path",
                 "required": True,
                 "schema": {"type": "string"},
             },
             {
-                "name": "article_id",
+                "name": "example_resource_id",
                 "in": "path",
                 "required": True,
                 "schema": {"type": "string"},
             },
         ]
 
-        projected = siren(document).project(
-            SirenContext(
-                base_url="https://api.example.com",
-                scope="collection",
-                resource="article",
-                path_values={"author_id": "7"},
-                items=(
-                    {
-                        "article_id": "42",
-                        "title": "Ignored first title",
-                        "name": "Ignored first name",
-                    },
-                    {
-                        "article_id": "43",
-                        "title": "Ignored second title",
-                        "name": "Ignored second name",
-                    },
-                ),
-                item_titles=("First article", "Second article"),
-                item_capabilities=(
-                    frozenset({"get_article"}),
-                    frozenset(),
-                ),
+        projected = (
+            siren(document)
+            .project(
+                SirenContext(
+                    base_url="https://api.example.com",
+                    scope="collection",
+                    resource="example_resource",
+                    path_values={"example_owner_id": "7"},
+                    items=(
+                        {
+                            "example_resource_id": "42",
+                            "title": "Ignored first title",
+                            "name": "Ignored first name",
+                        },
+                        {
+                            "example_resource_id": "43",
+                            "title": "Ignored second title",
+                            "name": "Ignored second name",
+                        },
+                    ),
+                    item_titles=("First example_resource", "Second example_resource"),
+                    item_capabilities=(
+                        frozenset({"get_example_resource"}),
+                        frozenset(),
+                    ),
+                )
             )
-        ).model_dump(by_alias=True, mode="json", exclude_none=True)
+            .model_dump(by_alias=True, mode="json", exclude_none=True)
+        )
 
         assert [item["title"] for item in projected["entities"]] == [
-            "First article",
-            "Second article",
+            "First example_resource",
+            "Second example_resource",
         ]
         assert [item["links"][0]["title"] for item in projected["entities"]] == [
-            "First article",
-            "Second article",
+            "First example_resource",
+            "Second example_resource",
         ]
         assert [item.get("actions", []) for item in projected["entities"]] == [
             [
                 {
-                    "name": "get_article",
-                    "href": "https://api.example.com/authors/7/articles/42",
+                    "name": "get_example_resource",
+                    "href": "https://api.example.com/example_owners/7/example_resources/42",
                     "method": "GET",
-                    "title": "Read article",
+                    "title": "Read example resource",
                 }
             ],
             [],
@@ -399,17 +417,17 @@ class TestTitles:
             SirenContext(
                 base_url="https://api.example.com",
                 scope="collection",
-                resource="article",
+                resource="example_resource",
                 title="Current selection",
-                items=({"article_id": "42"},),
+                items=({"example_resource_id": "42"},),
             )
         ).model_dump(by_alias=True, mode="json", exclude_none=True)
         entity = engine.project(
             SirenContext(
                 base_url="https://api.example.com",
-                resource="article",
-                title="Current article",
-                value={"article_id": "42"},
+                resource="example_resource",
+                title="Current example resource",
+                value={"example_resource_id": "42"},
             )
         ).model_dump(by_alias=True, mode="json", exclude_none=True)
 
@@ -417,39 +435,43 @@ class TestTitles:
         assert root["links"][0]["title"] == "Current service"
         assert collection["title"] == "Current selection"
         assert collection["links"][0]["title"] == "Current selection"
-        assert collection["entities"][0]["title"] == "Article"
-        assert entity["title"] == "Current article"
-        assert entity["links"][0]["title"] == "Current article"
+        assert collection["entities"][0]["title"] == "Example resource"
+        assert entity["title"] == "Current example resource"
+        assert entity["links"][0]["title"] == "Current example resource"
 
     def test_relationships_apply_compiled_and_explicit_titles_to_links_and_embedded_entities(self):
-        document = siren(self.schema).project(
-            SirenContext(
-                base_url="https://api.example.com",
-                resource="article",
-                value={"article_id": "42"},
-                relationships=(
-                    SirenRelationship(
-                        rel=("author",),
-                        resource="author",
-                        scope=SirenScope.ENTITY,
-                        value={"author_id": "7"},
+        document = (
+            siren(self.schema)
+            .project(
+                SirenContext(
+                    base_url="https://api.example.com",
+                    resource="example_resource",
+                    value={"example_resource_id": "42"},
+                    relationships=(
+                        SirenRelationship(
+                            rel=("https://example.com/rels/example-owner",),
+                            resource="example_owner",
+                            scope=SirenScope.ENTITY,
+                            value={"example_owner_id": "7"},
+                        ),
+                        SirenRelationship(
+                            rel=("https://rels.example.com/editor",),
+                            resource="example_owner",
+                            scope=SirenScope.ENTITY,
+                            title="Editor profile",
+                            value={"example_owner_id": "8"},
+                            embedded=True,
+                        ),
                     ),
-                    SirenRelationship(
-                        rel=("https://rels.example.com/editor",),
-                        resource="author",
-                        scope=SirenScope.ENTITY,
-                        title="Editor profile",
-                        value={"author_id": "8"},
-                        embedded=True,
-                    ),
-                ),
+                )
             )
-        ).model_dump(by_alias=True, mode="json", exclude_none=True)
+            .model_dump(by_alias=True, mode="json", exclude_none=True)
+        )
 
         assert document["links"][1] == {
-            "title": "Author",
-            "rel": ["author"],
-            "href": "https://api.example.com/authors/7",
+            "title": "Example owner",
+            "rel": ["https://example.com/rels/example-owner"],
+            "href": "https://api.example.com/example_owners/7",
         }
         assert document["entities"][0]["title"] == "Editor profile"
         assert document["entities"][0]["links"][0]["title"] == "Editor profile"
@@ -458,28 +480,28 @@ class TestTitles:
         engine = siren(self.schema)
         compiled = engine.project_response(
             SirenResponseContext(
-                operation_id="publish_article",
+                operation_id="publish_example_resource",
                 status=202,
                 result={"published": True},
                 representation="command",
                 base_url="https://api.example.com",
-                path_values={"article_id": "42"},
+                path_values={"example_resource_id": "42"},
             )
         ).model_dump(by_alias=True, mode="json", exclude_none=True)
         explicit = engine.project_response(
             SirenResponseContext(
-                operation_id="publish_article",
+                operation_id="publish_example_resource",
                 status=202,
                 result={"published": True},
                 representation="command",
                 base_url="https://api.example.com",
                 title="Published",
-                path_values={"article_id": "42"},
+                path_values={"example_resource_id": "42"},
             )
         ).model_dump(by_alias=True, mode="json", exclude_none=True)
 
-        assert compiled["title"] == "Publish article"
-        assert compiled["links"][0]["title"] == "Publish article"
+        assert compiled["title"] == "Publish example resource"
+        assert compiled["links"][0]["title"] == "Publish example resource"
         assert explicit["title"] == "Published"
         assert explicit["links"][0]["title"] == "Published"
 
@@ -488,34 +510,38 @@ class TestTitles:
             "openapi": "3.1.1",
             "info": {"title": "Untitled resources", "version": "1"},
             "paths": {
-                "/records/{record_id}": {
+                "/example_resources/{example_resource_id}": {
                     "parameters": [
                         {
-                            "name": "record_id",
+                            "name": "example_resource_id",
                             "in": "path",
                             "required": True,
                             "schema": {"type": "string"},
                         }
                     ],
                     "get": {
-                        "operationId": "get_record",
-                        "summary": "Read record",
-                        "description": "Read a record.",
+                        "operationId": "get_example_resource",
+                        "summary": "Read example resource",
+                        "description": "Read an example resource.",
                         "responses": {"200": {"description": "OK"}},
                     },
                 }
             },
         }
 
-        projected = siren(document).project(
-            SirenContext(
-                base_url="https://api.example.com",
-                resource="record",
-                value={"record_id": "42"},
-                capabilities=frozenset({"get_record"}),
+        projected = (
+            siren(document)
+            .project(
+                SirenContext(
+                    base_url="https://api.example.com",
+                    resource="example_resource",
+                    value={"example_resource_id": "42"},
+                    capabilities=frozenset({"get_example_resource"}),
+                )
             )
-        ).model_dump(by_alias=True, mode="json", exclude_none=True)
+            .model_dump(by_alias=True, mode="json", exclude_none=True)
+        )
 
         assert "title" not in projected
-        assert projected["actions"][0]["title"] == "Read record"
+        assert projected["actions"][0]["title"] == "Read example resource"
         assert "title" not in projected["links"][0]

@@ -18,22 +18,26 @@ class TestErrors:
 
     def test_public_facade_projects_a_supported_openapi_enum_control(self):
         document = deepcopy(SCHEMA)
-        document["paths"]["/records/{record_id}"]["patch"]["requestBody"]["content"]["application/json"][
-            "schema"
-        ]["properties"]["title"] = {
+        document["paths"]["/example_resources/{example_resource_id}"]["patch"]["requestBody"]["content"][
+            "application/json"
+        ]["schema"]["properties"]["title"] = {
             "type": "string",
             "title": "Publication state",
             "enum": ["draft", "published"],
         }
 
-        result = siren(document).project(
-            SirenContext(
-                base_url="https://api.example.com",
-                resource="record",
-                value={"record_id": "42"},
-                capabilities=frozenset({"rename_record"}),
+        result = (
+            siren(document)
+            .project(
+                SirenContext(
+                    base_url="https://api.example.com",
+                    resource="example_resource",
+                    value={"example_resource_id": "42"},
+                    capabilities=frozenset({"rename_example_resource"}),
+                )
             )
-        ).model_dump(by_alias=True, mode="json", exclude_none=True)
+            .model_dump(by_alias=True, mode="json", exclude_none=True)
+        )
 
         assert result["actions"][0]["fields"] == [
             {
@@ -47,13 +51,11 @@ class TestErrors:
     @pytest.mark.parametrize(
         "context",
         [
-            SirenContext(base_url="https://api.example.com",
-                         resource="record"),
-            SirenContext(base_url="https://api.example.com",
-                         resource="unknown"),
+            SirenContext(base_url="https://api.example.com", resource="example_resource"),
+            SirenContext(base_url="https://api.example.com", resource="unknown"),
             SirenContext(
                 base_url="https://api.example.com",
-                resource="record",
+                resource="example_resource",
                 value={"id": "42"},
                 capabilities=frozenset({"unknown_operation"}),
             ),
@@ -69,13 +71,11 @@ class TestErrors:
         document = siren(SCHEMA).project(
             SirenContext(
                 base_url="https://api.example.com",
-                resource="record",
+                resource="example_resource",
                 value={"id": "42"},
-                capabilities=frozenset({"get_record"}),
+                capabilities=frozenset({"get_example_resource"}),
             )
         )
-        document = document.model_dump(
-            by_alias=True, mode="json", exclude_none=True)
+        document = document.model_dump(by_alias=True, mode="json", exclude_none=True)
 
-        assert document["links"] == [
-            {"rel": ["self"], "href": "https://api.example.com/records/42"}]
+        assert document["links"] == [{"rel": ["self"], "href": "https://api.example.com/example_resources/42"}]

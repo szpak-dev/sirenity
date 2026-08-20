@@ -10,17 +10,19 @@ from .openapi_documents import PARAMETER_MEDIA_SCHEMA
 class TestFields:
     def test_public_facade_delegates_header_and_cookie_parameters(self):
         document = deepcopy(PARAMETER_MEDIA_SCHEMA)
-        document["paths"]["/records"]["get"]["parameters"].extend([
-            {"name": "trace", "in": "header", "schema": {"type": "string"}},
-            {"name": "session", "in": "cookie", "schema": {"type": "string"}},
-        ])
+        document["paths"]["/example_resources"]["get"]["parameters"].extend(
+            [
+                {"name": "trace", "in": "header", "schema": {"type": "string"}},
+                {"name": "session", "in": "cookie", "schema": {"type": "string"}},
+            ]
+        )
 
         document = siren(document).project(
             SirenContext(
                 base_url="https://api.example.com",
                 scope="collection",
-                resource="record",
-                capabilities=frozenset({"list_records"}),
+                resource="example_resource",
+                capabilities=frozenset({"list_example_resources"}),
             )
         )
         assert document.model_dump(by_alias=True, mode="json", exclude_none=True)["actions"][0]["fields"] == [
@@ -29,9 +31,8 @@ class TestFields:
 
     def test_public_facade_rejects_a_schema_less_parameter(self):
         invalid = deepcopy(PARAMETER_MEDIA_SCHEMA)
-        invalid["paths"]["/records"]["get"]["parameters"] = [
-            {"name": "filter", "in": "query", "required": False,
-                "content": {"application/json": {}}}
+        invalid["paths"]["/example_resources"]["get"]["parameters"] = [
+            {"name": "filter", "in": "query", "required": False, "content": {"application/json": {}}}
         ]
 
         with pytest.raises(SirenityError):
@@ -39,11 +40,9 @@ class TestFields:
 
     def test_public_facade_rejects_duplicate_parameter_identities(self):
         invalid = deepcopy(PARAMETER_MEDIA_SCHEMA)
-        invalid["paths"]["/records"]["get"]["parameters"] = [
-            {"name": "filter", "in": "query", "required": False,
-                "schema": {"type": "string"}},
-            {"name": "filter", "in": "query", "required": False,
-                "schema": {"type": "integer"}},
+        invalid["paths"]["/example_resources"]["get"]["parameters"] = [
+            {"name": "filter", "in": "query", "required": False, "schema": {"type": "string"}},
+            {"name": "filter", "in": "query", "required": False, "schema": {"type": "integer"}},
         ]
 
         with pytest.raises(SirenityError):
@@ -51,7 +50,7 @@ class TestFields:
 
     def test_public_facade_rejects_ambiguous_non_json_request_body_media(self):
         invalid = deepcopy(PARAMETER_MEDIA_SCHEMA)
-        invalid["paths"]["/records/{record_id}"]["patch"]["requestBody"]["content"] = {
+        invalid["paths"]["/example_resources/{example_resource_id}"]["patch"]["requestBody"]["content"] = {
             "text/plain": {"schema": {"type": "string"}},
             "application/xml": {"schema": {"type": "string"}},
         }
@@ -70,7 +69,7 @@ class TestFields:
     )
     def test_public_facade_rejects_unmappable_field_schemas(self, schema):
         invalid = deepcopy(PARAMETER_MEDIA_SCHEMA)
-        invalid["paths"]["/records"]["get"]["parameters"] = [
+        invalid["paths"]["/example_resources"]["get"]["parameters"] = [
             {"name": "value", "in": "query", "required": False, "schema": schema}
         ]
 
@@ -79,22 +78,22 @@ class TestFields:
 
     def test_public_facade_delegates_structured_inputs_and_non_json_bodies(self):
         document = deepcopy(PARAMETER_MEDIA_SCHEMA)
-        document["paths"]["/records"]["parameters"] = []
-        document["paths"]["/records"]["get"]["parameters"] = [
+        document["paths"]["/example_resources"]["parameters"] = []
+        document["paths"]["/example_resources"]["get"]["parameters"] = [
             {"name": "page", "in": "query", "schema": {"type": "integer", "title": "Page"}},
-            {"name": "filter", "in": "query", "schema": {
-                "$ref": "#/components/schemas/Filter"}},
-            {"name": "matrix", "in": "query", "schema": {
-                "$ref": "#/components/schemas/Matrix"}},
+            {"name": "filter", "in": "query", "schema": {"$ref": "#/components/schemas/Filter"}},
+            {"name": "matrix", "in": "query", "schema": {"$ref": "#/components/schemas/Matrix"}},
             {"name": "trace", "in": "header", "schema": {"type": "string"}},
             {"name": "session", "in": "cookie", "schema": {"type": "string"}},
         ]
-        document["components"] = {"schemas": {
-            "Filter": {"type": "object", "additionalProperties": {"type": "string"}},
-            "Matrix": {"type": "array", "items": {"type": "array", "items": {"type": "string"}}},
-            "Metadata": {"type": "object", "properties": {"source": {"type": "string"}}},
-        }}
-        body = document["paths"]["/records/{record_id}"]["patch"]["requestBody"]["content"][
+        document["components"] = {
+            "schemas": {
+                "Filter": {"type": "object", "additionalProperties": {"type": "string"}},
+                "Matrix": {"type": "array", "items": {"type": "array", "items": {"type": "string"}}},
+                "Metadata": {"type": "object", "properties": {"source": {"type": "string"}}},
+            }
+        }
+        body = document["paths"]["/example_resources/{example_resource_id}"]["patch"]["requestBody"]["content"][
             "application/json"
         ]["schema"]
         body["properties"] = {
@@ -104,49 +103,61 @@ class TestFields:
         }
 
         engine = siren(document)
-        collection = engine.project(SirenContext(
-            base_url="https://api.example.com",
-            scope="collection",
-            resource="record",
-            capabilities=frozenset({"list_records"}),
-        )).model_dump(by_alias=True, mode="json", exclude_none=True)
-        entity = engine.project(SirenContext(
-            base_url="https://api.example.com",
-            resource="record",
-            value={"id": "42"},
-            capabilities=frozenset({"replace_record"}),
-        )).model_dump(by_alias=True, mode="json", exclude_none=True)
+        collection = engine.project(
+            SirenContext(
+                base_url="https://api.example.com",
+                scope="collection",
+                resource="example_resource",
+                capabilities=frozenset({"list_example_resources"}),
+            )
+        ).model_dump(by_alias=True, mode="json", exclude_none=True)
+        entity = engine.project(
+            SirenContext(
+                base_url="https://api.example.com",
+                resource="example_resource",
+                value={"id": "42"},
+                capabilities=frozenset({"replace_example_resource"}),
+            )
+        ).model_dump(by_alias=True, mode="json", exclude_none=True)
 
-        assert collection["actions"][0]["fields"] == [
-            {"name": "page", "type": "number", "title": "Page"}]
-        assert entity["actions"][0]["fields"] == [
-            {"name": "title", "type": "text", "title": "Title"}]
+        assert collection["actions"][0]["fields"] == [{"name": "page", "type": "number", "title": "Page"}]
+        assert entity["actions"][0]["fields"] == [{"name": "title", "type": "text", "title": "Title"}]
 
-        document["paths"]["/records/{record_id}"]["patch"]["requestBody"]["content"] = {
-            "text/plain": {}}
-        delegated = siren(document).project(SirenContext(
-            base_url="https://api.example.com",
-            resource="record",
-            value={"id": "42"},
-            capabilities=frozenset({"replace_record"}),
-        )).model_dump(by_alias=True, mode="json", exclude_none=True)
+        document["paths"]["/example_resources/{example_resource_id}"]["patch"]["requestBody"]["content"] = {
+            "text/plain": {}
+        }
+        delegated = (
+            siren(document)
+            .project(
+                SirenContext(
+                    base_url="https://api.example.com",
+                    resource="example_resource",
+                    value={"id": "42"},
+                    capabilities=frozenset({"replace_example_resource"}),
+                )
+            )
+            .model_dump(by_alias=True, mode="json", exclude_none=True)
+        )
 
         assert delegated["actions"][0] == {
-            "name": "replace_record",
-            "href": "https://api.example.com/records/42",
+            "name": "replace_example_resource",
+            "href": "https://api.example.com/example_resources/42",
             "method": "PATCH",
-            "title": "Replace record",
+            "title": "Replace example resource",
             "type": "text/plain",
         }
 
     def test_public_facade_projects_common_openapi_controls(self):
         document = deepcopy(PARAMETER_MEDIA_SCHEMA)
-        document["paths"]["/records"]["parameters"] = []
-        document["paths"]["/records"]["get"]["parameters"] = [
-            {"name": "request_id", "in": "query", "required": True,
-                "schema": {"type": "string", "format": "uuid", "title": "Request ID"}},
-            {"name": "tags", "in": "query", "schema": {
-                "type": "array", "items": {"type": "string"}}},
+        document["paths"]["/example_resources"]["parameters"] = []
+        document["paths"]["/example_resources"]["get"]["parameters"] = [
+            {
+                "name": "request_id",
+                "in": "query",
+                "required": True,
+                "schema": {"type": "string", "format": "uuid", "title": "Request ID"},
+            },
+            {"name": "tags", "in": "query", "schema": {"type": "array", "items": {"type": "string"}}},
             {
                 "name": "aliases",
                 "in": "query",
@@ -157,8 +168,7 @@ class TestFields:
                 "in": "query",
                 "schema": {
                     "oneOf": [
-                        {"type": "array", "minItems": 1,
-                            "items": {"type": "string"}},
+                        {"type": "array", "minItems": 1, "items": {"type": "string"}},
                         {"type": "null"},
                     ]
                 },
@@ -174,15 +184,17 @@ class TestFields:
                     ]
                 },
             },
-            {"name": "status", "in": "query", "schema": {
-                "type": "string", "title": "Status", "enum": ["draft", "published"]}},
+            {
+                "name": "status",
+                "in": "query",
+                "schema": {"type": "string", "title": "Status", "enum": ["draft", "published"]},
+            },
             {
                 "name": "scopes",
                 "in": "query",
                 "schema": {"type": "array", "title": "Scopes", "items": {"type": "string", "enum": ["read", "write"]}},
             },
-            {"name": "nickname", "in": "query",
-                "schema": {"type": ["string", "null"], "title": "Nickname"}},
+            {"name": "nickname", "in": "query", "schema": {"type": ["string", "null"], "title": "Nickname"}},
             {
                 "name": "external_id",
                 "in": "query",
@@ -194,7 +206,7 @@ class TestFields:
                 "schema": {"title": "Reference", "allOf": [{"type": "string"}, {"format": "uuid"}]},
             },
         ]
-        body = document["paths"]["/records/{record_id}"]["patch"]["requestBody"]["content"][
+        body = document["paths"]["/example_resources/{example_resource_id}"]["patch"]["requestBody"]["content"][
             "application/json"
         ]["schema"]
         body["required"] = ["title"]
@@ -213,16 +225,16 @@ class TestFields:
             SirenContext(
                 base_url="https://api.example.com",
                 scope="collection",
-                resource="record",
-                capabilities=frozenset({"list_records"}),
+                resource="example_resource",
+                capabilities=frozenset({"list_example_resources"}),
             )
         ).model_dump(by_alias=True, mode="json", exclude_none=True)
         entity = engine.project(
             SirenContext(
                 base_url="https://api.example.com",
-                resource="record",
+                resource="example_resource",
                 value={"id": "42"},
-                capabilities=frozenset({"replace_record"}),
+                capabilities=frozenset({"replace_example_resource"}),
             )
         ).model_dump(by_alias=True, mode="json", exclude_none=True)
 
@@ -244,7 +256,7 @@ class TestFields:
             {"name": "external_id", "type": "text", "title": "External ID"},
             {"name": "reference", "type": "text", "title": "Reference"},
         ]
-        operation_input = engine.operation_input("list_records")
+        operation_input = engine.operation_input("list_example_resources")
         assert operation_input is not None
         assert operation_input.official_fields == (
             "request_id",
@@ -296,8 +308,8 @@ class TestFields:
     @pytest.mark.parametrize("method", ["head", "options"])
     def test_public_facade_rejects_unsupported_http_methods(self, method):
         invalid = deepcopy(PARAMETER_MEDIA_SCHEMA)
-        invalid["paths"]["/records"][method] = {
-            "operationId": f"{method}_records",
+        invalid["paths"]["/example_resources"][method] = {
+            "operationId": f"{method}_example_resources",
             "responses": {"200": {"description": "OK"}},
         }
 
@@ -308,47 +320,57 @@ class TestFields:
         document = siren(PARAMETER_MEDIA_SCHEMA).project(
             SirenContext(
                 base_url="https://api.example.com",
-                resource="record",
+                resource="example_resource",
                 value={"id": "42"},
-                capabilities=frozenset({"replace_record"}),
+                capabilities=frozenset({"replace_example_resource"}),
             )
         )
-        document = document.model_dump(
-            by_alias=True, mode="json", exclude_none=True)
+        document = document.model_dump(by_alias=True, mode="json", exclude_none=True)
 
-        assert document["actions"][0]["fields"] == [
-            {"name": "title", "type": "text", "title": "Title"}]
+        assert document["actions"][0]["fields"] == [{"name": "title", "type": "text", "title": "Title"}]
 
     def test_public_facade_maps_supported_query_and_json_body_fields(self):
         document = deepcopy(PARAMETER_MEDIA_SCHEMA)
-        document["paths"]["/records"]["parameters"] = []
-        document["paths"]["/records"]["get"]["parameters"] = [
-            {"name": "text", "in": "query", "required": False,
-                "schema": {"type": "string", "title": "Text"}},
-            {"name": "email", "in": "query", "required": False,
-                "schema": {"type": "string", "format": "email", "title": "Email"}},
-            {"name": "uri", "in": "query", "required": False,
-                "schema": {"type": "string", "format": "uri", "title": "URI"}},
-            {"name": "date", "in": "query", "required": False,
-                "schema": {"type": "string", "format": "date", "title": "Date"}},
+        document["paths"]["/example_resources"]["parameters"] = []
+        document["paths"]["/example_resources"]["get"]["parameters"] = [
+            {"name": "text", "in": "query", "required": False, "schema": {"type": "string", "title": "Text"}},
+            {
+                "name": "email",
+                "in": "query",
+                "required": False,
+                "schema": {"type": "string", "format": "email", "title": "Email"},
+            },
+            {
+                "name": "uri",
+                "in": "query",
+                "required": False,
+                "schema": {"type": "string", "format": "uri", "title": "URI"},
+            },
+            {
+                "name": "date",
+                "in": "query",
+                "required": False,
+                "schema": {"type": "string", "format": "date", "title": "Date"},
+            },
             {
                 "name": "date_time",
                 "in": "query",
                 "required": False,
                 "schema": {"type": "string", "format": "date-time", "title": "Date time"},
             },
-            {"name": "time", "in": "query", "required": False,
-                "schema": {"type": "string", "format": "time", "title": "Time"}},
-            {"name": "integer", "in": "query", "required": False,
-                "schema": {"type": "integer", "title": "Integer"}},
-            {"name": "number", "in": "query", "required": False,
-                "schema": {"type": "number", "title": "Number"}},
-            {"name": "boolean", "in": "query", "required": False,
-                "schema": {"type": "boolean", "title": "Boolean"}},
+            {
+                "name": "time",
+                "in": "query",
+                "required": False,
+                "schema": {"type": "string", "format": "time", "title": "Time"},
+            },
+            {"name": "integer", "in": "query", "required": False, "schema": {"type": "integer", "title": "Integer"}},
+            {"name": "number", "in": "query", "required": False, "schema": {"type": "number", "title": "Number"}},
+            {"name": "boolean", "in": "query", "required": False, "schema": {"type": "boolean", "title": "Boolean"}},
         ]
-        document["paths"]["/records/{record_id}"]["patch"]["requestBody"]["content"]["application/json"][
-            "schema"
-        ]["properties"] = {
+        document["paths"]["/example_resources/{example_resource_id}"]["patch"]["requestBody"]["content"][
+            "application/json"
+        ]["schema"]["properties"] = {
             "title": {"type": "string", "title": "Title"},
             "priority": {"type": "integer", "title": "Priority"},
             "published": {"type": "boolean", "title": "Published"},
@@ -359,22 +381,20 @@ class TestFields:
             SirenContext(
                 base_url="https://api.example.com",
                 scope="collection",
-                resource="record",
-                capabilities=frozenset({"list_records"}),
+                resource="example_resource",
+                capabilities=frozenset({"list_example_resources"}),
             )
         )
         entity = engine.project(
             SirenContext(
                 base_url="https://api.example.com",
-                resource="record",
+                resource="example_resource",
                 value={"id": "42"},
-                capabilities=frozenset({"replace_record"}),
+                capabilities=frozenset({"replace_example_resource"}),
             )
         )
-        collection = collection.model_dump(
-            by_alias=True, mode="json", exclude_none=True)
-        entity = entity.model_dump(
-            by_alias=True, mode="json", exclude_none=True)
+        collection = collection.model_dump(by_alias=True, mode="json", exclude_none=True)
+        entity = entity.model_dump(by_alias=True, mode="json", exclude_none=True)
 
         assert collection["actions"][0]["fields"] == [
             {"name": "text", "type": "text", "title": "Text"},
@@ -395,21 +415,25 @@ class TestFields:
 
     def test_public_facade_omits_boolean_defaults_that_siren_cannot_represent(self):
         document = deepcopy(PARAMETER_MEDIA_SCHEMA)
-        body = document["paths"]["/records/{record_id}"]["patch"]["requestBody"]["content"]["application/json"][
-            "schema"
-        ]
+        body = document["paths"]["/example_resources/{example_resource_id}"]["patch"]["requestBody"]["content"][
+            "application/json"
+        ]["schema"]
         body["properties"] = {
             "dry_run": {"type": "boolean", "title": "Dry Run", "default": True},
         }
 
-        projected = siren(document).project(
-            SirenContext(
-                base_url="https://api.example.com",
-                resource="record",
-                value={"record_id": "42"},
-                capabilities=frozenset({"replace_record"}),
+        projected = (
+            siren(document)
+            .project(
+                SirenContext(
+                    base_url="https://api.example.com",
+                    resource="example_resource",
+                    value={"example_resource_id": "42"},
+                    capabilities=frozenset({"replace_example_resource"}),
+                )
             )
-        ).model_dump(by_alias=True, mode="json", exclude_none=True)
+            .model_dump(by_alias=True, mode="json", exclude_none=True)
+        )
 
         assert projected["actions"][0]["fields"] == [
             {"name": "dry_run", "type": "checkbox", "title": "Dry Run"},

@@ -21,20 +21,22 @@ class TestProjection:
             "openapi": "3.1.1",
             "info": {"title": "Relationships", "version": "1"},
             "paths": {
-                "/records": {
+                "/example_resources": {
                     "get": {
-                        "operationId": "list_records",
-                        "summary": "List records",
-                        "description": "List records.",
+                        "operationId": "list_example_resources",
+                        "summary": "List example resources",
+                        "description": "List example resources.",
                         "responses": {"200": {"description": "OK"}},
                     },
                 },
-                "/records/{record_id}": {
-                    "parameters": [{"name": "record_id", "in": "path", "required": True, "schema": {"type": "string"}}],
+                "/example_resources/{example_resource_id}": {
+                    "parameters": [
+                        {"name": "example_resource_id", "in": "path", "required": True, "schema": {"type": "string"}}
+                    ],
                     "get": {
-                        "operationId": "get_record",
-                        "summary": "Read record",
-                        "description": "Read a record.",
+                        "operationId": "get_example_resource",
+                        "summary": "Read example resource",
+                        "description": "Read an example resource.",
                         "responses": {"200": {"description": "OK"}},
                     },
                 },
@@ -54,33 +56,44 @@ class TestProjection:
         document = engine.project(
             SirenContext(
                 base_url="https://api.example.com",
-                resource="record",
-                value={"record_id": "42"},
-                relationships=(SirenRelationship(
-                    rel=("author",), resource="user", scope=SirenScope.ENTITY, value={"user_id": "7"}
-                ),),
+                resource="example_resource",
+                value={"example_resource_id": "42"},
+                relationships=(
+                SirenRelationship(
+                    rel=("https://example.com/rels/example-owner",),
+                    resource="user",
+                    scope=SirenScope.ENTITY,
+                    value={"user_id": "7"},
+                ),
+                ),
             )
         ).model_dump(by_alias=True, mode="json", exclude_none=True)
 
         assert document["links"] == [
-            {"rel": ["self"], "href": "https://api.example.com/records/42"},
-            {"rel": ["author"], "href": "https://api.example.com/users/7"},
+            {"rel": ["self"], "href": "https://api.example.com/example_resources/42"},
+            {"rel": ["https://example.com/rels/example-owner"], "href": "https://api.example.com/users/7"},
         ]
 
-        collection = siren(schema).project(
-            SirenContext(
-                base_url="https://api.example.com",
-                scope="collection",
-                resource="record",
-                items=({"record_id": "42"},),
-                relationships=(SirenRelationship(
-                    rel=("related",), resource="user", scope=SirenScope.ENTITY, value={"user_id": "7"}
-                ),),
+        collection = (
+            siren(schema)
+            .project(
+                SirenContext(
+                    base_url="https://api.example.com",
+                    scope="collection",
+                    resource="example_resource",
+                    items=({"example_resource_id": "42"},),
+                    relationships=(
+                        SirenRelationship(
+                            rel=("related",), resource="user", scope=SirenScope.ENTITY, value={"user_id": "7"}
+                        ),
+                    ),
+                )
             )
-        ).model_dump(by_alias=True, mode="json", exclude_none=True)
+            .model_dump(by_alias=True, mode="json", exclude_none=True)
+        )
 
         assert collection["links"] == [
-            {"rel": ["self"], "href": "https://api.example.com/records"},
+            {"rel": ["self"], "href": "https://api.example.com/example_resources"},
             {"rel": ["related"], "href": "https://api.example.com/users/7"},
         ]
 
@@ -184,8 +197,7 @@ class TestProjection:
                             resource="diagram",
                             scope=SirenScope.ENTITY,
                             path_values={"diagram_set_id": "set-7"},
-                            capabilities=frozenset(
-                                {"list_diagram_set_diagrams"}),
+                            capabilities=frozenset({"list_diagram_set_diagrams"}),
                         ),
                     ),
                 )
@@ -195,11 +207,9 @@ class TestProjection:
         with pytest.raises(ValidationError, match="scope"):
             SirenRelationship(rel=("collection",), resource="diagram")
         with pytest.raises(SirenityError, match="Siren collection relationships cannot be embedded"):
-            SirenRelationship(rel=("collection",), resource="diagram",
-                              scope=SirenScope.COLLECTION, embedded=True)
+            SirenRelationship(rel=("collection",), resource="diagram", scope=SirenScope.COLLECTION, embedded=True)
         with pytest.raises(SirenityError, match="Siren relationship scope must be entity or collection"):
-            SirenRelationship(rel=("collection",),
-                              resource="diagram", scope=SirenScope.ROOT)
+            SirenRelationship(rel=("collection",), resource="diagram", scope=SirenScope.ROOT)
 
     def test_public_facade_requires_nested_collection_relationship_path_values(self):
         schema = {
@@ -248,8 +258,7 @@ class TestProjection:
                     resource="diagram_set",
                     value={"diagram_set_id": "set-7"},
                     relationships=(
-                        SirenRelationship(
-                            rel=("collection",), resource="diagram", scope=SirenScope.COLLECTION),
+                        SirenRelationship(rel=("collection",), resource="diagram", scope=SirenScope.COLLECTION),
                     ),
                 )
             )
@@ -259,12 +268,14 @@ class TestProjection:
             "openapi": "3.1.1",
             "info": {"title": "Relationships", "version": "1"},
             "paths": {
-                "/records/{record_id}": {
-                    "parameters": [{"name": "record_id", "in": "path", "required": True, "schema": {"type": "string"}}],
+                "/example_resources/{example_resource_id}": {
+                    "parameters": [
+                        {"name": "example_resource_id", "in": "path", "required": True, "schema": {"type": "string"}}
+                    ],
                     "get": {
-                        "operationId": "get_record",
-                        "summary": "Read record",
-                        "description": "Read a record.",
+                        "operationId": "get_example_resource",
+                        "summary": "Read example resource",
+                        "description": "Read an example resource.",
                         "responses": {"200": {"description": "OK"}},
                     },
                 },
@@ -280,28 +291,32 @@ class TestProjection:
             },
         }
 
-        document = siren(schema).project(
-            SirenContext(
-                base_url="https://api.example.com",
-                resource="record",
-                value={"record_id": "42"},
-                relationships=(
-                    SirenRelationship(
-                        rel=("author",),
-                        resource="user",
-                        scope=SirenScope.ENTITY,
-                        value={"user_id": "7", "name": "Ada"},
-                        capabilities=frozenset({"get_user"}),
-                        embedded=True,
+        document = (
+            siren(schema)
+            .project(
+                SirenContext(
+                    base_url="https://api.example.com",
+                    resource="example_resource",
+                    value={"example_resource_id": "42"},
+                    relationships=(
+                        SirenRelationship(
+                            rel=("https://example.com/rels/example-owner",),
+                            resource="user",
+                            scope=SirenScope.ENTITY,
+                            value={"user_id": "7", "name": "Ada"},
+                            capabilities=frozenset({"get_user"}),
+                            embedded=True,
+                        ),
                     ),
-                ),
+                )
             )
-        ).model_dump(by_alias=True, mode="json", exclude_none=True)
+            .model_dump(by_alias=True, mode="json", exclude_none=True)
+        )
 
         assert document["entities"] == [
             {
                 "class": ["user"],
-                "rel": ["author"],
+                "rel": ["https://example.com/rels/example-owner"],
                 "properties": {"user_id": "7", "name": "Ada"},
                 "actions": [
                     {
@@ -320,11 +335,16 @@ class TestProjection:
             siren(SCHEMA).project(
                 SirenContext(
                     base_url="https://api.example.com",
-                    resource="record",
+                    resource="example_resource",
                     value={"id": "42"},
-                    relationships=(SirenRelationship(
-                        rel=("author",), resource="user", scope=SirenScope.ENTITY, value={"id": "7"}
-                    ),),
+                    relationships=(
+                SirenRelationship(
+                    rel=("https://example.com/rels/example-owner",),
+                    resource="user",
+                    scope=SirenScope.ENTITY,
+                    value={"id": "7"},
+                ),
+                    ),
                 )
             )
 
@@ -333,9 +353,9 @@ class TestProjection:
             siren(SCHEMA).project(
                 SirenContext(
                     base_url="https://api.example.com",
-                    resource="record",
+                    resource="example_resource",
                     value={"id": "42"},
-                    capabilities=frozenset({"archive_record"}),
+                    capabilities=frozenset({"archive_example_resource"}),
                 )
             )
 
@@ -344,9 +364,9 @@ class TestProjection:
             SirenContext(
                 base_url="https://api.example.com",
                 scope="collection",
-                resource="record",
+                resource="example_resource",
                 items=({"id": "42", "title": "Architecture"},),
-                capabilities=frozenset({"list_records", "get_record"}),
+                capabilities=frozenset({"list_example_resources", "get_example_resource"}),
             )
         )
 
@@ -354,49 +374,53 @@ class TestProjection:
         assert isinstance(document.entities[0], SirenEmbeddedRepresentation)
         assert document.model_dump(by_alias=True, mode="json", exclude_none=True)["entities"] == [
             {
-                "class": ["record"],
+                "class": ["example-resource"],
                 "title": "Architecture",
                 "rel": ["item"],
                 "properties": {"id": "42", "title": "Architecture"},
                 "actions": [
                     {
-                        "name": "get_record",
-                        "href": "https://api.example.com/records/42",
+                        "name": "get_example_resource",
+                        "href": "https://api.example.com/example_resources/42",
                         "method": "GET",
-                        "title": "Read record",
+                    "title": "Read example resource",
                     }
                 ],
                 "links": [
                     {
                         "title": "Architecture",
                         "rel": ["self"],
-                        "href": "https://api.example.com/records/42",
+                        "href": "https://api.example.com/example_resources/42",
                     }
                 ],
             }
         ]
 
     def test_public_facade_projects_item_specific_capabilities(self):
-        document = siren(SCHEMA).project(
-            SirenContext(
-                base_url="https://api.example.com",
-                scope="collection",
-                resource="record",
-                items=(
-                    {"id": "42", "title": "Draft"},
-                    {"id": "43", "title": "Published"},
-                ),
-                capabilities=frozenset({"list_records"}),
-                item_capabilities=(
-                    frozenset({"get_record", "rename_record"}),
-                    frozenset({"get_record"}),
-                ),
+        document = (
+            siren(SCHEMA)
+            .project(
+                SirenContext(
+                    base_url="https://api.example.com",
+                    scope="collection",
+                    resource="example_resource",
+                    items=(
+                        {"id": "42", "title": "Draft"},
+                        {"id": "43", "title": "Published"},
+                    ),
+                    capabilities=frozenset({"list_example_resources"}),
+                    item_capabilities=(
+                        frozenset({"get_example_resource", "rename_example_resource"}),
+                        frozenset({"get_example_resource"}),
+                    ),
+                )
             )
-        ).model_dump(by_alias=True, mode="json", exclude_none=True)
+            .model_dump(by_alias=True, mode="json", exclude_none=True)
+        )
 
         assert [[action["name"] for action in item["actions"]] for item in document["entities"]] == [
-            ["get_record", "rename_record"],
-            ["get_record"],
+            ["get_example_resource", "rename_example_resource"],
+            ["get_example_resource"],
         ]
 
     def test_public_facade_rejects_misaligned_item_capabilities(self):
@@ -404,10 +428,9 @@ class TestProjection:
             SirenContext(
                 base_url="https://api.example.com",
                 scope="collection",
-                resource="record",
+                resource="example_resource",
                 items=({"id": "42"},),
-                item_capabilities=(
-                    frozenset({"get_record"}), frozenset({"rename_record"})),
+                item_capabilities=(frozenset({"get_example_resource"}), frozenset({"rename_example_resource"})),
             )
 
     def test_public_facade_validates_item_title_alignment_and_allows_empty_collections(self):
@@ -415,13 +438,13 @@ class TestProjection:
             SirenContext(
                 base_url="https://api.example.com",
                 scope="collection",
-                resource="record",
+                resource="example_resource",
                 items=({"id": "42"},),
                 item_titles=("First", "Second"),
             )
 
         context = SirenResponseContext(
-            operation_id="list_records",
+            operation_id="list_example_resources",
             status=200,
             result=[],
             base_url="https://api.example.com",
@@ -433,7 +456,7 @@ class TestProjection:
     def test_response_context_rejects_misaligned_item_titles(self):
         with pytest.raises(SirenityError, match="Siren item titles must align with response items"):
             SirenResponseContext(
-                operation_id="list_records",
+                operation_id="list_example_resources",
                 status=200,
                 result=[{"id": "42"}],
                 base_url="https://api.example.com",
@@ -444,47 +467,43 @@ class TestProjection:
         document = siren(SCHEMA).project(
             SirenContext(
                 base_url="https://api.example.com",
-                resource="record",
+                resource="example_resource",
                 value={"id": "42", "title": "Architecture"},
-                capabilities=frozenset({"get_record", "rename_record"}),
+                capabilities=frozenset({"get_example_resource", "rename_example_resource"}),
             )
         )
 
         assert isinstance(document, SirenDocument)
-        payload = document.model_dump(
-            by_alias=True, mode="json", exclude_none=True)
-        assert payload["links"] == [
-            {"rel": ["self"], "href": "https://api.example.com/records/42"}]
-        assert [action["name"] for action in payload["actions"]] == [
-            "get_record", "rename_record"]
+        payload = document.model_dump(by_alias=True, mode="json", exclude_none=True)
+        assert payload["links"] == [{"rel": ["self"], "href": "https://api.example.com/example_resources/42"}]
+        assert [action["name"] for action in payload["actions"]] == ["get_example_resource", "rename_example_resource"]
         assert payload["actions"][0] == {
-            "name": "get_record",
-            "href": "https://api.example.com/records/42",
+            "name": "get_example_resource",
+            "href": "https://api.example.com/example_resources/42",
             "method": "GET",
-            "title": "Read record",
+            "title": "Read example resource",
         }
         assert payload["actions"][1]["type"] == "application/json"
-        assert payload["actions"][1]["fields"][0] == {
-            "name": "title", "type": "text", "title": "Title"}
+        assert payload["actions"][1]["fields"][0] == {"name": "title", "type": "text", "title": "Title"}
 
     def test_public_facade_projects_only_followable_root_links_and_eligible_root_actions(self):
         schema = {
             "openapi": "3.1.1",
             "info": {"title": "Root actions", "version": "1"},
             "paths": {
-                "/records": {
+                "/example_resources": {
                     "get": {
-                        "operationId": "list_records",
-                        "summary": "List records",
-                        "description": "List records.",
+                        "operationId": "list_example_resources",
+                        "summary": "List example resources",
+                        "description": "List example resources.",
                         "responses": {"200": {"description": "OK"}},
                     }
                 },
                 "/searches": {
                     "post": {
-                        "operationId": "search_records",
-                        "summary": "Search records",
-                        "description": "Search records.",
+                        "operationId": "search_example_resources",
+                        "summary": "Search example resources",
+                        "description": "Search example resources.",
                         "requestBody": {
                             "content": {
                                 "application/json": {
@@ -524,22 +543,20 @@ class TestProjection:
                         "responses": {"202": {"description": "Accepted"}},
                     }
                 },
-                "/records/{record_id}": {
+                "/example_resources/{example_resource_id}": {
                     "parameters": [
-                        {"name": "record_id", "in": "path",
-                            "required": True, "schema": {"type": "string"}}
+                        {"name": "example_resource_id", "in": "path", "required": True, "schema": {"type": "string"}}
                     ],
                     "get": {
-                        "operationId": "get_record",
-                        "summary": "Read record",
-                        "description": "Read a record.",
+                        "operationId": "get_example_resource",
+                        "summary": "Read example resource",
+                        "description": "Read an example resource.",
                         "responses": {"200": {"description": "OK"}},
                     },
                 },
                 "/commands/{command_id}/run": {
                     "parameters": [
-                        {"name": "command_id", "in": "path",
-                            "required": True, "schema": {"type": "string"}}
+                        {"name": "command_id", "in": "path", "required": True, "schema": {"type": "string"}}
                     ],
                     "post": {
                         "operationId": "run_command",
@@ -558,24 +575,23 @@ class TestProjection:
                 path_values={"command_id": "command/42"},
                 query=(("format", "siren"),),
                 capabilities=frozenset(
-                    {"search_records", "rebuild_index", "get_record", "run_command"}),
+                    {"search_example_resources", "rebuild_index", "get_example_resource", "run_command"}
+                ),
             )
         )
 
         assert isinstance(document, SirenDocument)
-        payload = document.model_dump(
-            by_alias=True, mode="json", exclude_none=True)
+        payload = document.model_dump(by_alias=True, mode="json", exclude_none=True)
         assert payload["links"] == [
-            {"title": "Root actions", "rel": [
-                "self"], "href": "https://api.example.com/?format=siren"},
-            {"rel": ["collection"], "href": "https://api.example.com/records"},
+            {"title": "Root actions", "rel": ["self"], "href": "https://api.example.com/?format=siren"},
+            {"rel": ["collection"], "href": "https://api.example.com/example_resources"},
         ]
         assert payload["actions"] == [
             {
-                "name": "search_records",
+                "name": "search_example_resources",
                 "href": "https://api.example.com/searches",
                 "method": "POST",
-                "title": "Search records",
+                "title": "Search example resources",
                 "type": "application/json",
                 "fields": [{"name": "phrase", "type": "text", "title": "Phrase"}],
             },

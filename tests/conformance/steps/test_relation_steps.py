@@ -25,8 +25,7 @@ class RelationSteps:
         RelationSteps.payload = None
         RelationSteps.error = None
         RelationSteps.invalid = False
-        RelationSteps.value = SirenLink(
-            rel=("https://rels.example.com/approval",), href="https://api.example.com/42")
+        RelationSteps.value = SirenLink(rel=("https://rels.example.com/approval",), href="https://api.example.com/42")
 
     @staticmethod
     @given("a public embedded representation with a relation URI", stacklevel=2)
@@ -44,24 +43,20 @@ class RelationSteps:
     def created_relation() -> None:
         try:
             if RelationSteps.invalid:
-                RelationSteps.value = SirenLink(
-                    rel=("invalid relation",), href="https://api.example.com/42")
+                RelationSteps.value = SirenLink(rel=("invalid relation",), href="https://api.example.com/42")
         except SirenityError as error:
             RelationSteps.error = error
 
     @staticmethod
     @when("it is serialized", stacklevel=2)
     def serialized_relation() -> None:
-        assert isinstance(RelationSteps.value,
-                          SirenEmbeddedRepresentation | SirenLink)
-        RelationSteps.payload = RelationSteps.value.model_dump(
-            by_alias=True, mode="json", exclude_none=True)
+        assert isinstance(RelationSteps.value, SirenEmbeddedRepresentation | SirenLink)
+        RelationSteps.payload = RelationSteps.value.model_dump(by_alias=True, mode="json", exclude_none=True)
 
     @staticmethod
     @then("creation is rejected", stacklevel=2)
     def relation_creation_is_rejected() -> None:
-        assert str(
-            RelationSteps.error) == "Siren relation must be an official relation token or URI."
+        assert str(RelationSteps.error) == "Siren relation must be an official relation token or URI."
 
     @staticmethod
     @then("the link has its relation URI", stacklevel=2)

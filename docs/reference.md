@@ -34,6 +34,7 @@ The supported root imports below are generated from `sirenity.__all__`.
 | `SirenMcpResult` | !!! abstract "Usage Documentation" | — |
 | `SirenMcpTool` | !!! abstract "Usage Documentation" | — |
 | `SirenMiddleware` | Install Siren through Django's standard middleware loader. | — |
+| `SirenParameterInput` | !!! abstract "Usage Documentation" | — |
 | `SirenRelationship` | Describe a runtime relationship to another OpenAPI resource. | — |
 | `SirenResponseContext` | Supply an executed OpenAPI operation and result for operation-aware projection. | — |
 | `SirenScope` | Enum where members are also (and must be) strings | — |

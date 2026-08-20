@@ -9,6 +9,7 @@ from sirenity.contexts.graph import (
     SirenField,
     SirenInput,
     SirenOperation,
+    SirenParameterInput,
     SirenResource,
     SirenResponse,
     SirenResponseBinding,
@@ -84,6 +85,15 @@ class SirenBuilder:
                         media_type=operation.input.media_type,
                         definition=operation.input.definition,
                         official_fields=operation.input.official_fields,
+                        parameters=tuple(
+                            SirenParameterInput(
+                                name=item.name,
+                                location=item.location,
+                                required=item.required,
+                                definition=item.definition,
+                            )
+                            for item in operation.input.parameters
+                        ),
                         delegated_inputs=tuple(
                             SirenDelegatedInput(
                                 name=item.name,

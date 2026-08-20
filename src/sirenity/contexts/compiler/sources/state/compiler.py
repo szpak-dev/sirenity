@@ -9,7 +9,7 @@ from sirenity.contexts.shared import (
     SirenScope,
 )
 
-from ..values import DelegatedInputDraft, Field, InputDraft
+from ..values import DelegatedInputDraft, Field, InputDraft, ParameterInputDraft
 from .assembly import SirenAssembly
 from .components import ComponentResolver
 from .field_projection import OpenApiFieldProjection
@@ -122,9 +122,7 @@ class OpenApiOperationCompiler(BaseState):
             if not isinstance(name, str) or not isinstance(location, str):
                 raise SirenityError(
                     "OpenAPI parameter requires string name and location")
-            if location == "path":
-                continue
-            if location not in {"query", "header", "cookie"}:
+            if location not in {"path", "query", "header", "cookie"}:
                 raise SirenityError(
                     f"OpenAPI parameter location is unsupported: {location}")
             schema = definition.get("schema")
@@ -134,11 +132,25 @@ class OpenApiOperationCompiler(BaseState):
             parameter_index[name, location] = definition
         fields: list[Field] = []
         delegated: list[DelegatedInputDraft] = []
+        normalized_parameters: list[ParameterInputDraft] = []
+        names: set[str] = set()
         for (name, location), parameter in parameter_index.items():
             definition = self.components.schema_tree(parameter["schema"])
             if not isinstance(definition, dict):
                 raise SirenityError(
                     f"OpenAPI parameter schema is required: {name}")
+            if name in names:
+                raise SirenityError(
+                    f"OpenAPI parameters cannot share a name across locations: {name}")
+            names.add(name)
+            normalized_parameters.append(ParameterInputDraft(
+                name=name,
+                location=location,
+                required=parameter.get("required") is True or location == "path",
+                definition=definition,
+            ))
+            if location == "path":
+                continue
             if location == "query":
                 try:
                     fields.append(self.projection.field(name, definition))
@@ -199,6 +211,7 @@ class OpenApiOperationCompiler(BaseState):
                 media_type=media_type,
                 definition=definition,
                 official_fields=tuple(field.name for field in fields),
+                parameters=tuple(normalized_parameters),
                 delegated_inputs=tuple(delegated),
             )
         if content and definition.get("type") != "object":
@@ -215,6 +228,10 @@ class OpenApiOperationCompiler(BaseState):
             if not isinstance(name, str) or not isinstance(value, dict):
                 raise SirenityError(
                     "OpenAPI JSON request body property is invalid")
+            if name in names:
+                raise SirenityError(
+                    f"OpenAPI inputs cannot share a name across locations: {name}")
+            names.add(name)
             try:
                 fields.append(self.projection.field(name, value))
             except SirenityError:
@@ -229,12 +246,13 @@ class OpenApiOperationCompiler(BaseState):
                     media_type=media_type,
                     definition=value,
                 ))
-        if not fields and not delegated and not content:
+        if not fields and not delegated and not normalized_parameters and not content:
             return (), None
         return tuple(fields), InputDraft(
             media_type=media_type,
             definition=definition,
             official_fields=tuple(field.name for field in fields),
+            parameters=tuple(normalized_parameters),
             delegated_inputs=tuple(delegated),
         )
 

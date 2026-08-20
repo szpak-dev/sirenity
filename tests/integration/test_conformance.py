@@ -20,24 +20,25 @@ class TestConformance:
             SirenContext(
                 base_url="https://api.example.com",
                 scope="collection",
-                resource="widget",
-                capabilities=frozenset({"list_widgets"}),
+                resource="example_resource",
+                capabilities=frozenset({"list_example_resources"}),
             )
         )
-        document = document.model_dump(
-            by_alias=True, mode="json", exclude_none=True)
+        document = document.model_dump(by_alias=True, mode="json", exclude_none=True)
 
-        assert document["links"] == [{
-            "title": "Response Get Widget",
-            "rel": ["self"],
-            "href": "https://api.example.com/api/v1/widgets",
-        }]
+        assert document["links"] == [
+            {
+                "title": "Response Get Example Resource",
+                "rel": ["self"],
+                "href": "https://api.example.com/api/v1/example_resources",
+            }
+        ]
         assert document["actions"] == [
             {
-                "name": "list_widgets",
-                "href": "https://api.example.com/api/v1/widgets",
+                "name": "list_example_resources",
+                "href": "https://api.example.com/api/v1/example_resources",
                 "method": "GET",
-                "title": "List widgets",
+                "title": "List example resources",
                 "type": "application/x-www-form-urlencoded",
                 "fields": [{"name": "page", "type": "number", "title": "Page", "value": 1}],
             }
@@ -46,25 +47,26 @@ class TestConformance:
         entity = siren(openapi).project(
             SirenContext(
                 base_url="https://api.example.com",
-                resource="widget",
+                resource="example_resource",
                 value={"id": "42"},
-                capabilities=frozenset({"rename_widget"}),
+                capabilities=frozenset({"rename_example_resource"}),
             )
         )
-        entity = entity.model_dump(
-            by_alias=True, mode="json", exclude_none=True)
+        entity = entity.model_dump(by_alias=True, mode="json", exclude_none=True)
 
-        assert entity["links"] == [{
-            "title": "Response Get Widget",
-            "rel": ["self"],
-            "href": "https://api.example.com/api/v1/widgets/42",
-        }]
+        assert entity["links"] == [
+            {
+                "title": "Response Get Example Resource",
+                "rel": ["self"],
+                "href": "https://api.example.com/api/v1/example_resources/42",
+            }
+        ]
         assert entity["actions"] == [
             {
-                "name": "rename_widget",
-                "href": "https://api.example.com/api/v1/widgets/42",
+                "name": "rename_example_resource",
+                "href": "https://api.example.com/api/v1/example_resources/42",
                 "method": "PATCH",
-                "title": "Rename widget",
+                "title": "Rename example resource",
                 "type": "application/json",
                 "fields": [{"name": "title", "type": "text", "title": "Title", "value": ""}],
             }
@@ -73,11 +75,10 @@ class TestConformance:
     def test_public_facade_compiles_a_django_ninja_extra_controller_openapi_document(self):
         openapi = DjangoNinjaExtraOpenApiFixture().document()
 
-        assert 200 in openapi["paths"]["/api/v1/widgets"]["get"]["responses"]
+        assert 200 in openapi["paths"]["/api/v1/example_resources"]["get"]["responses"]
 
         invalid = deepcopy(openapi)
-        invalid["paths"]["/api/v1/widgets"]["get"]["responses"] = {
-            999: {"description": "Invalid"}}
+        invalid["paths"]["/api/v1/example_resources"]["get"]["responses"] = {999: {"description": "Invalid"}}
 
         with pytest.raises(SirenityError):
             siren(invalid)
@@ -86,24 +87,25 @@ class TestConformance:
             SirenContext(
                 base_url="https://api.example.com",
                 scope="collection",
-                resource="widget",
-                capabilities=frozenset({"list_widgets"}),
+                resource="example_resource",
+                capabilities=frozenset({"list_example_resources"}),
             )
         )
-        document = document.model_dump(
-            by_alias=True, mode="json", exclude_none=True)
+        document = document.model_dump(by_alias=True, mode="json", exclude_none=True)
 
-        assert document["links"] == [{
-            "title": "Response",
-            "rel": ["self"],
-            "href": "https://api.example.com/api/v1/widgets",
-        }]
+        assert document["links"] == [
+            {
+                "title": "Response",
+                "rel": ["self"],
+                "href": "https://api.example.com/api/v1/example_resources",
+            }
+        ]
         assert document["actions"] == [
             {
-                "name": "list_widgets",
-                "href": "https://api.example.com/api/v1/widgets",
+                "name": "list_example_resources",
+                "href": "https://api.example.com/api/v1/example_resources",
                 "method": "GET",
-                "title": "List widgets",
+                "title": "List example resources",
                 "type": "application/x-www-form-urlencoded",
                 "fields": [{"name": "page", "type": "number", "title": "Page", "value": 1}],
             }
@@ -112,25 +114,26 @@ class TestConformance:
         entity = siren(openapi).project(
             SirenContext(
                 base_url="https://api.example.com",
-                resource="widget",
+                resource="example_resource",
                 value={"id": "42"},
-                capabilities=frozenset({"rename_widget"}),
+                capabilities=frozenset({"rename_example_resource"}),
             )
         )
-        entity = entity.model_dump(
-            by_alias=True, mode="json", exclude_none=True)
+        entity = entity.model_dump(by_alias=True, mode="json", exclude_none=True)
 
-        assert entity["links"] == [{
-            "title": "Response",
-            "rel": ["self"],
-            "href": "https://api.example.com/api/v1/widgets/42",
-        }]
+        assert entity["links"] == [
+            {
+                "title": "Response",
+                "rel": ["self"],
+                "href": "https://api.example.com/api/v1/example_resources/42",
+            }
+        ]
         assert entity["actions"] == [
             {
-                "name": "rename_widget",
-                "href": "https://api.example.com/api/v1/widgets/42",
+                "name": "rename_example_resource",
+                "href": "https://api.example.com/api/v1/example_resources/42",
                 "method": "PATCH",
-                "title": "Rename widget",
+                "title": "Rename example resource",
                 "type": "application/json",
                 "fields": [{"name": "title", "type": "text", "title": "Title", "value": ""}],
             }
@@ -142,8 +145,7 @@ class TestConformance:
         environment = tmp_path / "consumer"
         fixture = project / "tests" / "fixtures" / "wheel_consumer.py"
         subprocess.run(
-            (sys.executable, "-m", "build", "--wheel",
-             "--sdist", "--outdir", str(artifacts)),
+            (sys.executable, "-m", "build", "--wheel", "--sdist", "--outdir", str(artifacts)),
             cwd=project,
             check=True,
             capture_output=True,
@@ -155,23 +157,23 @@ class TestConformance:
         with tarfile.open(source) as distribution:
             names = tuple(distribution.getnames())
 
-        assert any(name.endswith(
-            "tests/framework_fixtures/fastapi/openapi_fixture.py") for name in names)
-        assert any(name.endswith(
-            "tests/framework_fixtures/fastapi/widget_controller.py") for name in names)
-        assert any(name.endswith(
-            "tests/framework_fixtures/fastapi/rename_widget_payload.py") for name in names)
-        assert any(name.endswith(
-            "tests/framework_fixtures/django_ninja_extra/openapi_fixture.py") for name in names)
-        assert any(name.endswith(
-            "tests/framework_fixtures/django_ninja_extra/widget_controller.py") for name in names)
+        assert any(name.endswith("tests/framework_fixtures/fastapi/openapi_fixture.py") for name in names)
+        assert any(name.endswith("tests/framework_fixtures/fastapi/example_resource_controller.py") for name in names)
         assert any(
-            name.endswith("tests/framework_fixtures/django_ninja_extra/rename_widget_payload.py") for name in names
+            name.endswith("tests/framework_fixtures/fastapi/rename_example_resource_payload.py") for name in names
+        )
+        assert any(name.endswith("tests/framework_fixtures/django_ninja_extra/openapi_fixture.py") for name in names)
+        assert any(
+            name.endswith("tests/framework_fixtures/django_ninja_extra/example_resource_controller.py")
+            for name in names
+        )
+        assert any(
+            name.endswith("tests/framework_fixtures/django_ninja_extra/rename_example_resource_payload.py")
+            for name in names
         )
 
         subprocess.run(
-            (sys.executable, "-m", "venv",
-             "--system-site-packages", str(environment)),
+            (sys.executable, "-m", "venv", "--system-site-packages", str(environment)),
             check=True,
             capture_output=True,
             text=True,
