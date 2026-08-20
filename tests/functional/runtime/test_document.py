@@ -17,11 +17,11 @@ class TestDocument:
         ("value", "member"),
         [
             (SirenDocument(), "unknown"),
-            (SirenAction(name="create", href="https://api.example.com/records"), "unknown"),
+            (SirenAction(name="create", href="https://api.example.com/example_resources"), "unknown"),
             (SirenField(name="title"), "required"),
             (SirenFieldValue(value="public"), "unknown"),
-            (SirenLink(rel=("self",), href="https://api.example.com/records"), "unknown"),
-            (SirenEmbeddedLink(rel=("item",), href="https://api.example.com/records/42"), "unknown"),
+            (SirenLink(rel=("self",), href="https://api.example.com/example_resources"), "unknown"),
+            (SirenEmbeddedLink(rel=("item",), href="https://api.example.com/example_resources/42"), "unknown"),
             (SirenEmbeddedRepresentation(rel=("item",)), "unknown"),
         ],
     )
@@ -29,12 +29,11 @@ class TestDocument:
         with pytest.raises(ValidationError, match="Extra inputs are not permitted"):
             type(value)(**{**value.model_dump(), member: True})
 
-
     @pytest.mark.parametrize(
         "value",
         [
-            SirenLink(rel=("self",), href="https://api.example.com/records"),
-            SirenEmbeddedLink(rel=("item",), href="https://api.example.com/records/42"),
+            SirenLink(rel=("self",), href="https://api.example.com/example_resources"),
+            SirenEmbeddedLink(rel=("item",), href="https://api.example.com/example_resources/42"),
             SirenEmbeddedRepresentation(rel=("item",)),
         ],
     )
@@ -42,29 +41,27 @@ class TestDocument:
         with pytest.raises(ValidationError, match="at least 1 item"):
             type(value)(**{**value.model_dump(), "rel": ()})
 
-
     def test_public_document_values_are_immutable(self):
-        document = SirenDocument(title="Records")
+        document = SirenDocument(title="Example resources")
 
         with pytest.raises(ValidationError, match="frozen"):
             document.title = "Other"
 
-
     def test_public_document_values_serialize_to_official_siren_shapes(self):
         document = SirenDocument(
             class_=("collection",),
-            title="Records",
+            title="Example resources",
             properties={"count": 1},
             entities=(
                 SirenEmbeddedLink(
-                    class_=("record",),
+                    class_=("example_resource",),
                     rel=("item",),
-                    href="https://api.example.com/records/42",
+                    href="https://api.example.com/example_resources/42",
                     type="application/vnd.siren+json",
                     title="Architecture",
                 ),
                 SirenEmbeddedRepresentation(
-                    class_=("record",),
+                    class_=("example_resource",),
                     rel=("item",),
                     title="Architecture",
                     properties={"id": "42"},
@@ -73,8 +70,8 @@ class TestDocument:
                             class_=("update",),
                             name="rename",
                             method="PATCH",
-                            href="https://api.example.com/records/42",
-                            title="Rename record",
+                            href="https://api.example.com/example_resources/42",
+                            title="Rename example resource",
                             type="application/json",
                             fields=(
                                 SirenField(name="title", title="Title", value="Architecture"),
@@ -89,41 +86,41 @@ class TestDocument:
                             ),
                         ),
                     ),
-                    links=(SirenLink(rel=("self",), href="https://api.example.com/records/42"),),
+                    links=(SirenLink(rel=("self",), href="https://api.example.com/example_resources/42"),),
                 ),
             ),
             actions=(
                 SirenAction(
                     name="create",
                     method="POST",
-                    href="https://api.example.com/records",
+                    href="https://api.example.com/example_resources",
                 ),
             ),
             links=(
                 SirenLink(
                     class_=("collection",),
                     rel=("self",),
-                    href="https://api.example.com/records",
+                    href="https://api.example.com/example_resources",
                     type="application/vnd.siren+json",
-                    title="Records",
+                    title="Example resources",
                 ),
             ),
         )
 
         assert document.model_dump(by_alias=True, mode="json", exclude_none=True) == {
             "class": ["collection"],
-            "title": "Records",
+            "title": "Example resources",
             "properties": {"count": 1},
             "entities": [
                 {
-                    "class": ["record"],
+                    "class": ["example_resource"],
                     "title": "Architecture",
                     "rel": ["item"],
-                    "href": "https://api.example.com/records/42",
+                    "href": "https://api.example.com/example_resources/42",
                     "type": "application/vnd.siren+json",
                 },
                 {
-                    "class": ["record"],
+                    "class": ["example_resource"],
                     "rel": ["item"],
                     "title": "Architecture",
                     "properties": {"id": "42"},
@@ -132,8 +129,8 @@ class TestDocument:
                             "class": ["update"],
                             "name": "rename",
                             "method": "PATCH",
-                            "href": "https://api.example.com/records/42",
-                            "title": "Rename record",
+                            "href": "https://api.example.com/example_resources/42",
+                            "title": "Rename example resource",
                             "type": "application/json",
                             "fields": [
                                 {"name": "title", "type": "text", "title": "Title", "value": "Architecture"},
@@ -148,16 +145,16 @@ class TestDocument:
                             ],
                         }
                     ],
-                    "links": [{"rel": ["self"], "href": "https://api.example.com/records/42"}],
+                    "links": [{"rel": ["self"], "href": "https://api.example.com/example_resources/42"}],
                 },
             ],
-            "actions": [{"name": "create", "method": "POST", "href": "https://api.example.com/records"}],
+            "actions": [{"name": "create", "method": "POST", "href": "https://api.example.com/example_resources"}],
             "links": [
                 {
                     "class": ["collection"],
-                    "title": "Records",
+                    "title": "Example resources",
                     "rel": ["self"],
-                    "href": "https://api.example.com/records",
+                    "href": "https://api.example.com/example_resources",
                     "type": "application/vnd.siren+json",
                 }
             ],

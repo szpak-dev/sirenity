@@ -44,9 +44,7 @@ class TestWiring:
         workspace = self.workspace(tmp_path)
         service = workspace / "src/sirenity/contexts/runtime/routing/services/href.py"
         service.write_text(
-            service.read_text()
-            + "\n    def resolver(self) -> None:\n"
-            + "        SirenDefaultResourceResolver()\n"
+            service.read_text() + "\n    def resolver(self) -> None:\n" + "        SirenDefaultResourceResolver()\n"
         )
 
         result = self.command(workspace)

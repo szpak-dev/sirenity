@@ -90,109 +90,97 @@ class TestAdapter:
                     },
                 }
             },
-            "/api/articles": {
+            "/api/example_resources": {
                 "get": {
-                    "operationId": "list_articles",
-                    "summary": "List articles",
-                    "description": "List available articles.",
+                    "operationId": "list_example_resources",
+                    "summary": "List example resources",
+                    "description": "List available example resources.",
                     "responses": {
                         "200": {
-                            "description": "Articles",
+                            "description": "Example resources.",
                             "content": {
                                 "application/json": {
                                     "schema": {
                                         "type": "array",
-                                        "title": "Articles",
-                                        "items": {"$ref": "#/components/schemas/Article"},
+                                        "title": "Example resources",
+                                        "items": {"$ref": "#/components/schemas/ExampleResource"},
                                     }
                                 }
                             },
                         },
                         "default": {
                             "description": "List failure",
-                            "content": {
-                                "application/json": {
-                                    "schema": {"$ref": "#/components/schemas/Problem"}
-                                }
-                            },
+                            "content": {"application/json": {"schema": {"$ref": "#/components/schemas/Problem"}}},
                         },
                     },
                 }
             },
-            "/api/articles/{article_key}": {
+            "/api/example_resources/{example_resource_key}": {
                 "parameters": [
                     {
-                        "name": "article_key",
+                        "name": "example_resource_key",
                         "in": "path",
                         "required": True,
                         "schema": {"type": "string"},
                     }
                 ],
                 "get": {
-                    "operationId": "get_article",
-                    "summary": "Read article",
-                    "description": "Read one article.",
+                    "operationId": "get_example_resource",
+                    "summary": "Read example resource",
+                    "description": "Read one example resource.",
                     "responses": {
                         "200": {
-                            "description": "Article",
+                            "description": "Example resource.",
                             "content": {
-                                "application/json": {
-                                    "schema": {"$ref": "#/components/schemas/Article"}
-                                }
+                                "application/json": {"schema": {"$ref": "#/components/schemas/ExampleResource"}}
                             },
                         },
                     },
                 },
                 "delete": {
-                    "operationId": "delete_article",
-                    "summary": "Delete article",
-                    "description": "Delete one article.",
+                    "operationId": "delete_example_resource",
+                    "summary": "Delete example resource",
+                    "description": "Delete one example resource.",
                     "responses": {
                         "204": {"description": "Deleted"},
                         "404": {
                             "description": "Missing",
                             "content": {
-                                "application/problem+json": {
-                                    "schema": {"$ref": "#/components/schemas/Problem"}
-                                }
+                                "application/problem+json": {"schema": {"$ref": "#/components/schemas/Problem"}}
                             },
                         },
                     },
                 },
             },
-            "/api/articles/{article_key}/publish": {
+            "/api/example_resources/{example_resource_key}/publish": {
                 "parameters": [
                     {
-                        "name": "article_key",
+                        "name": "example_resource_key",
                         "in": "path",
                         "required": True,
                         "schema": {"type": "string"},
                     }
                 ],
                 "post": {
-                    "operationId": "publish_article",
-                    "summary": "Publish article",
-                    "description": "Publish one article.",
+                    "operationId": "publish_example_resource",
+                    "summary": "Publish example resource",
+                    "description": "Publish one example resource.",
                     "responses": {
                         "202": {
                             "description": "Published",
                             "content": {
                                 "application/json": {
-                            "schema": {
-                                "type": "object",
-                                "title": "Publication",
-                                "properties": {"published": {"type": "boolean"}},
-                            }
+                                    "schema": {
+                                        "type": "object",
+                                        "title": "Publication",
+                                        "properties": {"published": {"type": "boolean"}},
+                                    }
                                 }
                             },
                         },
                         "4XX": {
                             "description": "Publish failure",
-                            "content": {
-                                "application/json": {
-                                    "schema": {"$ref": "#/components/schemas/Problem"}
-                                }
-                            },
+                            "content": {"application/json": {"schema": {"$ref": "#/components/schemas/Problem"}}},
                         },
                     },
                 },
@@ -200,11 +188,11 @@ class TestAdapter:
         },
         "components": {
             "schemas": {
-                "Article": {
+                "ExampleResource": {
                     "type": "object",
-                    "title": "Article",
+                    "title": "Example resource",
                     "properties": {
-                        "article_key": {"type": "string"},
+                        "example_resource_key": {"type": "string"},
                         "title": {"type": "string"},
                     },
                 },
@@ -224,88 +212,100 @@ class TestAdapter:
         assert routes["get_api_root"].public_path == "/api"
 
     def test_framework_neutral_boundary_resolves_mounts_and_projects_every_outcome(self):
-        adapter = siren_adapter(
-            self.schema, source_path="/api", public_path="/siren")
+        adapter = siren_adapter(self.schema, source_path="/api", public_path="/siren")
 
-        source = adapter.match("GET", "/api/articles/a%2Fb")
-        public = adapter.match("GET", "/siren/articles/a%2Fb")
+        source = adapter.match("GET", "/api/example_resources/a%2Fb")
+        public = adapter.match("GET", "/siren/example_resources/a%2Fb")
         assert source == public
-        assert source.operation_id == "get_article"
-        assert source.path_values == {"article_key": "a/b"}
+        assert source.operation_id == "get_example_resource"
+        assert source.path_values == {"example_resource_key": "a/b"}
 
-        collection = adapter.respond(SirenAdapterRequest(
-            method="GET",
-            path="/api/articles",
-            status=200,
-            result=[{"article_key": "one", "title": "One"}],
-            base_url="https://example.test",
-        ))
-        entity = adapter.respond(SirenAdapterRequest(
-            operation_id="get_article",
-            status=200,
-            result={"article_key": "one", "title": "One"},
-            base_url="https://example.test",
-            headers={"ETag": "one", "Content-Type": "application/json",
-                     "Content-Length": "2"},
-            policy=SirenAdapterPolicy(capabilities=frozenset({"get_article"})),
-        ))
-        command = adapter.respond(SirenAdapterRequest(
-            method="POST",
-            path="/api/articles/one/publish",
-            status=202,
-            result={"published": True},
-            base_url="https://example.test",
-            policy=SirenAdapterPolicy(representation="command"),
-        ))
-        empty = adapter.respond(SirenAdapterRequest(
-            method="DELETE",
-            path="/api/articles/one",
-            status=204,
-            base_url="https://example.test",
-        ))
-        validation = adapter.respond(SirenAdapterRequest(
-            method="GET",
-            path="/api/articles/invalid",
-            status=422,
-            result=[{"location": "article_key", "message": "Invalid"}],
-            base_url="https://example.test",
-        ))
-        not_found = adapter.respond(SirenAdapterRequest(
-            method="GET",
-            path="/api/articles/missing",
-            status=404,
-            result={"detail": "Not found"},
-            base_url="https://example.test",
-        ))
-        unmatched = adapter.respond(SirenAdapterRequest(
-            method="GET",
-            path="/api/unknown",
-            status=404,
-            result={"detail": "Not found"},
-            base_url="https://example.test",
-            request_url="https://example.test/api/unknown",
-        ))
+        collection = adapter.respond(
+            SirenAdapterRequest(
+                method="GET",
+                path="/api/example_resources",
+                status=200,
+                result=[{"example_resource_key": "one", "title": "One"}],
+                base_url="https://example.test",
+            )
+        )
+        entity = adapter.respond(
+            SirenAdapterRequest(
+                operation_id="get_example_resource",
+                status=200,
+                result={"example_resource_key": "one", "title": "One"},
+                base_url="https://example.test",
+                headers={"ETag": "one", "Content-Type": "application/json", "Content-Length": "2"},
+                policy=SirenAdapterPolicy(capabilities=frozenset({"get_example_resource"})),
+            )
+        )
+        command = adapter.respond(
+            SirenAdapterRequest(
+                method="POST",
+                path="/api/example_resources/one/publish",
+                status=202,
+                result={"published": True},
+                base_url="https://example.test",
+                policy=SirenAdapterPolicy(representation="command"),
+            )
+        )
+        empty = adapter.respond(
+            SirenAdapterRequest(
+                method="DELETE",
+                path="/api/example_resources/one",
+                status=204,
+                base_url="https://example.test",
+            )
+        )
+        validation = adapter.respond(
+            SirenAdapterRequest(
+                method="GET",
+                path="/api/example_resources/invalid",
+                status=422,
+                result=[{"location": "example_resource_key", "message": "Invalid"}],
+                base_url="https://example.test",
+            )
+        )
+        not_found = adapter.respond(
+            SirenAdapterRequest(
+                method="GET",
+                path="/api/example_resources/missing",
+                status=404,
+                result={"detail": "Not found"},
+                base_url="https://example.test",
+            )
+        )
+        unmatched = adapter.respond(
+            SirenAdapterRequest(
+                method="GET",
+                path="/api/unknown",
+                status=404,
+                result={"detail": "Not found"},
+                base_url="https://example.test",
+                request_url="https://example.test/api/unknown",
+            )
+        )
 
-        assert collection.payload["class"] == ["collection", "article"]
-        assert entity.payload["class"] == ["article"]
+        assert collection.payload["class"] == ["collection", "example-resource"]
+        assert entity.payload["class"] == ["example-resource"]
         assert entity.media_type == "application/vnd.siren+json"
         assert entity.headers == {}
         assert command.payload["class"] == ["command-result"]
         assert empty.payload["class"] == ["empty"]
         assert validation.payload["class"] == ["error"]
         assert validation.payload["properties"] == {
-            "errors": [{"location": "article_key", "message": "Invalid"}],
+            "errors": [{"location": "example_resource_key", "message": "Invalid"}],
             "status": 422,
         }
         assert not_found.payload == {
             "class": ["error"],
-            "title": "Read article",
+            "title": "Read example resource",
             "properties": {"detail": "Not found", "status": 404},
             "links": [
                 {
-                    "title": "Read article",
+                    "title": "Read example resource",
                     "rel": ["self"],
-                    "href": "https://example.test/siren/articles/missing",
+                    "href": "https://example.test/siren/example_resources/missing",
                 }
             ],
         }
@@ -316,46 +316,51 @@ class TestAdapter:
         }
 
     def test_allow_all_policy_derives_resource_capabilities_from_the_compiled_graph(self):
-        adapter = siren_adapter(
-            self.schema, source_path="/api", public_path="/siren")
-        policy = SirenAllowAllPolicy().select("get_article", 200, object(), {})
+        adapter = siren_adapter(self.schema, source_path="/api", public_path="/siren")
+        policy = SirenAllowAllPolicy().select("get_example_resource", 200, object(), {})
 
-        response = adapter.respond(SirenAdapterRequest(
-            operation_id="get_article",
-            status=200,
-            result={"article_key": "one", "title": "One"},
-            base_url="https://example.test",
-            policy=policy,
-        ))
+        response = adapter.respond(
+            SirenAdapterRequest(
+                operation_id="get_example_resource",
+                status=200,
+                result={"example_resource_key": "one", "title": "One"},
+                base_url="https://example.test",
+                policy=policy,
+            )
+        )
 
         assert {action["name"] for action in response.payload["actions"]} == {
-            "delete_article",
-            "get_article",
-            "publish_article",
+            "delete_example_resource",
+            "get_example_resource",
+            "publish_example_resource",
         }
 
-        collection = adapter.respond(SirenAdapterRequest(
-            operation_id="list_articles",
-            status=200,
-            result=[{"article_key": "one", "title": "One"}],
-            base_url="https://example.test",
-            policy=policy,
-        ))
-        root = adapter.respond(SirenAdapterRequest(
-            operation_id="get_api_root",
-            status=200,
-            result={"status": "ready"},
-            base_url="https://example.test",
-            policy=policy,
-        ))
+        collection = adapter.respond(
+            SirenAdapterRequest(
+                operation_id="list_example_resources",
+                status=200,
+                result=[{"example_resource_key": "one", "title": "One"}],
+                base_url="https://example.test",
+                policy=policy,
+            )
+        )
+        root = adapter.respond(
+            SirenAdapterRequest(
+                operation_id="get_api_root",
+                status=200,
+                result={"status": "ready"},
+                base_url="https://example.test",
+                policy=policy,
+            )
+        )
 
         assert {action["name"] for action in collection.payload["actions"]} == {
-            "list_articles",
+            "list_example_resources",
         }
         assert {action["name"] for action in collection.payload["entities"][0]["actions"]} == {
-            "delete_article",
-            "get_article",
-            "publish_article",
+            "delete_example_resource",
+            "get_example_resource",
+            "publish_example_resource",
         }
         assert root.payload["class"] == ["api", "entry-point"]
         assert {action["name"] for action in root.payload["actions"]} == {
@@ -370,23 +375,23 @@ class TestAdapter:
         ):
             SirenAdapterPolicy(
                 all_capabilities=True,
-                capabilities=frozenset({"get_article"}),
+                capabilities=frozenset({"get_example_resource"}),
             )
 
     def test_adapter_policy_projects_distinct_aligned_collection_item_titles(self):
         response = siren_adapter(self.schema, source_path="/api", public_path="/siren").respond(
             SirenAdapterRequest(
-                operation_id="list_articles",
+                operation_id="list_example_resources",
                 status=200,
                 result=[
-                    {"article_key": "one", "title": "Stored one"},
-                    {"article_key": "two", "title": "Stored two"},
+                    {"example_resource_key": "one", "title": "Stored one"},
+                    {"example_resource_key": "two", "title": "Stored two"},
                 ],
                 base_url="https://example.test",
                 policy=SirenAdapterPolicy(
-                    item_titles=("First article", "Second article"),
+                    item_titles=("First example_resource", "Second example_resource"),
                     item_capabilities=(
-                        frozenset({"get_article"}),
+                        frozenset({"get_example_resource"}),
                         frozenset(),
                     ),
                 ),
@@ -394,20 +399,20 @@ class TestAdapter:
         )
 
         assert [item["title"] for item in response.payload["entities"]] == [
-            "First article",
-            "Second article",
+            "First example_resource",
+            "Second example_resource",
         ]
         assert [item["links"][0]["title"] for item in response.payload["entities"]] == [
-            "First article",
-            "Second article",
+            "First example_resource",
+            "Second example_resource",
         ]
         assert [item.get("actions", []) for item in response.payload["entities"]] == [
             [
                 {
-                    "name": "get_article",
-                    "href": "https://example.test/siren/articles/one",
+                    "name": "get_example_resource",
+                    "href": "https://example.test/siren/example_resources/one",
                     "method": "GET",
-                    "title": "Read article",
+                    "title": "Read example resource",
                 }
             ],
             [],
@@ -495,10 +500,8 @@ class TestAdapter:
                 public_path="/siren",
             )
 
-            assert adapter.match(
-                "get", "/api/items/search/").operation_id == "search_items"
-            assert adapter.match(
-                "GET", "/siren/items/search").operation_id == "search_items"
+            assert adapter.match("get", "/api/items/search/").operation_id == "search_items"
+            assert adapter.match("GET", "/siren/items/search").operation_id == "search_items"
             encoded = adapter.match("GET", "/api/items/%73earch")
             assert encoded.operation_id == "get_item"
             assert encoded.path_values == {"item_id": "search"}
@@ -507,13 +510,11 @@ class TestAdapter:
             assert nested.path_values == {"item_id": "one"}
             generic = adapter.match("POST", "/api/items/one/commands/archive")
             assert generic.operation_id == "run_item_command"
-            assert generic.path_values == {
-                "item_id": "one", "command_name": "archive"}
+            assert generic.path_values == {"item_id": "one", "command_name": "archive"}
             assert adapter.match("DELETE", "/api/items/search") is None
 
     def test_adapter_construction_rejects_indistinguishable_route_templates(self):
-        adapter = siren_adapter(
-            self.schema, source_path="/api", public_path="/siren")
+        adapter = siren_adapter(self.schema, source_path="/api", public_path="/siren")
 
         with pytest.raises(
             SirenityError,
@@ -539,71 +540,69 @@ class TestAdapter:
 
     def test_structured_form_profile_exposes_delegated_inputs_without_changing_default_siren(self):
         document = deepcopy(self.schema)
-        document["components"]["schemas"].update({
-            "Filter": {
-                "type": "object",
-                "required": ["state"],
-                "properties": {"state": {"type": "string"}},
-            },
-            "Metadata": {
-                "type": "object",
-                "required": ["source"],
-                "properties": {"source": {"type": "string"}},
-                "additionalProperties": {},
-            },
-            "ArticlePatch": {
-                "type": "object",
-                "required": [
-                    "metadata",
-                    "items",
-                    "payload",
-                    "content_schema",
-                    "record_ids",
-                ],
-                "properties": {
-                    "title": {"type": "string", "title": "Title"},
-                    "metadata": {"$ref": "#/components/schemas/Metadata"},
-                    "items": {
-                        "type": "array",
-                        "items": {"$ref": "#/components/schemas/Metadata"},
-                    },
-                    "payload": {"type": "object", "additionalProperties": True},
-                    "content_schema": {"type": "object", "additionalProperties": {}},
-                    "implicit_document": {"type": "object"},
-                    "empty_document": {
-                        "type": "object",
-                        "properties": {},
-                        "additionalProperties": {},
-                    },
-                    "typed_map": {
-                        "type": "object",
-                        "additionalProperties": {"type": "string"},
-                    },
-                    "closed_document": {"type": "object", "additionalProperties": False},
-                    "record_ids": {
-                        "type": "array",
-                        "title": "Record IDs",
-                        "minItems": 1,
-                        "uniqueItems": True,
-                        "items": {"type": "string", "format": "uuid"},
-                    },
+        document["components"]["schemas"].update(
+            {
+                "Filter": {
+                    "type": "object",
+                    "required": ["state"],
+                    "properties": {"state": {"type": "string"}},
                 },
-            },
-        })
-        document["components"]["requestBodies"] = {
-            "ArticlePatch": {
-                "required": True,
-                "content": {
-                    "application/json": {
-                        "schema": {"$ref": "#/components/schemas/ArticlePatch"}
-                    }
+                "Metadata": {
+                    "type": "object",
+                    "required": ["source"],
+                    "properties": {"source": {"type": "string"}},
+                    "additionalProperties": {},
+                },
+                "ExampleResourcePatch": {
+                    "type": "object",
+                    "required": [
+                        "metadata",
+                        "items",
+                        "payload",
+                        "content_schema",
+                        "example_resource_ids",
+                    ],
+                    "properties": {
+                        "title": {"type": "string", "title": "Title"},
+                        "metadata": {"$ref": "#/components/schemas/Metadata"},
+                        "items": {
+                            "type": "array",
+                            "items": {"$ref": "#/components/schemas/Metadata"},
+                        },
+                        "payload": {"type": "object", "additionalProperties": True},
+                        "content_schema": {"type": "object", "additionalProperties": {}},
+                        "implicit_document": {"type": "object"},
+                        "empty_document": {
+                            "type": "object",
+                            "properties": {},
+                            "additionalProperties": {},
+                        },
+                        "typed_map": {
+                            "type": "object",
+                            "additionalProperties": {"type": "string"},
+                        },
+                        "closed_document": {"type": "object", "additionalProperties": False},
+                        "example_resource_ids": {
+                            "type": "array",
+                            "title": "Example resource IDs",
+                            "minItems": 1,
+                            "uniqueItems": True,
+                            "items": {"type": "string", "format": "uuid"},
+                        },
+                    },
                 },
             }
+        )
+        document["components"]["requestBodies"] = {
+            "ExampleResourcePatch": {
+                "required": True,
+                "content": {"application/json": {"schema": {"$ref": "#/components/schemas/ExampleResourcePatch"}}},
+            }
         }
-        document["paths"]["/api/articles/{article_key}"]["patch"] = {
-            "operationId": "update_article",
-            "summary": "Update article",
-            "description": "Update one article.",
+        document["paths"]["/api/example_resources/{example_resource_key}"]["patch"] = {
+            "operationId": "update_example_resource",
+            "summary": "Update example resource",
+            "description": "Update one example resource.",
             "parameters": [
                 {"name": "page", "in": "query", "schema": {"type": "integer", "title": "Page"}},
                 {
@@ -623,29 +622,23 @@ class TestAdapter:
                 },
                 {"name": "session", "in": "cookie", "schema": {"type": "string"}},
             ],
-            "requestBody": {"$ref": "#/components/requestBodies/ArticlePatch"},
+            "requestBody": {"$ref": "#/components/requestBodies/ExampleResourcePatch"},
             "responses": {
                 "200": {
                     "description": "Updated",
-                    "content": {
-                        "application/json": {
-                            "schema": {"$ref": "#/components/schemas/Article"}
-                        }
-                    },
+                    "content": {"application/json": {"schema": {"$ref": "#/components/schemas/ExampleResource"}}},
                 }
             },
         }
         request = SirenAdapterRequest(
-            operation_id="get_article",
+            operation_id="get_example_resource",
             status=200,
-            result={"article_key": "one", "title": "One"},
+            result={"example_resource_key": "one", "title": "One"},
             base_url="https://example.test",
-            path_values={"article_key": "one"},
-            policy=SirenAdapterPolicy(
-                capabilities=frozenset({"update_article"})),
+            path_values={"example_resource_key": "one"},
+            policy=SirenAdapterPolicy(capabilities=frozenset({"update_example_resource"})),
         )
-        default = siren_adapter(
-            document, source_path="/api", public_path="/siren")
+        default = siren_adapter(document, source_path="/api", public_path="/siren")
         profiled = siren_adapter(
             document,
             source_path="/api",
@@ -659,11 +652,10 @@ class TestAdapter:
         extension_name = SirenStructuredFormProfile.extension
 
         assert extension_name not in default_action
-        assert {field["name"]
-                for field in action["fields"]} == {"page", "title"}
+        assert {field["name"] for field in action["fields"]} == {"page", "title"}
         extension = action[extension_name]
         assert extension["version"] == "1"
-        controls = {control["name"]                    : control for control in extension["controls"]}
+        controls = {control["name"]: control for control in extension["controls"]}
         assert set(controls) == {
             "filter",
             "trace",
@@ -676,7 +668,7 @@ class TestAdapter:
             "empty_document",
             "typed_map",
             "closed_document",
-            "record_ids",
+            "example_resource_ids",
         }
         assert controls["filter"] == {
             "name": "filter",
@@ -702,14 +694,14 @@ class TestAdapter:
         assert controls["metadata"]["mediaType"] == "application/json"
         assert controls["items"]["control"] == SirenStructuredFormProfile.array_control
         assert controls["items"]["schema"]["items"]["type"] == "object"
-        assert controls["record_ids"] == {
-            "name": "record_ids",
+        assert controls["example_resource_ids"] == {
+            "name": "example_resource_ids",
             "location": "body",
             "required": True,
             "control": SirenStructuredFormProfile.array_control,
             "schema": {
                 "type": "array",
-                "title": "Record IDs",
+                "title": "Example resource IDs",
                 "minItems": 1,
                 "uniqueItems": True,
                 "items": {"type": "string", "format": "uuid"},
@@ -738,15 +730,13 @@ class TestAdapter:
         assert "$ref" not in json.dumps(extension)
 
         with ThreadPoolExecutor(max_workers=4) as executor:
-            payloads = tuple(executor.map(
-                lambda _: profiled.respond(request).payload, range(8)))
+            payloads = tuple(executor.map(lambda _: profiled.respond(request).payload, range(8)))
 
         assert all(payload == profiled_payload for payload in payloads)
 
     def test_structured_form_profile_recurses_and_custom_profiles_cannot_mutate_engine_inputs(self):
-        adapter = siren_adapter(
-            self.schema, source_path="/api", public_path="/siren")
-        operation_input = adapter.engine.operation_input("get_article")
+        adapter = siren_adapter(self.schema, source_path="/api", public_path="/siren")
+        operation_input = adapter.engine.operation_input("get_example_resource")
         delegated = SirenInput(
             delegated_inputs=(
                 SirenDelegatedInput(
@@ -760,8 +750,8 @@ class TestAdapter:
             )
         )
         action = {
-            "name": "update_article",
-            "href": "https://example.test/articles/one",
+            "name": "update_example_resource",
+            "href": "https://example.test/example_resources/one",
             "method": "PATCH",
         }
         nested_document = {
@@ -774,7 +764,7 @@ class TestAdapter:
                     "actions": [action],
                     "entities": [
                         {
-                            "class": ["article"],
+                            "class": ["example-resource"],
                             "rel": ["item"],
                             "actions": [action],
                         }
@@ -783,16 +773,16 @@ class TestAdapter:
             ],
         }
         context = SirenResponseContext(
-            operation_id="get_article",
+            operation_id="get_example_resource",
             status=200,
-            result={"article_key": "one"},
+            result={"example_resource_key": "one"},
             base_url="https://example.test",
         )
         profile = SirenStructuredFormProfile()
         enriched = profile.apply(
-            operation_id="get_article",
+            operation_id="get_example_resource",
             operation_input=operation_input,
-            operation_inputs={"update_article": delegated},
+            operation_inputs={"update_example_resource": delegated},
             document=nested_document,
             context=context,
         )
@@ -817,10 +807,10 @@ class TestAdapter:
                 return dict(document) | {"custom-profile": True}
 
         schema = deepcopy(self.schema)
-        schema["paths"]["/api/articles/{article_key}"]["patch"] = {
-            "operationId": "update_article",
-            "summary": "Update article",
-            "description": "Update one article.",
+        schema["paths"]["/api/example_resources/{example_resource_key}"]["patch"] = {
+            "operationId": "update_example_resource",
+            "summary": "Update example resource",
+            "description": "Update one example resource.",
             "requestBody": {
                 "content": {
                     "application/json": {
@@ -839,47 +829,53 @@ class TestAdapter:
             public_path="/siren",
             profiles=(MutatingProfile(),),
         )
-        response = custom.respond(SirenAdapterRequest(
-            operation_id="get_article",
-            status=200,
-            result={"article_key": "one", "title": "One"},
-            base_url="https://example.test",
-            path_values={"article_key": "one"},
-        ))
+        response = custom.respond(
+            SirenAdapterRequest(
+                operation_id="get_example_resource",
+                status=200,
+                result={"example_resource_key": "one", "title": "One"},
+                base_url="https://example.test",
+                path_values={"example_resource_key": "one"},
+            )
+        )
 
         assert response.payload["custom-profile"] is True
-        assert "mutated" not in custom.engine.operation_input(
-            "update_article").definition
+        assert "mutated" not in custom.engine.operation_input("update_example_resource").definition
 
     def test_adapter_projects_api_entry_points_and_keeps_explicit_root_commands(self):
-        adapter = siren_adapter(
-            self.schema, source_path="/api", public_path="/siren")
+        adapter = siren_adapter(self.schema, source_path="/api", public_path="/siren")
 
-        root = adapter.respond(SirenAdapterRequest(
-            operation_id="get_api_root",
-            status=200,
-            result={"status": "ready", "version": "runtime"},
-            base_url="https://example.test",
-            query=(("view", "full"),),
-            policy=SirenAdapterPolicy(
-                representation="root",
-                capabilities=frozenset({"reindex"}),
-            ),
-        ))
-        command = adapter.respond(SirenAdapterRequest(
-            operation_id="get_api_root",
-            status=200,
-            result={"status": "ready"},
-            base_url="https://example.test",
-            policy=SirenAdapterPolicy(representation="command"),
-        ))
-        titled = adapter.respond(SirenAdapterRequest(
-            operation_id="get_api_root",
-            status=200,
-            result={"status": "ready"},
-            base_url="https://example.test",
-            policy=SirenAdapterPolicy(representation="root", title="Live API"),
-        ))
+        root = adapter.respond(
+            SirenAdapterRequest(
+                operation_id="get_api_root",
+                status=200,
+                result={"status": "ready", "version": "runtime"},
+                base_url="https://example.test",
+                query=(("view", "full"),),
+                policy=SirenAdapterPolicy(
+                    representation="root",
+                    capabilities=frozenset({"reindex"}),
+                ),
+            )
+        )
+        command = adapter.respond(
+            SirenAdapterRequest(
+                operation_id="get_api_root",
+                status=200,
+                result={"status": "ready"},
+                base_url="https://example.test",
+                policy=SirenAdapterPolicy(representation="command"),
+            )
+        )
+        titled = adapter.respond(
+            SirenAdapterRequest(
+                operation_id="get_api_root",
+                status=200,
+                result={"status": "ready"},
+                base_url="https://example.test",
+                policy=SirenAdapterPolicy(representation="root", title="Live API"),
+            )
+        )
 
         assert root.payload == {
             "class": ["api", "entry-point"],
@@ -900,9 +896,9 @@ class TestAdapter:
                     "href": "https://example.test/siren?view=full",
                 },
                 {
-                    "title": "Articles",
+                    "title": "Example resources",
                     "rel": ["collection"],
-                    "href": "https://example.test/siren/articles",
+                    "href": "https://example.test/siren/example_resources",
                 },
             ],
         }
@@ -918,120 +914,123 @@ class TestAdapter:
         assert titled.payload["links"][0]["title"] == "Live API"
 
         with pytest.raises(SirenityError, match="Siren adapter response failed"):
-            adapter.respond(SirenAdapterRequest(
-                operation_id="get_article",
-                status=200,
-                result={"article_key": "one"},
-                base_url="https://example.test",
-                policy=SirenAdapterPolicy(representation="root"),
-            ))
+            adapter.respond(
+                SirenAdapterRequest(
+                    operation_id="get_example_resource",
+                    status=200,
+                    result={"example_resource_key": "one"},
+                    base_url="https://example.test",
+                    policy=SirenAdapterPolicy(representation="root"),
+                )
+            )
 
     def test_undeclared_errors_preserve_every_body_shape_and_operation_context(self):
-        adapter = siren_adapter(
-            self.schema, source_path="/api", public_path="/siren")
+        adapter = siren_adapter(self.schema, source_path="/api", public_path="/siren")
 
-        mapping = adapter.respond(SirenAdapterRequest(
-            method="GET",
-            path="/api/articles/missing",
-            status=404,
-            result={"detail": "Missing"},
-            base_url="https://example.test",
-            request_url="https://example.test/api/articles/missing?trace=yes",
-        ))
-        scalar = adapter.respond(SirenAdapterRequest(
-            operation_id="get_article",
-            status=401,
-            result="Denied",
-            base_url="https://example.test",
-            path_values={"article_key": "private"},
-        ))
-        empty = adapter.respond(SirenAdapterRequest(
-            operation_id="get_article",
-            status=500,
-            base_url="https://example.test",
-            path_values={"article_key": "broken"},
-            policy=SirenAdapterPolicy(title="Unavailable"),
-        ))
+        mapping = adapter.respond(
+            SirenAdapterRequest(
+                method="GET",
+                path="/api/example_resources/missing",
+                status=404,
+                result={"detail": "Missing"},
+                base_url="https://example.test",
+                request_url="https://example.test/api/example_resources/missing?trace=yes",
+            )
+        )
+        scalar = adapter.respond(
+            SirenAdapterRequest(
+                operation_id="get_example_resource",
+                status=401,
+                result="Denied",
+                base_url="https://example.test",
+                path_values={"example_resource_key": "private"},
+            )
+        )
+        empty = adapter.respond(
+            SirenAdapterRequest(
+                operation_id="get_example_resource",
+                status=500,
+                base_url="https://example.test",
+                path_values={"example_resource_key": "broken"},
+                policy=SirenAdapterPolicy(title="Unavailable"),
+            )
+        )
 
         assert mapping.payload == {
             "class": ["error"],
-            "title": "Read article",
+            "title": "Read example resource",
             "properties": {"detail": "Missing", "status": 404},
             "links": [
                 {
-                    "title": "Read article",
+                    "title": "Read example resource",
                     "rel": ["self"],
-                    "href": "https://example.test/api/articles/missing?trace=yes",
+                    "href": "https://example.test/api/example_resources/missing?trace=yes",
                 }
             ],
         }
-        assert scalar.payload["properties"] == {
-            "status": 401, "result": "Denied"}
-        assert scalar.payload["links"][0]["href"] == "https://example.test/siren/articles/private"
+        assert scalar.payload["properties"] == {"status": 401, "result": "Denied"}
+        assert scalar.payload["links"][0]["href"] == "https://example.test/siren/example_resources/private"
         assert empty.payload["title"] == "Unavailable"
         assert empty.payload["properties"] == {"status": 500}
 
     @pytest.mark.parametrize(
         ("operation_id", "status", "media_type"),
         [
-            ("delete_article", 404, "application/problem+json"),
-            ("publish_article", 409, "application/json"),
-            ("list_articles", 503, "application/json"),
+            ("delete_example_resource", 404, "application/problem+json"),
+            ("publish_example_resource", 409, "application/json"),
+            ("list_example_resources", 503, "application/json"),
         ],
     )
-    def test_declared_exact_ranged_and_default_errors_remain_strict(
-        self, operation_id, status, media_type
-    ):
-        adapter = siren_adapter(
-            self.schema, source_path="/api", public_path="/siren")
+    def test_declared_exact_ranged_and_default_errors_remain_strict(self, operation_id, status, media_type):
+        adapter = siren_adapter(self.schema, source_path="/api", public_path="/siren")
 
         with pytest.raises(SirenityError, match="Siren adapter response failed"):
-            adapter.respond(SirenAdapterRequest(
-                operation_id=operation_id,
-                status=status,
-                result="Declared object responses reject scalars",
-                base_url="https://example.test",
-                media_type=media_type,
-                path_values={"article_key": "one"},
-            ))
+            adapter.respond(
+                SirenAdapterRequest(
+                    operation_id=operation_id,
+                    status=status,
+                    result="Declared object responses reject scalars",
+                    base_url="https://example.test",
+                    media_type=media_type,
+                    path_values={"example_resource_key": "one"},
+                )
+            )
 
     def test_declared_status_with_an_incompatible_media_type_uses_generic_error(self):
-        adapter = siren_adapter(
-            self.schema, source_path="/api", public_path="/siren")
+        adapter = siren_adapter(self.schema, source_path="/api", public_path="/siren")
 
-        response = adapter.respond(SirenAdapterRequest(
-            operation_id="delete_article",
-            status=404,
-            result="Missing",
-            base_url="https://example.test",
-            media_type="application/json",
-            path_values={"article_key": "missing"},
-        ))
+        response = adapter.respond(
+            SirenAdapterRequest(
+                operation_id="delete_example_resource",
+                status=404,
+                result="Missing",
+                base_url="https://example.test",
+                media_type="application/json",
+                path_values={"example_resource_key": "missing"},
+            )
+        )
 
-        assert response.payload["properties"] == {
-            "status": 404, "result": "Missing"}
+        assert response.payload["properties"] == {"status": 404, "result": "Missing"}
 
     def test_successful_undeclared_responses_remain_strict(self):
-        adapter = siren_adapter(
-            self.schema, source_path="/api", public_path="/siren")
+        adapter = siren_adapter(self.schema, source_path="/api", public_path="/siren")
 
         with pytest.raises(SirenityError, match="Siren adapter response failed"):
-            adapter.respond(SirenAdapterRequest(
-                operation_id="get_article",
-                status=201,
-                result={"article_key": "one"},
-                base_url="https://example.test",
-            ))
+            adapter.respond(
+                SirenAdapterRequest(
+                    operation_id="get_example_resource",
+                    status=201,
+                    result={"example_resource_key": "one"},
+                    base_url="https://example.test",
+                )
+            )
 
     def test_django_bridge_executes_once_and_preserves_unselected_json(self):
         if not settings.configured:
-            settings.configure(DEFAULT_CHARSET="utf-8",
-                               ALLOWED_HOSTS=["testserver"])
-        adapter = siren_adapter(
-            self.schema, source_path="/api", public_path="/api")
+            settings.configure(DEFAULT_CHARSET="utf-8", ALLOWED_HOSTS=["testserver"])
+        adapter = siren_adapter(self.schema, source_path="/api", public_path="/api")
         calls = []
-        original = JsonResponse(
-            {"article_key": "one", "title": "One"}, headers={"ETag": "one"})
+        original = JsonResponse({"example_resource_key": "one", "title": "One"}, headers={"ETag": "one"})
 
         def handler(request):
             calls.append(request.path)
@@ -1039,29 +1038,33 @@ class TestAdapter:
                 return HttpResponse(status=204)
             if request.path.endswith("invalid"):
                 return JsonResponse(
-                    [{"location": "article_key", "message": "Invalid"}], status=422, safe=False
+                    [{"location": "example_resource_key", "message": "Invalid"}], status=422, safe=False
                 )
             return original
 
         policy = CapabilityPolicy()
-        middleware = SirenDjangoMiddleware(
-            get_response=handler, adapter=adapter, policy=policy)
+        middleware = SirenDjangoMiddleware(get_response=handler, adapter=adapter, policy=policy)
         factory = RequestFactory()
         with override_settings(ALLOWED_HOSTS=["testserver"]):
-            ordinary = middleware(factory.get(
-                "/api/articles/one", HTTP_ACCEPT="application/json"))
-            siren = middleware(factory.get(
-                "/api/articles/one?view=full&view=compact",
-                HTTP_ACCEPT="application/vnd.siren+json",
-            ))
-            validation = middleware(factory.get(
-                "/api/articles/invalid",
-                HTTP_ACCEPT="application/vnd.siren+json",
-            ))
-            empty = middleware(factory.delete(
-                "/api/articles/one",
-                HTTP_ACCEPT="application/vnd.siren+json",
-            ))
+            ordinary = middleware(factory.get("/api/example_resources/one", HTTP_ACCEPT="application/json"))
+            siren = middleware(
+                factory.get(
+                    "/api/example_resources/one?view=full&view=compact",
+                    HTTP_ACCEPT="application/vnd.siren+json",
+                )
+            )
+            validation = middleware(
+                factory.get(
+                    "/api/example_resources/invalid",
+                    HTTP_ACCEPT="application/vnd.siren+json",
+                )
+            )
+            empty = middleware(
+                factory.delete(
+                    "/api/example_resources/one",
+                    HTTP_ACCEPT="application/vnd.siren+json",
+                )
+            )
 
         assert ordinary is original
         assert ordinary["Vary"] == "Accept"
@@ -1069,22 +1072,22 @@ class TestAdapter:
         assert siren["Content-Type"] == "application/vnd.siren+json"
         assert "ETag" not in siren
         assert siren["Vary"] == "Accept"
-        assert json.loads(siren.content)["class"] == ["article"]
+        assert json.loads(siren.content)["class"] == ["example-resource"]
         assert json.loads(validation.content)["properties"] == {
-            "errors": [{"location": "article_key", "message": "Invalid"}],
+            "errors": [{"location": "example_resource_key", "message": "Invalid"}],
             "status": 422,
         }
         assert json.loads(empty.content)["class"] == ["empty"]
         assert calls == [
-            "/api/articles/one",
-            "/api/articles/one",
-            "/api/articles/invalid",
-            "/api/articles/one",
+            "/api/example_resources/one",
+            "/api/example_resources/one",
+            "/api/example_resources/invalid",
+            "/api/example_resources/one",
         ]
         assert policy.calls == [
-            ("get_article", 200),
-            ("get_article", 422),
-            ("delete_article", 204),
+            ("get_example_resource", 200),
+            ("get_example_resource", 422),
+            ("delete_example_resource", 204),
         ]
 
     @pytest.mark.parametrize(
@@ -1105,11 +1108,9 @@ class TestAdapter:
     )
     def test_django_bridge_negotiates_quality_specificity_and_wildcards(self, accept, selected):
         if not settings.configured:
-            settings.configure(DEFAULT_CHARSET="utf-8",
-                               ALLOWED_HOSTS=["testserver"])
-        adapter = siren_adapter(
-            self.schema, source_path="/api", public_path="/api")
-        original = JsonResponse({"article_key": "one", "title": "One"})
+            settings.configure(DEFAULT_CHARSET="utf-8", ALLOWED_HOSTS=["testserver"])
+        adapter = siren_adapter(self.schema, source_path="/api", public_path="/api")
+        original = JsonResponse({"example_resource_key": "one", "title": "One"})
         calls = []
 
         def handler(request):
@@ -1121,23 +1122,20 @@ class TestAdapter:
             adapter=adapter,
             policy=CapabilityPolicy(),
         )
-        request = RequestFactory().get("/api/articles/one", HTTP_ACCEPT=accept)
+        request = RequestFactory().get("/api/example_resources/one", HTTP_ACCEPT=accept)
         with override_settings(ALLOWED_HOSTS=["testserver"]):
             response = middleware(request)
 
-        assert (response["Content-Type"] ==
-                "application/vnd.siren+json") is selected
+        assert (response["Content-Type"] == "application/vnd.siren+json") is selected
         assert (response is not original) is selected
-        assert calls == ["/api/articles/one"]
+        assert calls == ["/api/example_resources/one"]
 
     def test_django_bridge_replaces_representation_headers_and_preserves_semantics(self):
         if not settings.configured:
-            settings.configure(DEFAULT_CHARSET="utf-8",
-                               ALLOWED_HOSTS=["testserver"])
-        adapter = siren_adapter(
-            self.schema, source_path="/api", public_path="/api")
+            settings.configure(DEFAULT_CHARSET="utf-8", ALLOWED_HOSTS=["testserver"])
+        adapter = siren_adapter(self.schema, source_path="/api", public_path="/api")
         original = JsonResponse(
-            {"article_key": "one", "title": "One"},
+            {"example_resource_key": "one", "title": "One"},
             headers={
                 "Accept-Ranges": "bytes",
                 "Cache-Control": "private",
@@ -1149,7 +1147,7 @@ class TestAdapter:
                 "Digest": "sha-256=source",
                 "ETag": '"json"',
                 "Last-Modified": "Wed, 05 Aug 2026 00:00:00 GMT",
-                "Location": "/api/articles/one",
+                "Location": "/api/example_resources/one",
                 "RateLimit-Limit": "100",
                 "Vary": "Origin, Cookie",
                 "WWW-Authenticate": 'Bearer realm="api"',
@@ -1167,11 +1165,13 @@ class TestAdapter:
             policy=CapabilityPolicy(),
         )
         with override_settings(ALLOWED_HOSTS=["testserver"]):
-            response = middleware(RequestFactory().get(
-                "/api/articles/one",
-                HTTP_ACCEPT="application/vnd.siren+json",
-                HTTP_IF_NONE_MATCH='"json"',
-            ))
+            response = middleware(
+                RequestFactory().get(
+                    "/api/example_resources/one",
+                    HTTP_ACCEPT="application/vnd.siren+json",
+                    HTTP_IF_NONE_MATCH='"json"',
+                )
+            )
 
         for name in (
             "Accept-Ranges",
@@ -1188,7 +1188,7 @@ class TestAdapter:
         assert response["Vary"] == "Origin, Cookie, Accept"
         assert response["Cache-Control"] == "private"
         assert response["Content-Security-Policy"] == "default-src 'none'"
-        assert response["Location"] == "/api/articles/one"
+        assert response["Location"] == "/api/example_resources/one"
         assert response["RateLimit-Limit"] == "100"
         assert response["WWW-Authenticate"] == 'Bearer realm="api"'
         assert response["X-Request-ID"] == "request-one"
@@ -1198,32 +1198,25 @@ class TestAdapter:
 
     def test_django_bridge_passes_ineligible_responses_through_without_decoding(self):
         if not settings.configured:
-            settings.configure(DEFAULT_CHARSET="utf-8",
-                               ALLOWED_HOSTS=["testserver"])
-        adapter = siren_adapter(
-            self.schema, source_path="/api", public_path="/api")
+            settings.configure(DEFAULT_CHARSET="utf-8", ALLOWED_HOSTS=["testserver"])
+        adapter = siren_adapter(self.schema, source_path="/api", public_path="/api")
         policy = CapabilityPolicy()
         factory = RequestFactory()
         cases = (
             ("/openapi.json", JsonResponse({"openapi": "3.1.1"})),
             ("/health", JsonResponse({"status": "ok"})),
-            ("/missing", HttpResponse("<h1>Missing</h1>",
-             status=404, content_type="text/html")),
-            ("/api/articles/one",
-             HttpResponse("<h1>Article</h1>", content_type="text/html")),
-            ("/api/articles/one", HttpResponseRedirect("/login")),
-            ("/api/articles/one", HttpResponse(status=304)),
+            ("/missing", HttpResponse("<h1>Missing</h1>", status=404, content_type="text/html")),
+            ("/api/example_resources/one", HttpResponse("<h1>ExampleResource</h1>", content_type="text/html")),
+            ("/api/example_resources/one", HttpResponseRedirect("/login")),
+            ("/api/example_resources/one", HttpResponse(status=304)),
             (
-                "/api/articles/one",
-                StreamingHttpResponse(
-                    iter((b'{"article_key":"one"}',)), content_type="application/json"),
+                "/api/example_resources/one",
+                StreamingHttpResponse(iter((b'{"example_resource_key":"one"}',)), content_type="application/json"),
             ),
-            ("/api/articles/one", FileResponse(BytesIO(b"article"))),
+            ("/api/example_resources/one", FileResponse(BytesIO(b"example_resource"))),
             (
-                "/api/articles/one",
-                HttpResponse(
-                    '{"class":["article"]}', content_type="application/vnd.siren+json"
-                ),
+                "/api/example_resources/one",
+                HttpResponse('{"class":["example_resource"]}', content_type="application/vnd.siren+json"),
             ),
         )
         calls = []
@@ -1240,10 +1233,12 @@ class TestAdapter:
                     adapter=adapter,
                     policy=policy,
                 )
-                returned = middleware(factory.get(
-                    path,
-                    HTTP_ACCEPT="application/vnd.siren+json",
-                ))
+                returned = middleware(
+                    factory.get(
+                        path,
+                        HTTP_ACCEPT="application/vnd.siren+json",
+                    )
+                )
 
                 assert returned is response
                 if response.status_code == 304:
@@ -1255,10 +1250,8 @@ class TestAdapter:
 
     def test_django_bridge_projects_matched_json_suffix_responses(self):
         if not settings.configured:
-            settings.configure(DEFAULT_CHARSET="utf-8",
-                               ALLOWED_HOSTS=["testserver"])
-        adapter = siren_adapter(
-            self.schema, source_path="/api", public_path="/api")
+            settings.configure(DEFAULT_CHARSET="utf-8", ALLOWED_HOSTS=["testserver"])
+        adapter = siren_adapter(self.schema, source_path="/api", public_path="/api")
         policy = CapabilityPolicy()
         calls = []
         problem = HttpResponse(
@@ -1271,27 +1264,25 @@ class TestAdapter:
             calls.append(request.path)
             return problem
 
-        middleware = SirenDjangoMiddleware(
-            get_response=handler, adapter=adapter, policy=policy)
+        middleware = SirenDjangoMiddleware(get_response=handler, adapter=adapter, policy=policy)
         factory = RequestFactory()
         with override_settings(ALLOWED_HOSTS=["testserver"]):
-            response = middleware(factory.delete(
-                "/api/articles/missing",
-                HTTP_ACCEPT="application/vnd.siren+json",
-            ))
+            response = middleware(
+                factory.delete(
+                    "/api/example_resources/missing",
+                    HTTP_ACCEPT="application/vnd.siren+json",
+                )
+            )
 
         assert response["Content-Type"] == "application/vnd.siren+json"
-        assert json.loads(response.content)["properties"] == {
-            "detail": "Missing", "status": 404}
-        assert calls == ["/api/articles/missing"]
-        assert policy.calls == [("delete_article", 404)]
+        assert json.loads(response.content)["properties"] == {"detail": "Missing", "status": 404}
+        assert calls == ["/api/example_resources/missing"]
+        assert policy.calls == [("delete_example_resource", 404)]
 
     def test_django_bridge_projects_browser_discovery_from_the_api_root(self):
         if not settings.configured:
-            settings.configure(DEFAULT_CHARSET="utf-8",
-                               ALLOWED_HOSTS=["testserver"])
-        adapter = siren_adapter(
-            self.schema, source_path="/api", public_path="/api")
+            settings.configure(DEFAULT_CHARSET="utf-8", ALLOWED_HOSTS=["testserver"])
+        adapter = siren_adapter(self.schema, source_path="/api", public_path="/api")
         calls = []
 
         def handler(request):
@@ -1305,57 +1296,57 @@ class TestAdapter:
         )
         factory = RequestFactory()
         with override_settings(ALLOWED_HOSTS=["testserver"]):
-            response = middleware(factory.get(
-                "/api?view=full",
-                HTTP_ACCEPT="application/vnd.siren+json",
-            ))
+            response = middleware(
+                factory.get(
+                    "/api?view=full",
+                    HTTP_ACCEPT="application/vnd.siren+json",
+                )
+            )
 
         payload = json.loads(response.content)
         assert payload["class"] == ["api", "entry-point"]
         assert payload["properties"] == {"status": "ready", "version": "4.0.0"}
         assert payload["links"][0]["href"] == "http://testserver/api?view=full"
-        assert payload["links"][1]["href"] == "http://testserver/api/articles"
+        assert payload["links"][1]["href"] == "http://testserver/api/example_resources"
         assert calls == ["/api"]
 
     def test_django_bridge_dispatches_an_independent_public_mount_once(self):
-        adapter = siren_adapter(
-            self.schema, source_path="/api", public_path="/siren")
+        adapter = siren_adapter(self.schema, source_path="/api", public_path="/siren")
         policy = CapabilityPolicy()
         calls = []
 
         def handler(request):
             calls.append(request.path)
-            return JsonResponse({"article_key": "one", "title": "One"})
+            return JsonResponse({"example_resource_key": "one", "title": "One"})
 
-        middleware = SirenDjangoMiddleware(
-            get_response=handler, adapter=adapter, policy=policy)
+        middleware = SirenDjangoMiddleware(get_response=handler, adapter=adapter, policy=policy)
         with override_settings(ALLOWED_HOSTS=["testserver"]):
-            response = middleware(RequestFactory().get(
-                "/siren/articles/one",
-                HTTP_ACCEPT="application/vnd.siren+json",
-            ))
+            response = middleware(
+                RequestFactory().get(
+                    "/siren/example_resources/one",
+                    HTTP_ACCEPT="application/vnd.siren+json",
+                )
+            )
 
-        assert calls == ["/api/articles/one"]
-        assert json.loads(response.content)["links"][0]["href"] == (
-            "http://testserver/siren/articles/one"
+        assert calls == ["/api/example_resources/one"]
+        assert json.loads(response.content)["links"][0]["href"] == ("http://testserver/siren/example_resources/one")
+
+        ordinary = middleware(
+            RequestFactory().get(
+                "/siren/example_resources/one",
+                HTTP_ACCEPT="application/json",
+            )
         )
 
-        ordinary = middleware(RequestFactory().get(
-            "/siren/articles/one",
-            HTTP_ACCEPT="application/json",
-        ))
-
-        assert json.loads(ordinary.content) == {
-            "article_key": "one", "title": "One"}
-        assert calls == ["/api/articles/one", "/api/articles/one"]
+        assert json.loads(ordinary.content) == {"example_resource_key": "one", "title": "One"}
+        assert calls == ["/api/example_resources/one", "/api/example_resources/one"]
 
     def test_django_bridge_restores_the_public_path_when_source_dispatch_fails(self):
-        adapter = siren_adapter(
-            self.schema, source_path="/api", public_path="/siren")
-        request = RequestFactory().get("/siren/articles/one")
+        adapter = siren_adapter(self.schema, source_path="/api", public_path="/siren")
+        request = RequestFactory().get("/siren/example_resources/one")
 
         def handler(failed_request):
-            assert failed_request.path == "/api/articles/one"
+            assert failed_request.path == "/api/example_resources/one"
             raise RuntimeError("dispatch failed")
 
         middleware = SirenDjangoMiddleware(
@@ -1367,18 +1358,15 @@ class TestAdapter:
         with pytest.raises(RuntimeError, match="dispatch failed"):
             middleware(request)
 
-        assert request.path == "/siren/articles/one"
-        assert request.path_info == "/siren/articles/one"
+        assert request.path == "/siren/example_resources/one"
+        assert request.path_info == "/siren/example_resources/one"
 
     def test_standard_django_loader_builds_one_fresh_adapter_without_application_middleware(self):
         if not settings.configured:
-            settings.configure(DEFAULT_CHARSET="utf-8",
-                               ALLOWED_HOSTS=["testserver"])
+            settings.configure(DEFAULT_CHARSET="utf-8", ALLOWED_HOSTS=["testserver"])
         django_openapi_provider.calls = 0
         configuration = {
-            "OPENAPI": (
-                "tests.framework_fixtures.django_openapi_provider.django_openapi_provider"
-            ),
+            "OPENAPI": ("tests.framework_fixtures.django_openapi_provider.django_openapi_provider"),
             "SOURCE_PATH": "/api",
             "PUBLIC_PATH": "/siren",
             "PROFILES": ["sirenity.SirenStructuredFormProfile"],
@@ -1393,37 +1381,36 @@ class TestAdapter:
         ):
             handler = BaseHandler()
             handler.load_middleware()
-            ordinary = handler.get_response(factory.get(
-                "/api/articles/one",
-                HTTP_ACCEPT="application/json",
-            ))
-            siren = handler.get_response(factory.get(
-                "/siren/articles/one",
-                HTTP_ACCEPT="application/vnd.siren+json",
-            ))
+            ordinary = handler.get_response(
+                factory.get(
+                    "/api/example_resources/one",
+                    HTTP_ACCEPT="application/json",
+                )
+            )
+            siren = handler.get_response(
+                factory.get(
+                    "/siren/example_resources/one",
+                    HTTP_ACCEPT="application/vnd.siren+json",
+                )
+            )
 
         assert ordinary["Content-Type"].startswith("application/json")
         siren_payload = json.loads(siren.content)
-        assert siren_payload["class"] == ["article"]
-        assert [action["name"]
-                for action in siren_payload["actions"]] == ["get_article"]
+        assert siren_payload["class"] == ["example-resource"]
+        assert [action["name"] for action in siren_payload["actions"]] == ["get_example_resource"]
         assert siren["Content-Type"] == "application/vnd.siren+json"
         assert django_openapi_provider.calls == 1
 
         with override_settings(SIRENITY=configuration):
-            SirenMiddleware(lambda request: JsonResponse(
-                {"article_id": "two", "title": "Fresh"}))
+            SirenMiddleware(lambda request: JsonResponse({"example_resource_id": "two", "title": "Fresh"}))
 
         assert django_openapi_provider.calls == 2
 
     def test_standard_django_loader_follows_the_projected_root_action_across_trailing_slash_mounts(self):
         if not settings.configured:
-            settings.configure(DEFAULT_CHARSET="utf-8",
-                               ALLOWED_HOSTS=["testserver"])
+            settings.configure(DEFAULT_CHARSET="utf-8", ALLOWED_HOSTS=["testserver"])
         configuration = {
-            "OPENAPI": (
-                "tests.framework_fixtures.django_openapi_provider.django_openapi_provider"
-            ),
+            "OPENAPI": ("tests.framework_fixtures.django_openapi_provider.django_openapi_provider"),
             "SOURCE_PATH": "/api",
             "PUBLIC_PATH": "/siren",
         }
@@ -1437,15 +1424,19 @@ class TestAdapter:
         ):
             handler = BaseHandler()
             handler.load_middleware()
-            entry = handler.get_response(factory.get(
-                "/siren/",
-                HTTP_ACCEPT="application/vnd.siren+json",
-            ))
+            entry = handler.get_response(
+                factory.get(
+                    "/siren/",
+                    HTTP_ACCEPT="application/vnd.siren+json",
+                )
+            )
             action = json.loads(entry.content)["actions"][0]
-            followed = handler.get_response(factory.get(
-                action["href"],
-                HTTP_ACCEPT="application/vnd.siren+json",
-            ))
+            followed = handler.get_response(
+                factory.get(
+                    action["href"],
+                    HTTP_ACCEPT="application/vnd.siren+json",
+                )
+            )
 
         assert action == {
             "name": "get_api_root",
@@ -1471,9 +1462,7 @@ class TestAdapter:
         django_openapi_provider.calls = 0
 
         configuration = siren_configuration(
-            openapi=(
-                "tests.framework_fixtures.django_openapi_provider.django_openapi_provider"
-            ),
+            openapi=("tests.framework_fixtures.django_openapi_provider.django_openapi_provider"),
             source_path="/api",
             public_path="/siren",
             policy="tests.framework_fixtures.capability_policy.CapabilityPolicy",
@@ -1499,7 +1488,6 @@ class TestAdapter:
             "import sirenity\n"
         )
 
-        result = subprocess.run(
-            (sys.executable, "-c", script), capture_output=True, text=True)
+        result = subprocess.run((sys.executable, "-c", script), capture_output=True, text=True)
 
         assert result.returncode == 0, result.stderr

@@ -2,36 +2,36 @@ from typing import Any
 
 from fastapi import FastAPI
 
-from .widget_controller import WidgetController
+from .example_resource_controller import ExampleResourceController
 
 
 class FastApiOpenApiFixture:
     def __init__(self) -> None:
         self.application = FastAPI(title="Framework fixture", version="1")
-        self.controller = WidgetController()
+        self.controller = ExampleResourceController()
         self.application.add_api_route(
-            "/api/v1/widgets",
-            self.controller.list_widgets,
+            "/api/v1/example_resources",
+            self.controller.list_example_resources,
             methods=["GET"],
-            operation_id="list_widgets",
-            summary="List widgets",
-            description="List widgets.",
+            operation_id="list_example_resources",
+            summary="List example resources",
+            description="List example resources.",
         )
         self.application.add_api_route(
-            "/api/v1/widgets/{widget}",
-            self.controller.get_widget,
+            "/api/v1/example_resources/{example_resource}",
+            self.controller.get_example_resource,
             methods=["GET"],
-            operation_id="get_widget",
-            summary="Read widget",
-            description="Read a widget.",
+            operation_id="get_example_resource",
+            summary="Read example resource",
+            description="Read an example resource.",
         )
         self.application.add_api_route(
-            "/api/v1/widgets/{widget}",
-            self.controller.rename_widget,
+            "/api/v1/example_resources/{example_resource}",
+            self.controller.rename_example_resource,
             methods=["PATCH"],
-            operation_id="rename_widget",
-            summary="Rename widget",
-            description="Rename a widget.",
+            operation_id="rename_example_resource",
+            summary="Rename example resource",
+            description="Rename an example resource.",
         )
 
     def document(self) -> dict[str, Any]:

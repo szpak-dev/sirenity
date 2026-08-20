@@ -9,4 +9,4 @@ class CapabilityPolicy:
 
     def select(self, operation_id, status, request, result):
         self.calls.append((operation_id, status))
-        return SirenAdapterPolicy(capabilities=frozenset({"get_article"}))
+        return SirenAdapterPolicy(capabilities=frozenset({"get_example_resource"}))

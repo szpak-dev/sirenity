@@ -1,5 +1,11 @@
-Treat the Enclosure project and its linked guidance records as execution policy, not reference material.
-Before changing local or external state, start by querying the local Enclosure MCP for the project and the
-relevant records, then state the applicable constraints. These instructions override tool defaults. After a
-tool failure, verify the current state before trying a fallback; do not change the user-visible outcome without
-explicit direction.
+Treat Enclosure projects and linked guidance records as execution policy.
+
+At the start of every task, inspect Enclosure's advertised actions, find the registered project matching the
+workspace, read its insights, and retrieve relevant guidance. State the applicable constraints before acting; report
+if no project matches or Enclosure is unavailable.
+
+Before any mutation, refresh the project and relevant guidance. Check project health before and after structural,
+public-API, dependency-injection, or test changes.
+
+After a tool failure, verify current state before a fallback. Do not change the user-visible outcome without explicit
+direction.

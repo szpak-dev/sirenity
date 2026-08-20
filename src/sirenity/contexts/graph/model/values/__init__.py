@@ -3,6 +3,7 @@ from .delegated_input import SirenDelegatedInput
 from .field import SirenField
 from .input import SirenInput
 from .operation import SirenOperation
+from .parameter_input import SirenParameterInput
 from .resource import SirenResource
 from .response import SirenResponse
 from .response_binding import SirenResponseBinding
@@ -16,6 +17,7 @@ __all__ = [
     "SirenField",
     "SirenInput",
     "SirenOperation",
+    "SirenParameterInput",
     "SirenResource",
     "SirenResponse",
     "SirenResponseBinding",

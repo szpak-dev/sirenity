@@ -40,7 +40,7 @@ class TestSirenSpecCommand:
         workspace = self.workspace(tmp_path)
         evidence = workspace / "tests/conformance/test_skipped_evidence.py"
         evidence.write_text(
-            "import pytest\n\n\ndef test_skipped_evidence() -> None:\n    pytest.skip(\"ordinary skip\")\n"
+            'import pytest\n\n\ndef test_skipped_evidence() -> None:\n    pytest.skip("ordinary skip")\n'
         )
 
         result = self.command(workspace)
@@ -53,7 +53,7 @@ class TestSirenSpecCommand:
         evidence = workspace / "tests/conformance/test_xpass_evidence.py"
         evidence.write_text(
             "import pytest\n\n\n"
-            "@pytest.mark.xfail(reason=\"tracked expected failure\")\n"
+            '@pytest.mark.xfail(reason="tracked expected failure")\n'
             "def test_xpass_evidence() -> None:\n"
             "    pass\n"
         )
@@ -112,9 +112,7 @@ class TestSirenSpecCommand:
         assert "      ✓ An action with fields serializes its default type — executable specification" in result.stdout
         assert "      ✓ A link with a non-URI href is rejected — executable specification" in result.stdout
         definitions = tuple(
-            line[4:]
-            for line in result.stdout.splitlines()
-            if line.startswith("    ") and not line.startswith("      ")
+            line[4:] for line in result.stdout.splitlines() if line.startswith("    ") and not line.startswith("      ")
         )
 
         assert definitions[:7] == (

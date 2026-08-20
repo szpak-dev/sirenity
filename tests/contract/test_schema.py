@@ -18,10 +18,7 @@ from sirenity import (
 
 
 class TestSchema:
-    schema = json.loads(
-        files(sirenity).joinpath(
-            "contexts/shared/siren_schema/values/siren.schema.json").read_text()
-    )
+    schema = json.loads(files(sirenity).joinpath("contexts/shared/siren_schema/values/siren.schema.json").read_text())
     validator = Draft4Validator(schema, format_checker=FormatChecker())
 
     @pytest.mark.parametrize(
@@ -33,7 +30,7 @@ class TestSchema:
                 "actions": [
                     {
                         "name": "rename",
-                        "href": "https://api.example.com/records/42",
+                        "href": "https://api.example.com/example_resources/42",
                         "fields": [{"name": "title", "type": "unsupported"}],
                     }
                 ]
@@ -46,17 +43,19 @@ class TestSchema:
 
     @pytest.mark.parametrize(
         "value",
-        ("https://api.example.com/%zz", "https://api.example.com/[]",
-         "https://api.example.com/records space"),
+        (
+            "https://api.example.com/%zz",
+            "https://api.example.com/[]",
+            "https://api.example.com/example_resources space",
+        ),
     )
     def test_public_values_reject_uri_boundaries_rejected_by_the_pinned_schema(self, value):
         with pytest.raises(ValidationError):
-            self.validator.validate(
-                {"links": [{"rel": ["self"], "href": value}]})
+            self.validator.validate({"links": [{"rel": ["self"], "href": value}]})
         with pytest.raises(SirenityError, match="Siren URI must be a valid URI"):
             SirenLink(rel=("self",), href=value)
         with pytest.raises(SirenityError, match="Siren relation must be an official relation token or URI"):
-            SirenLink(rel=(value,), href="https://api.example.com/records")
+            SirenLink(rel=(value,), href="https://api.example.com/example_resources")
 
     def test_public_uri_values_accept_every_owner_supported_by_the_pinned_schema(self):
         document = SirenDocument(
@@ -65,8 +64,7 @@ class TestSchema:
             links=(SirenLink(rel=("http://",), href="http://"),),
         )
 
-        self.validator.validate(document.model_dump(
-            by_alias=True, mode="json", exclude_none=True))
+        self.validator.validate(document.model_dump(by_alias=True, mode="json", exclude_none=True))
 
     @pytest.mark.parametrize("value", ("text", 1, 1.5))
     def test_public_field_scalar_values_match_the_pinned_schema(self, value):
@@ -74,14 +72,13 @@ class TestSchema:
             actions=(
                 SirenAction(
                     name="update",
-                    href="https://api.example.com/records",
+                    href="https://api.example.com/example_resources",
                     fields=(SirenField(name="value", value=value),),
                 ),
             ),
         )
 
-        self.validator.validate(document.model_dump(
-            by_alias=True, mode="json", exclude_none=True))
+        self.validator.validate(document.model_dump(by_alias=True, mode="json", exclude_none=True))
 
     @pytest.mark.parametrize("value", ("text", 1, 1.5))
     def test_public_field_value_objects_match_the_pinned_schema(self, value):
@@ -89,15 +86,13 @@ class TestSchema:
             actions=(
                 SirenAction(
                     name="update",
-                    href="https://api.example.com/records",
-                    fields=(SirenField(name="value", value=(
-                        SirenFieldValue(value=value),)),),
+                    href="https://api.example.com/example_resources",
+                    fields=(SirenField(name="value", value=(SirenFieldValue(value=value),)),),
                 ),
             ),
         )
 
-        self.validator.validate(document.model_dump(
-            by_alias=True, mode="json", exclude_none=True))
+        self.validator.validate(document.model_dump(by_alias=True, mode="json", exclude_none=True))
 
     def test_public_field_values_reject_boolean_coercion(self):
         with pytest.raises(ValueError):
@@ -117,13 +112,11 @@ class TestSchema:
     def test_public_root_fixture_conforms_to_the_pinned_schema(self):
         document = SirenDocument(
             class_=("api", "entry-point"),
-            actions=(SirenAction(name="search", method="POST",
-                     href="https://api.example.com/search"),),
+            actions=(SirenAction(name="search", method="POST", href="https://api.example.com/search"),),
             links=(SirenLink(rel=("self",), href="https://api.example.com/"),),
         )
 
-        self.validator.validate(document.model_dump(
-            by_alias=True, mode="json", exclude_none=True))
+        self.validator.validate(document.model_dump(by_alias=True, mode="json", exclude_none=True))
 
     def test_public_collection_fixture_conforms_to_the_pinned_schema(self):
         document = SirenDocument(
@@ -131,43 +124,38 @@ class TestSchema:
             properties={"count": 1},
             entities=(
                 SirenEmbeddedRepresentation(
-                    class_=("record",),
+                    class_=("example_resource",),
                     rel=("item",),
                     properties={"id": "42"},
-                    links=(SirenLink(rel=("self",),
-                           href="https://api.example.com/records/42"),),
+                    links=(SirenLink(rel=("self",), href="https://api.example.com/example_resources/42"),),
                 ),
             ),
-            actions=(SirenAction(
-                name="list", href="https://api.example.com/records"),),
-            links=(SirenLink(rel=("self",), href="https://api.example.com/records"),),
+            actions=(SirenAction(name="list", href="https://api.example.com/example_resources"),),
+            links=(SirenLink(rel=("self",), href="https://api.example.com/example_resources"),),
         )
 
-        self.validator.validate(document.model_dump(
-            by_alias=True, mode="json", exclude_none=True))
+        self.validator.validate(document.model_dump(by_alias=True, mode="json", exclude_none=True))
 
     def test_public_entity_and_embedded_link_fixtures_conform_to_the_pinned_schema(self):
         document = SirenDocument(
-            class_=("record",),
+            class_=("example_resource",),
             properties={"id": "42"},
             entities=(
                 SirenEmbeddedLink(
                     rel=("collection",),
-                    href="https://api.example.com/records",
+                    href="https://api.example.com/example_resources",
                 ),
             ),
             actions=(
                 SirenAction(
                     name="rename",
                     method="PATCH",
-                    href="https://api.example.com/records/42",
+                    href="https://api.example.com/example_resources/42",
                     type="application/json",
                     fields=(SirenField(name="title", type="text"),),
                 ),
             ),
-            links=(SirenLink(rel=("self",),
-                   href="https://api.example.com/records/42"),),
+            links=(SirenLink(rel=("self",), href="https://api.example.com/example_resources/42"),),
         )
 
-        self.validator.validate(document.model_dump(
-            by_alias=True, mode="json", exclude_none=True))
+        self.validator.validate(document.model_dump(by_alias=True, mode="json", exclude_none=True))

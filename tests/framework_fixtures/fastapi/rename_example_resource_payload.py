@@ -1,5 +1,5 @@
 from pydantic import BaseModel
 
 
-class RenameWidgetPayload(BaseModel):
+class RenameExampleResourcePayload(BaseModel):
     title: str = ""

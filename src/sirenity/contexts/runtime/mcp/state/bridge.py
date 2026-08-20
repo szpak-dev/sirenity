@@ -1,4 +1,3 @@
-import re
 from collections.abc import Callable
 
 from jsonschema import Draft202012Validator, ValidationError
@@ -26,9 +25,6 @@ class SirenMcpBridge(BaseState):
             input = self.adapter.engine.operation_input(operation.name)
             properties = {}
             required = []
-            for name in re.findall(r"\{([^}]+)\}", operation.route.path):
-                properties[name] = {"type": "string"}
-                required.append(name)
             definition = input.definition if input is not None else None
             body_properties = (
                 definition.get("properties", {})
@@ -40,21 +36,27 @@ class SirenMcpBridge(BaseState):
                 if isinstance(definition, dict)
                 else ()
             )
-            for field in operation.fields:
-                schema = body_properties.get(field.name)
-                if not isinstance(schema, dict):
-                    schema = {"type": "number" if field.type in {"number", "range"} else "string"}
-                    if field.values:
-                        schema["enum"] = list(field.values)
-                properties[field.name] = schema
-                if field.name in body_required:
-                    required.append(field.name)
+            if input is not None:
+                for parameter in input.parameters:
+                    properties[parameter.name] = parameter.definition
+                    if parameter.required:
+                        required.append(parameter.name)
+            for name, schema in body_properties.items():
+                if isinstance(schema, dict):
+                    properties[name] = schema
+                    if name in body_required:
+                        required.append(name)
             if input is not None:
                 for delegated in input.delegated_inputs:
-                    properties[delegated.name] = delegated.definition
-                    if delegated.required:
-                        required.append(delegated.name)
-            schema = {"type": "object", "properties": properties}
+                    if delegated.location == "body":
+                        properties[delegated.name] = delegated.definition
+                        if delegated.required:
+                            required.append(delegated.name)
+            schema = {
+                "type": "object",
+                "properties": properties,
+                "additionalProperties": False,
+            }
             if required:
                 schema["required"] = list(dict.fromkeys(required))
             values.append(SirenMcpTool(
@@ -76,9 +78,13 @@ class SirenMcpBridge(BaseState):
                 f"Siren MCP invocation references unknown operation: {invocation.operation_id}")
         operation = operations[0]
         arguments = dict(invocation.arguments)
-        path_names = tuple(re.findall(r"\{([^}]+)\}", operation.route.path))
-        path_values = {name: arguments[name] for name in path_names if name in arguments}
         input = self.adapter.engine.operation_input(operation.name)
+        parameters = input.parameters if input is not None else ()
+        path_values = {
+            parameter.name: arguments[parameter.name]
+            for parameter in parameters
+            if parameter.location == "path" and parameter.name in arguments
+        }
         definition = input.definition if input is not None else None
         body_properties = (
             definition.get("properties", {})
@@ -91,12 +97,22 @@ class SirenMcpBridge(BaseState):
             else ()
         )
         body_names = set(body_properties)
-        query_names = {
-            field.name for field in operation.fields if field.name not in body_names}
-        query_values = {name: arguments[name] for name in query_names if name in arguments}
+        query_values = {
+            parameter.name: arguments[parameter.name]
+            for parameter in parameters
+            if parameter.location == "query" and parameter.name in arguments
+        }
         body_values = {name: arguments[name] for name in body_names if name in arguments}
-        header_values = {}
-        cookie_values = {}
+        header_values = {
+            parameter.name: arguments[parameter.name]
+            for parameter in parameters
+            if parameter.location == "header" and parameter.name in arguments
+        }
+        cookie_values = {
+            parameter.name: arguments[parameter.name]
+            for parameter in parameters
+            if parameter.location == "cookie" and parameter.name in arguments
+        }
         if input is not None:
             for delegated in input.delegated_inputs:
                 if delegated.name not in arguments:
@@ -106,22 +122,20 @@ class SirenMcpBridge(BaseState):
                         body_values = {"body": arguments[delegated.name]}
                     else:
                         body_values[delegated.name] = arguments[delegated.name]
-                elif delegated.location == "query":
-                    query_values[delegated.name] = arguments[delegated.name]
-                elif delegated.location == "header":
-                    header_values[delegated.name] = arguments[delegated.name]
-                else:
-                    cookie_values[delegated.name] = arguments[delegated.name]
-        allowed = set(path_names) | body_names | query_names | set(header_values) | set(cookie_values)
+        allowed = {parameter.name for parameter in parameters} | body_names
         if input is not None:
-            allowed.update(item.name for item in input.delegated_inputs)
+            allowed.update(
+                item.name for item in input.delegated_inputs if item.location == "body")
         unknown = sorted(set(arguments) - allowed)
         if unknown:
             raise SirenityError(
                 f"Siren MCP invocation has unknown arguments for {operation.name}: {unknown}")
-        required = set(path_names) | set(body_required)
+        required = {parameter.name for parameter in parameters if parameter.required} | set(body_required)
         if input is not None:
-            required.update(item.name for item in input.delegated_inputs if item.required)
+            required.update(
+                item.name for item in input.delegated_inputs
+                if item.location == "body" and item.required
+            )
         missing = sorted(name for name in required if name not in arguments)
         if missing:
             raise SirenityError(
@@ -178,11 +192,18 @@ class SirenMcpBridge(BaseState):
     def invoke(self, invocation: SirenMcpInvocation) -> SirenMcpResult:
         """Normalize, execute once, and project one MCP tool invocation."""
 
-        operation = self.operation(invocation)
+        try:
+            operation = self.operation(invocation)
+        except SirenityError:
+            return SirenMcpResult(
+                structured_content={"detail": "Siren MCP invocation is invalid"},
+                is_error=True,
+            )
         try:
             request = self.executor.execute(operation)
-        except Exception as error:
-            return SirenMcpResult(structured_content={"detail": str(error)}, is_error=True)
+        except Exception:
+            return SirenMcpResult(
+                structured_content={"detail": "Siren MCP executor failed"}, is_error=True)
         if not isinstance(request, SirenMcpExecution):
             return SirenMcpResult(
                 structured_content={"detail": "Siren MCP executor must return SirenMcpExecution"},
@@ -215,5 +236,6 @@ class SirenMcpBridge(BaseState):
             if not isinstance(selected, SirenAdapterPolicy):
                 raise SirenityError("Siren capability policy must return SirenAdapterPolicy")
             return selected
-        except Exception as error:
-            return SirenMcpResult(structured_content={"detail": str(error)}, is_error=True)
+        except Exception:
+            return SirenMcpResult(
+                structured_content={"detail": "Siren capability policy failed"}, is_error=True)

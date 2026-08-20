@@ -1,6 +1,6 @@
 from .api import SirenMiddleware, audit, siren, siren_adapter, siren_configuration, siren_mcp
 from .contexts.compiler.compatibility import SirenCompatibilityFinding, SirenCompatibilityReport
-from .contexts.graph import SirenDelegatedInput, SirenInput
+from .contexts.graph import SirenDelegatedInput, SirenInput, SirenParameterInput
 from .contexts.runtime.adapter import (
     SirenAdapter,
     SirenAdapterMatch,
@@ -65,6 +65,7 @@ __all__ = [
     "SirenMcpResult",
     "SirenMcpTool",
     "SirenMiddleware",
+    "SirenParameterInput",
     "SirenRelationship",
     "SirenResponseContext",
     "SirenScope",

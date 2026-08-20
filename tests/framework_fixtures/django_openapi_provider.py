@@ -32,39 +32,39 @@ class DjangoOpenApiProvider:
                         },
                     }
                 },
-                "/api/articles/{article_id}": {
+                "/api/example_resources/{example_resource_id}": {
                     "parameters": [
                         {
-                            "name": "article_id",
+                            "name": "example_resource_id",
                             "in": "path",
                             "required": True,
                             "schema": {"type": "string"},
                         }
                     ],
                     "get": {
-                        "operationId": "get_article",
-                        "summary": "Read article",
-                        "description": "Read one article.",
+                        "operationId": "get_example_resource",
+                        "summary": "Read example resource",
+                        "description": "Read one example resource.",
                         "responses": {
                             "200": {
-                                "description": "Article",
+                                "description": "Example resource.",
                                 "content": {
                                     "application/json": {
                                         "schema": {
                                             "type": "object",
-                                            "title": "Article",
+                                            "title": "Example resource",
                                             "properties": {
-                                                "article_id": {"type": "string"},
+                                                "example_resource_id": {"type": "string"},
                                                 "title": {"type": "string"},
                                             },
-                                            "required": ["article_id", "title"],
+                                            "required": ["example_resource_id", "title"],
                                         }
                                     }
                                 },
                             }
                         },
-                    }
-                }
+                    },
+                },
             },
         }
 

@@ -25,4 +25,5 @@ class HarnessSteps:
     def serialized_value_is_an_object() -> None:
         assert isinstance(HarnessSteps.payload, Mapping)
 
+
 scenarios("../features/harness.feature")
