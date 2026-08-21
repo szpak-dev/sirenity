@@ -88,8 +88,9 @@ tests should construct middleware inside the matching settings lifecycle.
 
 Hosts that expose standard Django middleware and MCP from the same process should construct one
 configuration, assign that exact value to ``SIRENITY``, and pass it to ``siren_mcp``. MCP
+operations include the compiled HTTP method and encoded same-origin source dispatch path;
 arguments are normalized into body, query, header, cookie, and path values before the
-caller-owned executor runs once:
+caller-owned Django or WSGI executor dispatches once:
 
 <!-- example:django-mcp:start -->
 ```python

@@ -30,7 +30,7 @@ The supported root imports below are generated from `sirenity.__all__`.
 | `SirenMcpExecution` | Carry one caller-executed MCP operation result back to the bridge. | — |
 | `SirenMcpExecutor` | Execute one normalized MCP operation exactly once. | `execute(operation: <class 'sirenity.contexts.runtime.mcp.values.operation.SirenMcpOperation'>) -> <class 'sirenity.contexts.runtime.mcp.values.execution.SirenMcpExecution'>` |
 | `SirenMcpInvocation` | Describe arguments supplied to one compiled MCP operation tool. | — |
-| `SirenMcpOperation` | Represent compiled MCP arguments separated by their HTTP placement. | — |
+| `SirenMcpOperation` | Represent a validated HTTP dispatch target and arguments separated by placement. | — |
 | `SirenMcpResult` | !!! abstract "Usage Documentation" | — |
 | `SirenMcpTool` | !!! abstract "Usage Documentation" | — |
 | `SirenMcpToolCatalogue` | Retain one versioned, immutable MCP tool contract for a configuration lifecycle. | `tool(operation_id: <class 'str'>) -> <class 'sirenity.contexts.runtime.mcp.values.tool.SirenMcpTool'>`<br>`snapshot() -> tuple[sirenity.contexts.runtime.mcp.values.tool.SirenMcpTool, ...]` |
