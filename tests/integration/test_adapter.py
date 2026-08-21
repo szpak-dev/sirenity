@@ -1512,6 +1512,27 @@ class TestAdapter:
         assert middleware.adapter is configuration.adapter()
         assert isinstance(middleware.policy, CapabilityPolicy)
 
+    def test_standard_django_loader_reuses_the_exact_public_configuration_from_settings(self):
+        django_openapi_provider.calls = 0
+        example_configuration = siren_configuration(
+            openapi=("tests.framework_fixtures.django_openapi_provider.django_openapi_provider"),
+            source_path="/api",
+            public_path="/example-siren",
+            policy="tests.framework_fixtures.capability_policy.CapabilityPolicy",
+        )
+
+        with override_settings(SIRENITY=example_configuration):
+            example_first = SirenMiddleware(
+                lambda example_request: JsonResponse({"example_result": "example-first"})
+            )
+            example_second = SirenMiddleware(
+                lambda example_request: JsonResponse({"example_result": "example-second"})
+            )
+
+        assert example_first.middleware.adapter is example_configuration.adapter()
+        assert example_second.middleware.adapter is example_configuration.adapter()
+        assert django_openapi_provider.calls == 1
+
     def test_root_import_keeps_django_optional(self):
         script = (
             "import builtins\n"

@@ -107,8 +107,14 @@ class TestDocumentedIntegrations:
         values = runpy.run_path(
             str(project / "tests" / "fixtures" / "documented_integrations" / "django_mcp.py")
         )
+        example_application = importlib.import_module("example_project.application")
+
+        with override_settings(SIRENITY=values["SIRENITY"]):
+            example_django = SirenMiddleware(example_application.example_get_response)
 
         assert example_api.calls == 1
+        assert example_django.middleware.adapter is values["example_configuration"].adapter()
+        assert values["example_mcp"].adapter is values["example_configuration"].adapter()
         assert values["example_result"].is_error is False
         assert values["example_result"].structured_content["properties"] == {
             "example_resource_id": "example-resource-42",
