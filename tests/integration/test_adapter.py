@@ -1443,6 +1443,51 @@ class TestAdapter:
             "title": "Example resource",
         }
 
+    def test_standard_django_loader_projects_a_declarative_django_ninja_response_link(self):
+        if not settings.configured:
+            settings.configure(DEFAULT_CHARSET="utf-8", ALLOWED_HOSTS=["testserver"])
+        configuration = {
+            "OPENAPI": "tests.framework_fixtures.django_ninja_api.django_ninja_api",
+            "SOURCE_PATH": "/api",
+            "PUBLIC_PATH": "/siren",
+        }
+
+        with override_settings(
+            ALLOWED_HOSTS=["testserver"],
+            ROOT_URLCONF="tests.framework_fixtures.django_ninja_urls",
+            SIRENITY=configuration,
+        ):
+            middleware = SirenMiddleware(
+                lambda request: JsonResponse({
+                    "example_group_id": "example-group-one",
+                    "title": "Example group",
+                })
+            )
+            response = middleware(
+                RequestFactory().get(
+                    "/siren/example_groups/example-group-one",
+                    HTTP_ACCEPT="application/vnd.siren+json",
+                )
+            )
+
+        assert response.status_code == 200
+        assert response["Content-Type"] == "application/vnd.siren+json"
+        payload = json.loads(response.content)
+        assert payload["links"] == [
+            {
+                "title": "ExampleGroup",
+                "rel": ["self"],
+                "href": "http://testserver/siren/example_groups/example-group-one",
+            },
+            {
+                "title": "ExampleResource",
+                "rel": ["collection"],
+                "href": (
+                    "http://testserver/siren/example_groups/example-group-one/example_resources"
+                ),
+            },
+        ]
+
     def test_standard_django_loader_follows_the_projected_root_action_across_trailing_slash_mounts(self):
         if not settings.configured:
             settings.configure(DEFAULT_CHARSET="utf-8", ALLOWED_HOSTS=["testserver"])
