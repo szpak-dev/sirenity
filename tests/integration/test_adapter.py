@@ -1443,7 +1443,17 @@ class TestAdapter:
             "title": "Example resource",
         }
 
-    def test_standard_django_loader_projects_a_declarative_django_ninja_response_link(self):
+    @pytest.mark.parametrize(
+        ("method", "path", "status"),
+        (
+            ("post", "/siren/example_groups", 201),
+            ("get", "/siren/example_groups/example-group-one", 200),
+            ("patch", "/siren/example_groups/example-group-one", 200),
+        ),
+    )
+    def test_standard_django_loader_derives_django_ninja_nested_collection_links(
+        self, method, path, status
+    ):
         if not settings.configured:
             settings.configure(DEFAULT_CHARSET="utf-8", ALLOWED_HOSTS=["testserver"])
         configuration = {
@@ -1461,16 +1471,16 @@ class TestAdapter:
                 lambda request: JsonResponse({
                     "example_group_id": "example-group-one",
                     "title": "Example group",
-                })
+                }, status=status)
             )
             response = middleware(
-                RequestFactory().get(
-                    "/siren/example_groups/example-group-one",
+                getattr(RequestFactory(), method)(
+                    path,
                     HTTP_ACCEPT="application/vnd.siren+json",
                 )
             )
 
-        assert response.status_code == 200
+        assert response.status_code == status
         assert response["Content-Type"] == "application/vnd.siren+json"
         payload = json.loads(response.content)
         assert payload["links"] == [
