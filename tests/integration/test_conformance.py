@@ -143,7 +143,11 @@ class TestConformance:
         project = Path(__file__).parents[2]
         artifacts = tmp_path / "artifacts"
         environment = tmp_path / "consumer"
+        example_shared_installation = tmp_path / "example-shared-installation"
         fixture = project / "tests" / "fixtures" / "wheel_consumer.py"
+        example_shared_fixture = (
+            project / "tests" / "fixtures" / "wheel_example_django_mcp_consumer.py"
+        )
         subprocess.run(
             (sys.executable, "-m", "build", "--wheel", "--sdist", "--outdir", str(artifacts)),
             cwd=project,
@@ -195,3 +199,40 @@ class TestConformance:
 
         assert result.returncode == 0, result.stderr
         assert "site-packages/sirenity" in result.stdout
+        subprocess.run(
+            (
+                str(consumer),
+                "-m",
+                "pip",
+                "install",
+                "--no-deps",
+                "--target",
+                str(example_shared_installation),
+                str(wheel),
+            ),
+            cwd=tmp_path,
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+        example_bootstrap = (
+            "import importlib,sys;"
+            "sys.path[:0]=sys.argv[1:3];"
+            "importlib.import_module('wheel_example_django_mcp_consumer')"
+        )
+        example_shared_result = subprocess.run(
+            (
+                sys.executable,
+                "-I",
+                "-c",
+                example_bootstrap,
+                str(example_shared_installation),
+                str(example_shared_fixture.parent),
+            ),
+            cwd=tmp_path,
+            capture_output=True,
+            text=True,
+        )
+
+        assert example_shared_result.returncode == 0, example_shared_result.stderr
+        assert str(example_shared_installation) in example_shared_result.stdout
