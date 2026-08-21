@@ -65,21 +65,6 @@ def example_update_resource(
 @example_api.get(
     "/api/example_groups/{example_group_id}",
     description="Read an example group.",
-    openapi_extra={
-        "responses": {
-            200: {
-                "links": {
-                    "example_resources": {
-                        "operationId": "list_example_group_resources",
-                        "parameters": {
-                            "path.example_group_id": "$response.body#/example_group_id",
-                        },
-                        "x-sirenity": {"rel": "collection", "scope": "collection"},
-                    }
-                }
-            }
-        }
-    },
     operation_id="get_example_group",
     response=ExampleGroup,
     summary="Read example group",

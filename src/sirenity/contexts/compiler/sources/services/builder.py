@@ -113,17 +113,8 @@ class SirenBuilder:
                             shape=response.shape,
                             definition=response.definition,
                             bindings=self.response_bindings(response, fields),
-                            links=tuple(
-                                SirenResponseLink(
-                                    operation=self.link_operation(
-                                        link, operations),
-                                    parameters=link.parameters,
-                                    rel=tuple(SirenRelation.validate(value)
-                                              for value in link.rel),
-                                    scope=link.scope,
-                                )
-                                for link in response.links
-                            ),
+                            links=self.response_links(
+                                operation, response, operations, resources),
                         )
                         for response in operation.responses
                     ),
@@ -131,6 +122,97 @@ class SirenBuilder:
                 for operation in operations.values()
             ),
         )
+
+    def response_links(
+        self,
+        operation: OperationDraft,
+        response,
+        operations: Mapping[str, OperationDraft],
+        resources: Mapping[str, Resource],
+    ) -> tuple[SirenResponseLink, ...]:
+        declared = tuple(
+            SirenResponseLink(
+                operation=self.link_operation(link, operations),
+                parameters=link.parameters,
+                rel=tuple(SirenRelation.validate(value) for value in link.rel),
+                scope=link.scope,
+            )
+            for link in response.links
+        )
+        declared_targets = {(link.operation, link.scope) for link in declared}
+        derived = tuple(
+            link
+            for link in self.nested_collection_links(operation, response, operations, resources)
+            if (link.operation, link.scope) not in declared_targets
+        )
+        return (*declared, *derived)
+
+    def nested_collection_links(
+        self,
+        operation: OperationDraft,
+        response,
+        operations: Mapping[str, OperationDraft],
+        resources: Mapping[str, Resource],
+    ) -> tuple[SirenResponseLink, ...]:
+        if (
+            operation.resource is None
+            or operation.method
+            not in {SirenHttpMethod.GET, SirenHttpMethod.POST, SirenHttpMethod.PUT, SirenHttpMethod.PATCH}
+            or not response.status.startswith("2")
+            or response.shape != "object"
+            or response.definition is None
+        ):
+            return ()
+        resource = resources[operation.resource]
+        if resource.entity_path is None or operation.path not in {
+            resource.collection_path,
+            resource.entity_path,
+        }:
+            return ()
+        parameters = self.path_parameters(resource.entity_path)
+        properties = response.definition.get("properties")
+        if not parameters or not isinstance(properties, Mapping) or any(name not in properties for name in parameters):
+            return ()
+        links = []
+        for nested in resources.values():
+            prefix = f"{resource.entity_path}/"
+            if (
+                nested.reference == resource.reference
+                or not nested.collection_path.startswith(prefix)
+                or "/" in nested.collection_path[len(prefix):]
+                or self.path_parameters(nested.collection_path) != parameters
+            ):
+                continue
+            targets = [
+                candidate
+                for candidate in operations.values()
+                if candidate.resource == nested.reference
+                and candidate.scope == SirenScope.COLLECTION
+                and candidate.method == SirenHttpMethod.GET
+                and candidate.path == nested.collection_path
+            ]
+            if len(targets) != 1:
+                continue
+            links.append(SirenResponseLink(
+                operation=targets[0].name,
+                parameters={
+                    f"path.{name}": f"$response.body#/{self.pointer_token(name)}"
+                    for name in parameters
+                },
+                rel=(SirenRelation.validate("collection"),),
+                scope=SirenScope.COLLECTION,
+            ))
+        return tuple(links)
+
+    def path_parameters(self, path: str) -> tuple[str, ...]:
+        return tuple(
+            segment[1:-1]
+            for segment in path.split("/")
+            if segment.startswith("{") and segment.endswith("}")
+        )
+
+    def pointer_token(self, value: str) -> str:
+        return value.replace("~", "~0").replace("/", "~1")
 
     def response_bindings(
         self, response, fields: Mapping[str, tuple[FieldDraft, ...]]

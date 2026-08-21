@@ -314,11 +314,38 @@ class TestResponses:
                 )
             )
 
-    def test_public_engine_projects_a_nested_collection_response_link(self):
+    @pytest.mark.parametrize(
+        ("operation_id", "status"),
+        (
+            ("create_example_group", 201),
+            ("get_example_group", 200),
+            ("update_example_group", 200),
+        ),
+    )
+    def test_public_engine_derives_nested_collection_response_links_for_entity_results(
+        self, operation_id, status
+    ):
         schema = {
             "openapi": "3.1.1",
             "info": {"title": "Example groups", "version": "1"},
             "paths": {
+                "/example-groups": {
+                    "post": {
+                        "operationId": "create_example_group",
+                        "summary": "Create example group",
+                        "description": "Create an example group.",
+                        "responses": {
+                            "201": {
+                                "description": "Created example group",
+                                "content": {
+                                    "application/json": {
+                                        "schema": {"$ref": "#/components/schemas/ExampleGroup"}
+                                    }
+                                },
+                            }
+                        },
+                    }
+                },
                 "/example-groups/{example_group_id}": {
                     "parameters": [
                         {
@@ -336,13 +363,23 @@ class TestResponses:
                             "200": {
                                 "description": "Example group",
                                 "content": {
-                                    "application/json": {"schema": {"type": "object", "title": "Example group"}}
+                                    "application/json": {
+                                        "schema": {"$ref": "#/components/schemas/ExampleGroup"}
+                                    }
                                 },
-                                "links": {
-                                    "example_resources": {
-                                        "operationId": "list_example_group_resources",
-                                        "parameters": {"path.example_group_id": "$response.body#/example_group_id"},
-                                        "x-sirenity": {"rel": "collection", "scope": "collection"},
+                            }
+                        },
+                    },
+                    "patch": {
+                        "operationId": "update_example_group",
+                        "summary": "Update example group",
+                        "description": "Update an example group.",
+                        "responses": {
+                            "200": {
+                                "description": "Updated example group",
+                                "content": {
+                                    "application/json": {
+                                        "schema": {"$ref": "#/components/schemas/ExampleGroup"}
                                     }
                                 },
                             }
@@ -370,7 +407,7 @@ class TestResponses:
                                         "schema": {
                                             "type": "array",
                                             "title": "Example resources",
-                                            "items": {"type": "object", "title": "Example resource"},
+                                            "items": {"$ref": "#/components/schemas/ExampleResource"},
                                         }
                                     }
                                 },
@@ -379,14 +416,29 @@ class TestResponses:
                     },
                 },
             },
+            "components": {
+                "schemas": {
+                    "ExampleGroup": {
+                        "type": "object",
+                        "title": "Example group",
+                        "required": ["example_group_id"],
+                        "properties": {"example_group_id": {"type": "string"}},
+                    },
+                    "ExampleResource": {
+                        "type": "object",
+                        "title": "Example resource",
+                        "properties": {"example_resource_id": {"type": "string"}},
+                    },
+                }
+            },
         }
 
         document = (
             siren(schema)
             .project_response(
                 SirenResponseContext(
-                    operation_id="get_example_group",
-                    status=200,
+                    operation_id=operation_id,
+                    status=status,
                     result={"example_group_id": "example-group-7"},
                     base_url="https://api.example.com",
                 )
