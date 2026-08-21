@@ -140,6 +140,8 @@ class SirenMcpBridge(BaseState):
             body = body_values.get("body") if set(body_values) == {"body"} else body_values
         return SirenMcpOperation(
             operation_id=operation.name,
+            method=operation.method,
+            dispatch_path=self.adapter.render_path(operation.source_path, path_values),
             path_values=path_values,
             body=body,
             query_values=query_values,

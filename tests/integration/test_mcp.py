@@ -194,6 +194,8 @@ def test_public_mcp_bridge_normalizes_compiled_input_placement():
 
     assert operation.model_dump() == {
         "operation_id": "update_example_resource",
+        "method": "PATCH",
+        "dispatch_path": "/example_resources/example-example_resource-42",
         "path_values": {"example_resource_id": "example-example_resource-42"},
         "body": {"title": "Example resource", "metadata": {"source": "example"}},
         "query_values": {"page": 2},
@@ -342,6 +344,48 @@ def test_public_mcp_bridge_rejects_missing_openapi_tool_metadata(member, message
         mcp_bridge(schema)
 
 
+def test_public_mcp_bridge_resolves_an_encoded_same_origin_source_dispatch_target():
+    global mcp_openapi
+    mcp_openapi = {
+        "openapi": "3.1.1",
+        "info": {"title": "Example MCP API", "version": "1"},
+        "paths": {
+            "/api/example_resources/{example_resource_id}": {
+                "parameters": [{
+                    "name": "example_resource_id",
+                    "in": "path",
+                    "required": True,
+                    "schema": {"type": "string"},
+                }],
+                "get": {
+                    "operationId": "get_example_resource",
+                    "summary": "Read example resource",
+                    "description": "Read one example resource.",
+                    "responses": {"200": {"description": "Example resource."}},
+                },
+            }
+        },
+    }
+    bridge = siren_mcp(
+        siren_configuration(
+            openapi="tests.integration.test_mcp.mcp_openapi",
+            source_path="/api",
+            public_path="/siren",
+            policy="sirenity.SirenAllowAllPolicy",
+        ),
+        executor=ExampleMcpExecutor(),
+    )
+
+    operation = bridge.operation(SirenMcpInvocation(
+        operation_id="get_example_resource",
+        arguments={"example_resource_id": "example/resource 42"},
+    ))
+
+    assert operation.method == "GET"
+    assert operation.dispatch_path == "/api/example_resources/example%2Fresource%2042"
+    assert not operation.dispatch_path.startswith(("http://", "https://", "/siren"))
+
+
 def test_public_mcp_bridge_executes_once_through_shared_configuration():
     schema = {
         "openapi": "3.1.1",
@@ -419,6 +463,8 @@ def test_public_mcp_bridge_executes_once_through_shared_configuration():
     assert len(executor.calls) == 1
     assert executor.calls[0].model_dump() == {
         "operation_id": "update_example_resource",
+        "method": "PATCH",
+        "dispatch_path": "/example_resources/example-example_resource-42",
         "path_values": {"example_resource_id": "example-example_resource-42"},
         "body": {"title": "Example resource"},
         "query_values": {"page": 2},

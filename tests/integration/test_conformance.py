@@ -148,6 +148,11 @@ class TestConformance:
         example_shared_fixture = (
             project / "tests" / "fixtures" / "wheel_example_django_mcp_consumer.py"
         )
+        example_shared_source = example_shared_fixture.read_text()
+        assert ".adapter.routes" not in example_shared_source
+        assert "render_path" not in example_shared_source
+        assert "example_operation.method" in example_shared_source
+        assert "example_operation.dispatch_path" in example_shared_source
         subprocess.run(
             (sys.executable, "-m", "build", "--wheel", "--sdist", "--outdir", str(artifacts)),
             cwd=project,

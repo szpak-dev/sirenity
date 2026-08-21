@@ -47,10 +47,13 @@ def siren_mcp(configuration: SirenConfiguration, *, executor: SirenMcpExecutor) 
         example_registered_fingerprint = example_current_fingerprint
     ```
 
-    ``executor.execute(operation)`` receives normalized path, body, query, header, and cookie
-    values and returns one already-executed ``SirenMcpExecution`` with the application status,
-    result, and base URL. Sirenity calls it exactly once, supplies the configuration policy, and
-    never reparses OpenAPI or builds another graph.
+    ``executor.execute(operation)`` receives the compiled HTTP method, an encoded source dispatch
+    path, and normalized path, body, query, header, and cookie values. The relative dispatch path is
+    same-origin and validated against the configured source mount at startup, so a Django or WSGI
+    executor dispatches it directly without searching adapter routes or rewriting mounts. The
+    executor returns one already-executed ``SirenMcpExecution`` with the application status, result,
+    and base URL. Sirenity calls it exactly once, supplies the configuration policy, and never
+    reparses OpenAPI or builds another graph.
     """
 
     return SirenMcpBridge(
