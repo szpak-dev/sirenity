@@ -26,14 +26,19 @@ class SirenDefaultHrefService(SirenHrefService):
         value: Mapping[str, Any] | None = None,
         include_query: bool = True,
     ) -> SirenUri:
-        values = dict(context.value)
-        values.update(context.path_values)
-        values.update(value or {})
+        properties = dict(context.value)
+        properties.update(value or {})
         resolved_path = path
         for parameter in _PARAMETER.findall(path):
-            path_value = values.get(parameter)
-            if path_value is None and resource is not None:
-                path_value = values.get(resource.identifier)
+            path_value = context.path_values.get(parameter)
+            if path_value is None:
+                candidates = (parameter,) if resource is None else resource.path_bindings[parameter]
+                available = tuple(
+                    properties[name]
+                    for name in candidates
+                    if name in properties and properties[name] is not None
+                )
+                path_value = available[0] if available else None
             if path_value is None:
                 raise SirenityError(
                     f"Siren link requires path value: {parameter}")

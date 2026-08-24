@@ -1469,7 +1469,7 @@ class TestAdapter:
         ):
             middleware = SirenMiddleware(
                 lambda request: JsonResponse({
-                    "example_group_id": "example-group-one",
+                    "id": "example-group-one",
                     "title": "Example group",
                 }, status=status)
             )
@@ -1490,13 +1490,55 @@ class TestAdapter:
                 "href": "http://testserver/siren/example_groups/example-group-one",
             },
             {
-                "title": "ExampleResource",
+                "title": "ExampleItem",
                 "rel": ["collection"],
                 "href": (
-                    "http://testserver/siren/example_groups/example-group-one/example_resources"
+                    "http://testserver/siren/example_groups/example-group-one/example_items"
                 ),
             },
         ]
+
+    def test_standard_django_loader_projects_nested_item_self_links_from_distinct_identities(self):
+        if not settings.configured:
+            settings.configure(DEFAULT_CHARSET="utf-8", ALLOWED_HOSTS=["testserver"])
+        configuration = {
+            "OPENAPI": "tests.framework_fixtures.django_ninja_api.django_ninja_api",
+            "SOURCE_PATH": "/api",
+            "PUBLIC_PATH": "/siren",
+        }
+
+        with override_settings(
+            ALLOWED_HOSTS=["testserver"],
+            ROOT_URLCONF="tests.framework_fixtures.django_ninja_urls",
+            SIRENITY=configuration,
+        ):
+            middleware = SirenMiddleware(
+                lambda request: JsonResponse(
+                    [{
+                        "id": "example-item-one",
+                        "example_group_id": "example-group-one",
+                        "title": "Example item",
+                    }],
+                    safe=False,
+                )
+            )
+            response = middleware(
+                RequestFactory().get(
+                    "/siren/example_groups/example-group-one/example_items",
+                    HTTP_ACCEPT="application/vnd.siren+json",
+                )
+            )
+
+        assert response.status_code == 200
+        payload = json.loads(response.content)
+        assert payload["entities"][0]["links"] == [{
+            "title": "Example item",
+            "rel": ["self"],
+            "href": (
+                "http://testserver/siren/example_groups/example-group-one/"
+                "example_items/example-item-one"
+            ),
+        }]
 
     def test_standard_django_loader_follows_the_projected_root_action_across_trailing_slash_mounts(self):
         if not settings.configured:

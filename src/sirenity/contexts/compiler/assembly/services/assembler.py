@@ -45,6 +45,7 @@ class SirenDefaultApiAssembler(SirenApiAssembler):
             or existing.reference != incoming.reference
             or existing.resource_class != incoming.resource_class
             or existing.identifier != incoming.identifier
+            or existing.path_bindings != incoming.path_bindings
             or existing.collection != incoming.collection
             or existing.entity != incoming.entity
         ):

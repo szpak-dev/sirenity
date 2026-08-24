@@ -93,13 +93,16 @@ class OpenApiSource(SirenSource):
         )
         for resource in routes.resources():
             assembly.add_resource(
-                resource.reference,
-                resource.name,
-                resource.resource_class,
-                routes.public(resource.collection_path),
-                routes.public(
-                    resource.entity_path) if resource.entity_path else None,
-                resource.identifier,
+                reference=resource.reference,
+                name=resource.name,
+                resource_class=resource.resource_class,
+                collection_path=routes.public(resource.collection_path),
+                path_bindings=resource.path_bindings,
+                entity_path=(
+                    routes.public(resource.entity_path)
+                    if resource.entity_path else None
+                ),
+                identifier=resource.identifier,
             )
         OpenApiOperationCompiler(
             assembly=assembly,

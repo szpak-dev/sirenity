@@ -1,3 +1,5 @@
+from collections.abc import Mapping
+
 from pydantic import Field
 
 from sirenity.contexts.shared import BaseState, SirenFieldType, SirenHttpMethod, SirenMediaType, SirenScope
@@ -26,6 +28,7 @@ class SirenAssembly(BaseState):
         name: str,
         resource_class: str,
         collection_path: str,
+        path_bindings: Mapping[str, tuple[str, ...]],
         entity_path: str | None = None,
         identifier: str = "id",
     ) -> "SirenAssembly":
@@ -36,6 +39,7 @@ class SirenAssembly(BaseState):
             collection_path=collection_path,
             entity_path=entity_path,
             identifier=identifier,
+            path_bindings=path_bindings,
         ))
         return self
 

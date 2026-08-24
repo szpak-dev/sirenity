@@ -45,6 +45,7 @@ class SirenBuilder:
                     reference=resource.reference,
                     name=resource.name,
                     resource_class=resource.resource_class,
+                    path_bindings=resource.path_bindings,
                     title=self.resource_title(resource, operations),
                     identifier=resource.identifier,
                     collection=SirenRoute(path=resource.collection_path),
@@ -171,8 +172,15 @@ class SirenBuilder:
             return ()
         parameters = self.path_parameters(resource.entity_path)
         properties = response.definition.get("properties")
-        if not parameters or not isinstance(properties, Mapping) or any(name not in properties for name in parameters):
+        if not parameters or not isinstance(properties, Mapping):
             return ()
+        response_bindings = {}
+        for name in parameters:
+            candidates = resource.path_bindings[name]
+            available = tuple(candidate for candidate in candidates if candidate in properties)
+            if not available:
+                return ()
+            response_bindings[name] = available[0]
         links = []
         for nested in resources.values():
             prefix = f"{resource.entity_path}/"
@@ -196,7 +204,7 @@ class SirenBuilder:
             links.append(SirenResponseLink(
                 operation=targets[0].name,
                 parameters={
-                    f"path.{name}": f"$response.body#/{self.pointer_token(name)}"
+                    f"path.{name}": f"$response.body#/{self.pointer_token(response_bindings[name])}"
                     for name in parameters
                 },
                 rel=(SirenRelation.validate("collection"),),

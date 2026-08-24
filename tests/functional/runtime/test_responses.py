@@ -314,18 +314,8 @@ class TestResponses:
                 )
             )
 
-    @pytest.mark.parametrize(
-        ("operation_id", "status"),
-        (
-            ("create_example_group", 201),
-            ("get_example_group", 200),
-            ("update_example_group", 200),
-        ),
-    )
-    def test_public_engine_derives_nested_collection_response_links_for_entity_results(
-        self, operation_id, status
-    ):
-        schema = {
+    def nested_resource_schema(self):
+        return {
             "openapi": "3.1.1",
             "info": {"title": "Example groups", "version": "1"},
             "paths": {
@@ -386,7 +376,7 @@ class TestResponses:
                         },
                     },
                 },
-                "/example-groups/{example_group_id}/example_resources": {
+                "/example-groups/{example_group_id}/example_items": {
                     "parameters": [
                         {
                             "name": "example_group_id",
@@ -396,19 +386,50 @@ class TestResponses:
                         }
                     ],
                     "get": {
-                        "operationId": "list_example_group_resources",
-                        "summary": "List example group resources",
-                        "description": "List example resources in an example group.",
+                        "operationId": "list_example_group_items",
+                        "summary": "List example group items",
+                        "description": "List example items in an example group.",
                         "responses": {
                             "200": {
-                                "description": "Example resources",
+                                "description": "Example items",
                                 "content": {
                                     "application/json": {
                                         "schema": {
                                             "type": "array",
-                                            "title": "Example resources",
-                                            "items": {"$ref": "#/components/schemas/ExampleResource"},
+                                            "title": "Example items",
+                                            "items": {"$ref": "#/components/schemas/ExampleItem"},
                                         }
+                                    }
+                                },
+                            }
+                        },
+                    },
+                },
+                "/example-groups/{example_group_id}/example_items/{example_item_id}": {
+                    "parameters": [
+                        {
+                            "name": "example_group_id",
+                            "in": "path",
+                            "required": True,
+                            "schema": {"type": "string"},
+                        },
+                        {
+                            "name": "example_item_id",
+                            "in": "path",
+                            "required": True,
+                            "schema": {"type": "string"},
+                        },
+                    ],
+                    "get": {
+                        "operationId": "get_example_group_item",
+                        "summary": "Read example group item",
+                        "description": "Read an example item in an example group.",
+                        "responses": {
+                            "200": {
+                                "description": "Example item",
+                                "content": {
+                                    "application/json": {
+                                        "schema": {"$ref": "#/components/schemas/ExampleItem"}
                                     }
                                 },
                             }
@@ -421,25 +442,51 @@ class TestResponses:
                     "ExampleGroup": {
                         "type": "object",
                         "title": "Example group",
-                        "required": ["example_group_id"],
-                        "properties": {"example_group_id": {"type": "string"}},
+                        "required": ["id"],
+                        "properties": {"id": {"type": "string"}},
                     },
-                    "ExampleResource": {
+                    "ExampleItem": {
                         "type": "object",
-                        "title": "Example resource",
-                        "properties": {"example_resource_id": {"type": "string"}},
+                        "title": "Example item",
+                        "required": ["id", "example_group_id"],
+                        "properties": {
+                            "id": {"type": "string"},
+                            "example_group_id": {"type": "string"},
+                        },
                     },
                 }
             },
         }
 
+    @pytest.mark.parametrize(
+        ("operation_id", "status"),
+        (
+            ("create_example_group", 201),
+            ("get_example_group", 200),
+            ("update_example_group", 200),
+        ),
+    )
+    def test_public_engine_derives_nested_collection_response_links_from_resource_identity(
+        self, operation_id, status
+    ):
+        schema = self.nested_resource_schema()
+        engine = siren(schema)
+        resources = {resource.name: resource for resource in engine.api.resources}
+
+        assert resources["example_group"].path_bindings == {
+            "example_group_id": ("id", "example_group_id"),
+        }
+        assert resources["example_item"].path_bindings == {
+            "example_group_id": ("example_group_id",),
+            "example_item_id": ("id", "example_item_id"),
+        }
+
         document = (
-            siren(schema)
-            .project_response(
+            engine.project_response(
                 SirenResponseContext(
                     operation_id=operation_id,
                     status=status,
-                    result={"example_group_id": "example-group-7"},
+                    result={"id": "example-group-7"},
                     base_url="https://api.example.com",
                 )
             )
@@ -453,11 +500,67 @@ class TestResponses:
                 "href": "https://api.example.com/example-groups/example-group-7",
             },
             {
-                "title": "Example resource",
+                "title": "Example item",
                 "rel": ["collection"],
-                "href": "https://api.example.com/example-groups/example-group-7/example_resources",
+                "href": "https://api.example.com/example-groups/example-group-7/example_items",
             },
         ]
+
+    def test_public_engine_keeps_parent_and_item_identities_distinct_in_nested_item_links(self):
+        document = (
+            siren(self.nested_resource_schema())
+            .project_response(
+                SirenResponseContext(
+                    operation_id="list_example_group_items",
+                    status=200,
+                    result=[{
+                        "id": "example-item-3",
+                        "example_group_id": "example-group-7",
+                    }],
+                    base_url="https://api.example.com",
+                    path_values={"example_group_id": "example-group-7"},
+                )
+            )
+            .model_dump(by_alias=True, mode="json", exclude_none=True)
+        )
+
+        assert document["entities"][0]["links"] == [{
+            "title": "Example item",
+            "rel": ["self"],
+            "href": "https://api.example.com/example-groups/example-group-7/example_items/example-item-3",
+        }]
+
+    def test_public_engine_does_not_let_an_item_id_replace_an_inherited_id_path_value(self):
+        schema = self.nested_resource_schema()
+        schema["paths"] = {
+            path.replace("{example_group_id}", "{id}"): definition
+            for path, definition in schema["paths"].items()
+        }
+        for definition in schema["paths"].values():
+            for parameter in definition.get("parameters", ()):
+                if parameter["name"] == "example_group_id":
+                    parameter["name"] = "id"
+
+        document = (
+            siren(schema)
+            .project_response(
+                SirenResponseContext(
+                    operation_id="list_example_group_items",
+                    status=200,
+                    result=[{
+                        "id": "example-item-3",
+                        "example_group_id": "example-group-7",
+                    }],
+                    base_url="https://api.example.com",
+                    path_values={"id": "example-group-7"},
+                )
+            )
+            .model_dump(by_alias=True, mode="json", exclude_none=True)
+        )
+
+        assert document["entities"][0]["links"][0]["href"] == (
+            "https://api.example.com/example-groups/example-group-7/example_items/example-item-3"
+        )
 
     def test_public_engine_rejects_invalid_openapi_response_link_targets_at_startup(self):
         schema = deepcopy(self.schema)
