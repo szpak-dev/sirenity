@@ -15,14 +15,15 @@ mcp_openapi: dict[str, object] = {}
 
 
 class ExampleMcpExecutor:
-    def __init__(self, result: object = None):
+    def __init__(self, result: object = None, status: int = 200):
         self.calls = []
         self.result = result
+        self.status = status
 
     def execute(self, operation):
         self.calls.append(operation)
         return SirenMcpExecution(
-            status=200,
+            status=self.status,
             result=self.result,
             base_url="https://api.example.com",
         )
@@ -473,6 +474,53 @@ def test_public_mcp_bridge_executes_once_through_shared_configuration():
     }
     assert result.is_error is False
     assert result.structured_content["properties"] == {"title": "Example resource"}
+
+
+@pytest.mark.parametrize(
+    ("status", "detail"),
+    ((422, "Example validation failed"), (500, "Example execution failed")),
+)
+def test_public_mcp_bridge_marks_projected_non_2xx_responses_as_errors(status, detail):
+    schema = {
+        "openapi": "3.1.1",
+        "info": {"title": "MCP API", "version": "1"},
+        "paths": {
+            "/example_resources/{example_resource_id}": {
+                "parameters": [
+                    {
+                        "name": "example_resource_id",
+                        "in": "path",
+                        "required": True,
+                        "schema": {"type": "string"},
+                    }
+                ],
+                "patch": {
+                    "operationId": "update_example_resource",
+                    "summary": "Update example resource",
+                    "description": "Update one example resource.",
+                    "responses": {"200": {"description": "Example resource."}},
+                },
+            }
+        },
+    }
+    bridge = mcp_bridge(
+        schema,
+        ExampleMcpExecutor(result={"detail": detail}, status=status),
+    )
+
+    result = bridge.invoke(
+        SirenMcpInvocation(
+            operation_id="update_example_resource",
+            arguments={"example_resource_id": "example-resource-42"},
+        )
+    )
+
+    assert result.is_error is True
+    assert result.structured_content["class"] == ["error"]
+    assert result.structured_content["properties"] == {
+        "detail": detail,
+        "status": status,
+    }
 
 
 def test_public_mcp_catalogue_fingerprint_is_stable_across_configuration_lifecycles():

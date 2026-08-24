@@ -152,7 +152,10 @@ class SirenMcpBridge(BaseState):
     def respond(self, request: SirenAdapterRequest) -> SirenMcpResult:
         try:
             response = self.adapter.respond(request)
-            return SirenMcpResult(structured_content=response.payload)
+            return SirenMcpResult(
+                structured_content=response.payload,
+                is_error=not 200 <= response.status < 300,
+            )
         except SirenContractError as error:
             return SirenMcpResult(
                 structured_content={"location": error.location, "category": error.category, "detail": error.detail},
