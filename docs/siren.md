@@ -140,6 +140,27 @@ incompatibility before using this strict fail-fast entry point.
 
 #### Response relationships
 
+Sirenity automatically derives an immediate nested collection relationship when the compiled
+resource and route ownership are unambiguous. A successful object response from a resource's
+collection or entity route supplies the parent identity; the nested resource must have exactly
+one collection `GET` operation. The resource's canonical `id` property binds its own qualified
+route placeholder, while inherited parent placeholders retain their explicit names. Create,
+read, and update responses therefore advertise the same nested collection without OpenAPI link
+metadata:
+
+```text
+POST /example-groups
+GET|PATCH /example-groups/{example_group_id}
+-> {"id": "example-group-1"}
+
+GET /example-groups/{example_group_id}/example-items
+-> [{"id": "example-item-1", "example_group_id": "example-group-1"}]
+```
+
+The parent relationship binds `example_group_id` from the parent `id`. A nested item self-link
+binds the inherited `example_group_id` separately from its own `example_item_id`, which comes
+from the item's `id`.
+
 A response `links` object can declare a navigational Siren relationship. Target an operation with
 standard `operationId` or local `operationRef`, bind each target path parameter with a
 `$response.body#...` runtime expression, and add `x-sirenity` metadata for the Siren relation and
@@ -248,8 +269,9 @@ document = engine.project_response(SirenResponseContext(
 An object response on the exact API root becomes the entry point, an object on an exact resource
 collection or entity route becomes an entity, and an object on a subcommand route becomes a
 command result. Set response-context `representation` to override an exceptional operation. No
-identifier property name is inferred; compiled route parameters and explicit path values resolve
-entity links.
+application mapping is required for resource identity: the compiled route binding accepts the
+canonical `id` property first and the owned route-parameter name second. Explicit path values
+resolve inherited parent parameters and take precedence over response properties.
 
 Set `source_path` to the OpenAPI route prefix and `public_path` to the independently
 mounted Siren prefix. Both prefixes are segment-aware and normalized without a trailing

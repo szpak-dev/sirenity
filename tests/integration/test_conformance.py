@@ -155,6 +155,8 @@ class TestConformance:
         assert "render_path" not in example_shared_source
         assert "openapi_extra=" not in example_shared_source
         assert '"$response.body#/example_group_id"' not in example_shared_source
+        assert '"id": "example-group-42"' in example_shared_source
+        assert '"example_group_id": "example-group-42"' in example_shared_source
         assert "example_operation.method" in example_shared_source
         assert "example_operation.dispatch_path" in example_shared_source
         subprocess.run(

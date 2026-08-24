@@ -7,6 +7,12 @@ class ExampleResource(Schema):
 
 
 class ExampleGroup(Schema):
+    id: str
+    title: str
+
+
+class ExampleItem(Schema):
+    id: str
     example_group_id: str
     title: str
 
@@ -33,7 +39,7 @@ def list_example_resources(request):
     summary="Create example group",
 )
 def create_example_group(request):
-    return 201, {"example_group_id": "created-example-group", "title": "Created example group"}
+    return 201, {"id": "created-example-group", "title": "Created example group"}
 
 
 @django_ninja_api.get(
@@ -44,7 +50,7 @@ def create_example_group(request):
     summary="Read example group",
 )
 def get_example_group(request, example_group_id: str):
-    return {"example_group_id": example_group_id, "title": "Example group"}
+    return {"id": example_group_id, "title": "Example group"}
 
 
 @django_ninja_api.patch(
@@ -55,15 +61,26 @@ def get_example_group(request, example_group_id: str):
     summary="Update example group",
 )
 def update_example_group(request, example_group_id: str):
-    return {"example_group_id": example_group_id, "title": "Updated example group"}
+    return {"id": example_group_id, "title": "Updated example group"}
 
 
 @django_ninja_api.get(
-    "/api/example_groups/{example_group_id}/example_resources",
-    description="List example resources in an example group.",
-    operation_id="list_example_group_resources",
-    response=list[ExampleResource],
-    summary="List example group resources",
+    "/api/example_groups/{example_group_id}/example_items",
+    description="List example items in an example group.",
+    operation_id="list_example_group_items",
+    response=list[ExampleItem],
+    summary="List example group items",
 )
-def list_example_group_resources(request, example_group_id: str):
-    return []
+def list_example_group_items(request, example_group_id: str):
+    return [{"id": "example-item-one", "example_group_id": example_group_id, "title": "Example item"}]
+
+
+@django_ninja_api.get(
+    "/api/example_groups/{example_group_id}/example_items/{example_item_id}",
+    description="Read an example item in an example group.",
+    operation_id="get_example_group_item",
+    response=ExampleItem,
+    summary="Read example group item",
+)
+def get_example_group_item(request, example_group_id: str, example_item_id: str):
+    return {"id": example_item_id, "example_group_id": example_group_id, "title": "Example item"}

@@ -70,6 +70,8 @@ class RouteCatalog(BaseState):
                     collection_path=collection_path,
                     entity_path=entity_path,
                     identifier="id",
+                    path_bindings=self.path_bindings(
+                        collection_path, entity_path, "id"),
                 )
             elif entity_path is not None:
                 candidates[collection_path] = Resource(
@@ -79,8 +81,28 @@ class RouteCatalog(BaseState):
                     collection_path=existing.collection_path,
                     entity_path=entity_path,
                     identifier=existing.identifier,
+                    path_bindings=self.path_bindings(
+                        existing.collection_path, entity_path, existing.identifier),
                 )
         return tuple(candidates.values())
+
+    def path_bindings(
+        self, collection_path: str, entity_path: str | None, identifier: str
+    ) -> dict[str, tuple[str, ...]]:
+        collection_parameters = self.parameters(collection_path)
+        bindings = {name: (name,) for name in collection_parameters}
+        if entity_path is None:
+            return bindings
+        entity_parameters = self.parameters(entity_path)
+        owned_parameters = tuple(
+            name for name in entity_parameters if name not in collection_parameters)
+        if len(owned_parameters) != 1:
+            raise SirenityError(
+                f"OpenAPI entity route must add exactly one resource identifier: {entity_path!r}"
+            )
+        owned = owned_parameters[0]
+        bindings[owned] = tuple(dict.fromkeys((identifier, owned)))
+        return bindings
 
     def is_nested_object_operation(self, path: str) -> bool:
         if path not in self.single_object_paths:

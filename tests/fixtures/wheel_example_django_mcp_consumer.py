@@ -34,6 +34,12 @@ class ExampleResource(Schema):
 
 
 class ExampleGroup(Schema):
+    id: str
+    title: str
+
+
+class ExampleItem(Schema):
+    id: str
     example_group_id: str
     title: str
 
@@ -71,20 +77,31 @@ def example_update_resource(
 )
 def example_get_group(request, example_group_id: str):
     return {
-        "example_group_id": example_group_id,
+        "id": example_group_id,
         "title": "Example group",
     }
 
 
 @example_api.get(
-    "/api/example_groups/{example_group_id}/example_resources",
-    description="List example resources in an example group.",
-    operation_id="list_example_group_resources",
-    response=list[ExampleResource],
-    summary="List example group resources",
+    "/api/example_groups/{example_group_id}/example_items",
+    description="List example items in an example group.",
+    operation_id="list_example_group_items",
+    response=list[ExampleItem],
+    summary="List example group items",
 )
-def example_list_group_resources(request, example_group_id: str):
-    return []
+def example_list_group_items(request, example_group_id: str):
+    return [{"id": "example-item-42", "example_group_id": example_group_id, "title": "Example item"}]
+
+
+@example_api.get(
+    "/api/example_groups/{example_group_id}/example_items/{example_item_id}",
+    description="Read an example item in an example group.",
+    operation_id="get_example_group_item",
+    response=ExampleItem,
+    summary="Read example group item",
+)
+def example_get_group_item(request, example_group_id: str, example_item_id: str):
+    return {"id": example_item_id, "example_group_id": example_group_id, "title": "Example item"}
 
 
 urlpatterns = [path("", example_api.urls)]
@@ -113,16 +130,35 @@ example_configuration = siren_configuration(
     public_path="/siren",
     policy="sirenity.SirenAllowAllPolicy",
 )
+
+
+def example_response(example_request):
+    if example_request.path.endswith("/example_items"):
+        return JsonResponse(
+            [{
+                "id": "example-item-42",
+                "example_group_id": "example-group-42",
+                "title": "Example item",
+            }],
+            safe=False,
+        )
+    return JsonResponse({
+        "id": "example-group-42",
+        "title": "Example group",
+    })
+
+
 with override_settings(SIRENITY=example_configuration):
-    example_django = SirenMiddleware(
-        lambda example_request: JsonResponse({
-            "example_group_id": "example-group-42",
-            "title": "Example group",
-        })
-    )
+    example_django = SirenMiddleware(example_response)
     example_group_response = example_django(
         RequestFactory().get(
             "/siren/example_groups/example-group-42",
+            HTTP_ACCEPT="application/vnd.siren+json",
+        )
+    )
+    example_items_response = example_django(
+        RequestFactory().get(
+            "/siren/example_groups/example-group-42/example_items",
             HTTP_ACCEPT="application/vnd.siren+json",
         )
     )
@@ -146,11 +182,16 @@ assert json.loads(example_group_response.content)["links"] == [
         "href": "http://testserver/siren/example_groups/example-group-42",
     },
     {
-        "title": "ExampleResource",
+        "title": "ExampleItem",
         "rel": ["collection"],
-        "href": "http://testserver/siren/example_groups/example-group-42/example_resources",
+        "href": "http://testserver/siren/example_groups/example-group-42/example_items",
     },
 ]
+assert json.loads(example_items_response.content)["entities"][0]["links"] == [{
+    "title": "Example item",
+    "rel": ["self"],
+    "href": "http://testserver/siren/example_groups/example-group-42/example_items/example-item-42",
+}]
 assert example_result.structured_content["properties"] == {
     "example_resource_id": "example-resource-42",
     "title": "Updated example resource",

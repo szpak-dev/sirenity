@@ -23,7 +23,14 @@ class SirenMiddleware:
     ``POLICY`` are dotted import paths; ``PROFILES`` is an optional sequence of profile paths. A
     missing policy retains the standard allow-all behavior.
 
-    Django Ninja consumers can declare Siren relationships on the source operation with the native
+    Sirenity derives an unambiguous immediate nested collection directly from Django Ninja's
+    generated resource routes and response schemas. A parent response can expose canonical ``id``
+    while its route uses a qualified placeholder such as ``example_group_id``; nested item responses
+    expose their own ``id`` and retain ``example_group_id`` for the inherited parent segment. Create,
+    read, and update responses need no ``openapi_extra`` declaration, ``x-sirenity`` metadata, policy
+    relationship, or application-maintained operation mapping.
+
+    Relationships that cannot be derived from route ownership can still use Django Ninja's native
     ``openapi_extra`` argument. Add the standard OpenAPI Link Object beneath the generated response,
     bind target path parameters from the response body, and declare the Siren relation and scope:
 
