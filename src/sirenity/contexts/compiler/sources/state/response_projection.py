@@ -44,12 +44,13 @@ class OpenApiResponseProjection(BaseState):
             if not isinstance(status, str):
                 raise SirenityError("OpenAPI response status must be a string")
             response = self.components.response(value)
+            links = self.links(response)
             content = response.get("content", {})
             if not content:
                 projected.append(ResponseDraft(
                     status=status,
                     shape="empty",
-                    links=self.links(response),
+                    links=links,
                     bindings=self.bindings(response),
                 ))
                 continue
@@ -86,6 +87,34 @@ class OpenApiResponseProjection(BaseState):
                     if not isinstance(title, str) or not title:
                         raise SirenityError(
                             f"OpenAPI response schema requires a non-empty title: {status} {media_name}")
+                    if any("next" in link.rel for link in links):
+                        items = self.page_items(definition, links)
+                        properties = definition.get("properties")
+                        if not isinstance(properties, dict):
+                            raise SirenityError(
+                                f"OpenAPI paginated response properties must be an object: {status} {media_name}"
+                            )
+                        collection = self.components.schema(properties[items])
+                        item_schema = collection.get("items")
+                        if not isinstance(item_schema, dict):
+                            raise SirenityError(
+                                f"OpenAPI paginated response items require a schema: {status} {media_name}"
+                            )
+                        item_definition = self.components.schema(item_schema)
+                        if item_definition.get("type") != "object":
+                            raise SirenityError(
+                                f"OpenAPI paginated response items must be objects: {status} {media_name}"
+                            )
+                        item_title = item_definition.get("title")
+                        if not isinstance(item_title, str) or not item_title:
+                            raise SirenityError(
+                                f"OpenAPI paginated response items require a non-empty title: {status} {media_name}"
+                            )
+                        definition = definition | {
+                            "properties": properties | {
+                                items: collection | {"items": item_definition}
+                            }
+                        }
                 else:
                     raise SirenityError(
                         f"OpenAPI response schema must be an object or array: {status} {media_name}"
@@ -95,7 +124,7 @@ class OpenApiResponseProjection(BaseState):
                     media_type=SirenMediaType.validate(media_name),
                     shape=shape,
                     definition=definition,
-                    links=self.links(response),
+                    links=links,
                     bindings=self.bindings(response),
                 ))
         return tuple(projected)
@@ -127,25 +156,29 @@ class OpenApiResponseProjection(BaseState):
                 raise SirenityError(
                     f"OpenAPI response link {name!r} parameters are invalid")
             extension = definition.get("x-sirenity")
-            if not isinstance(extension, dict):
-                raise SirenityError(
-                    f"OpenAPI response link {name!r} requires x-sirenity metadata")
-            rel = extension.get("rel")
-            scope = extension.get("scope")
-            values = (rel,) if isinstance(rel, str) else tuple(
-                rel) if isinstance(rel, list) else ()
-            if not values or any(not isinstance(value, str) or not value for value in values):
-                raise SirenityError(
-                    f"OpenAPI response link {name!r} x-sirenity.rel is invalid")
-            try:
-                link_scope = SirenScope(scope)
-            except (TypeError, ValueError) as error:
-                raise SirenityError(
-                    f"OpenAPI response link {name!r} x-sirenity.scope is invalid"
-                ) from error
-            if link_scope == SirenScope.ROOT:
-                raise SirenityError(
-                    f"OpenAPI response link {name!r} cannot target root scope")
+            if extension is None and name == "next":
+                values = ("next",)
+                link_scope = SirenScope.COLLECTION
+            else:
+                if not isinstance(extension, dict):
+                    raise SirenityError(
+                        f"OpenAPI response link {name!r} requires x-sirenity metadata")
+                rel = extension.get("rel")
+                scope = extension.get("scope")
+                values = (rel,) if isinstance(rel, str) else tuple(
+                    rel) if isinstance(rel, list) else ()
+                if not values or any(not isinstance(value, str) or not value for value in values):
+                    raise SirenityError(
+                        f"OpenAPI response link {name!r} x-sirenity.rel is invalid")
+                try:
+                    link_scope = SirenScope(scope)
+                except (TypeError, ValueError) as error:
+                    raise SirenityError(
+                        f"OpenAPI response link {name!r} x-sirenity.scope is invalid"
+                    ) from error
+                if link_scope == SirenScope.ROOT:
+                    raise SirenityError(
+                        f"OpenAPI response link {name!r} cannot target root scope")
             links.append(ResponseLinkDraft(
                 operation_id=operation_id,
                 operation_ref=operation_ref,
@@ -154,6 +187,72 @@ class OpenApiResponseProjection(BaseState):
                 scope=link_scope,
             ))
         return tuple(links)
+
+    def page_items(self, definition: dict[str, Any], links: tuple[ResponseLinkDraft, ...]) -> str:
+        next_links = [link for link in links if "next" in link.rel]
+        if len(next_links) != 1:
+            raise SirenityError("OpenAPI paginated response requires exactly one next link")
+        properties = definition.get("properties")
+        if not isinstance(properties, dict):
+            raise SirenityError("OpenAPI paginated response requires object properties")
+        candidates = []
+        for name, property_schema in properties.items():
+            if not isinstance(name, str) or not isinstance(property_schema, dict):
+                continue
+            collection = self.components.schema(property_schema)
+            if collection.get("type") != "array":
+                continue
+            item_schema = collection.get("items")
+            if isinstance(item_schema, dict) and self.components.schema(item_schema).get("type") == "object":
+                candidates.append(name)
+        if len(candidates) != 1:
+            raise SirenityError(
+                "OpenAPI paginated response requires exactly one array-of-object property"
+            )
+        required = definition.get("required")
+        if not isinstance(required, list) or candidates[0] not in required:
+            raise SirenityError("OpenAPI paginated response items property must be required")
+        more = properties.get("has_more")
+        if not isinstance(more, dict) or self.components.schema(more).get("type") != "boolean":
+            raise SirenityError(
+                "OpenAPI paginated response requires a non-nullable boolean has_more property"
+            )
+        required = definition.get("required")
+        if not isinstance(required, list) or "has_more" not in required:
+            raise SirenityError("OpenAPI paginated response has_more property must be required")
+        for expression in next_links[0].parameters.values():
+            self.continuation(definition, expression)
+        return candidates[0]
+
+    def continuation(self, definition: dict[str, Any], expression: str) -> None:
+        prefix = "$response.body#"
+        pointer = expression[len(prefix):]
+        if not pointer.startswith("/"):
+            raise SirenityError(
+                "OpenAPI pagination continuation must reference a response property"
+            )
+        value = definition
+        for encoded in pointer[1:].split("/"):
+            token = encoded.replace("~1", "/").replace("~0", "~")
+            resolved = self.components.schema(value)
+            properties = resolved.get("properties")
+            required = resolved.get("required")
+            if (
+                resolved.get("type") != "object"
+                or not isinstance(properties, dict)
+                or token not in properties
+                or not isinstance(required, list)
+                or token not in required
+            ):
+                raise SirenityError(
+                    "OpenAPI pagination continuation properties must exist and be required"
+                )
+            value = properties[token]
+        resolved = self.components.schema(value)
+        if resolved.get("type") not in {"string", "integer", "number", "boolean"}:
+            raise SirenityError(
+                "OpenAPI pagination continuation properties must be non-nullable scalars"
+            )
 
     def bindings(self, response: dict[str, Any]) -> tuple[RuntimeBindingDraft, ...]:
         extension = response.get("x-sirenity", {})
