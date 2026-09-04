@@ -131,15 +131,18 @@ class SirenBuilder:
         operations: Mapping[str, OperationDraft],
         resources: Mapping[str, Resource],
     ) -> tuple[SirenResponseLink, ...]:
-        declared = tuple(
-            SirenResponseLink(
-                operation=self.link_operation(link, operations),
+        declared = []
+        for link in response.links:
+            target = self.link_operation(link, operations)
+            scope = link.scope
+            self.validate_link(operation, link, target, scope)
+            declared.append(SirenResponseLink(
+                operation=target.name,
                 parameters=link.parameters,
                 rel=tuple(SirenRelation.validate(value) for value in link.rel),
-                scope=link.scope,
-            )
-            for link in response.links
-        )
+                scope=scope,
+            ))
+        declared = tuple(declared)
         declared_targets = {(link.operation, link.scope) for link in declared}
         derived = tuple(
             link
@@ -263,12 +266,28 @@ class SirenBuilder:
                 elif exact_collection and response.shape == "array":
                     priority = 1 if operation.method == SirenHttpMethod.GET else 3
                     title = definition["items"]["title"]
+                elif exact_collection and any("next" in link.rel for link in response.links):
+                    priority = 1 if operation.method == SirenHttpMethod.GET else 3
+                    title = definition["properties"][self.page_items(response)]["items"]["title"]
                 else:
                     continue
                 candidates.append((priority, len(candidates), title))
         return min(candidates)[2] if candidates else None
 
-    def link_operation(self, link, operations: Mapping[str, OperationDraft]) -> str:
+    def page_items(self, response) -> str:
+        properties = response.definition["properties"]
+        return next(
+            name
+            for name, value in properties.items()
+            if (
+                isinstance(value, Mapping)
+                and value.get("type") == "array"
+                and isinstance(value.get("items"), Mapping)
+                and value["items"].get("type") == "object"
+            )
+        )
+
+    def link_operation(self, link, operations: Mapping[str, OperationDraft]) -> OperationDraft:
         if link.operation_id is not None:
             operation = operations.get(link.operation_id)
             if operation is None:
@@ -290,19 +309,62 @@ class SirenBuilder:
                 raise SirenityError(
                     f"OpenAPI response link operationRef is unknown: {reference}")
             target = matches[0]
-        if target.resource is None or target.scope != link.scope:
+        return target
+
+    def validate_link(
+        self,
+        source: OperationDraft,
+        link,
+        target: OperationDraft,
+        scope: SirenScope,
+    ) -> None:
+        pagination = "next" in link.rel
+        if pagination:
+            if (
+                source.name != target.name
+                or target.resource is None
+                or target.method != SirenHttpMethod.GET
+                or target.scope != SirenScope.COLLECTION
+            ):
+                raise SirenityError(
+                    "OpenAPI next response link must continue the same collection GET operation"
+                )
+        elif target.resource is None or target.scope != scope:
             raise SirenityError(
                 "OpenAPI response link target does not match declared Siren scope")
-        required = {
+        required_path = {
             segment[1:-1]
             for segment in target.path.split("/")
             if segment.startswith("{") and segment.endswith("}")
         }
-        supplied = {
-            name[len("path."):] if name.startswith("path.") else name
-            for name in link.parameters
-        }
-        if supplied != required:
+        query_parameters = {
+            parameter.name
+            for parameter in target.input.parameters
+            if parameter.location == "query"
+        } if target.input is not None else set()
+        supplied_path = set()
+        supplied_query = set()
+        for name in link.parameters:
+            if name.startswith("path."):
+                supplied_path.add(name[len("path."):])
+            elif name.startswith("query."):
+                supplied_query.add(name[len("query."):])
+            elif name in required_path:
+                supplied_path.add(name)
+            elif name in query_parameters:
+                supplied_query.add(name)
+            else:
+                raise SirenityError(
+                    f"OpenAPI response link parameter does not match the target operation: {name}"
+                )
+        if pagination and (
+            not supplied_query
+            or (supplied_path and supplied_path != required_path)
+        ):
+            raise SirenityError(
+                "OpenAPI next response link must continue the same collection GET operation"
+            )
+        if not pagination and supplied_path != required_path:
             raise SirenityError(
                 "OpenAPI response link parameters do not match the target route")
         for expression in link.parameters.values():
@@ -315,7 +377,6 @@ class SirenBuilder:
                 raise SirenityError(
                     f"OpenAPI response link runtime expression is invalid: {expression}"
                 )
-        return target.name
 
     def resource_index(self, resources: list[Resource]) -> dict[str, Resource]:
         index: dict[str, Resource] = {}

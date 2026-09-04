@@ -35,6 +35,14 @@ class SirenResponseProjectionService:
                 raise SirenityError(
                     "OpenAPI array response requires collection representation")
             return self.collection(api, resource, context, response)
+        if self.paginated(response):
+            if context.representation not in {None, SirenRepresentation.COLLECTION}:
+                raise SirenityError(
+                    "OpenAPI paginated response requires collection representation")
+            if resource is None:
+                raise SirenityError(
+                    "OpenAPI paginated response requires a collection resource")
+            return self.page(api, operation, resource, context, response)
         representation = context.representation
         if (
             representation is None
@@ -146,6 +154,15 @@ class SirenResponseProjectionService:
         if response.shape == "object" and not isinstance(result, Mapping):
             raise SirenityError(
                 "OpenAPI object response requires a mapping result")
+        if self.paginated(response):
+            items = self.page_items(response)
+            if (
+                not isinstance(result, Mapping)
+                or not isinstance(result.get(items), list)
+                or any(not isinstance(item, Mapping) for item in result[items])
+            ):
+                raise SirenityError(
+                    "OpenAPI paginated response requires a list of mapping items")
         if response.shape == "array" and (
             not isinstance(result, list) or any(
                 not isinstance(item, Mapping) for item in result)
@@ -195,6 +212,118 @@ class SirenResponseProjectionService:
             action_bindings={binding.operation: binding.fields for binding in response.bindings},
         )
         return self.projection.project_resource(api, request, resource)
+
+    def page(
+        self,
+        api: SirenApi,
+        operation: SirenOperation,
+        resource: SirenResource,
+        context: SirenResponseContext,
+        response: SirenResponse,
+    ) -> SirenDocument:
+        if not isinstance(context.result, Mapping) or not self.paginated(response):
+            raise SirenityError(
+                "Siren paginated response requires an operation-owned collection resource")
+        items_name = self.page_items(response)
+        items = context.result[items_name]
+        if not isinstance(items, list):
+            raise SirenityError("Siren paginated response items must be a list")
+        properties = {name: value for name, value in context.result.items() if name != items_name}
+        request = SirenContext(
+            base_url=context.base_url,
+            scope=SirenScope.COLLECTION,
+            resource=resource.name,
+            title=context.title,
+            value=properties,
+            items=tuple(items),
+            item_titles=context.item_titles,
+            item_capabilities=context.item_capabilities,
+            relationships=(*context.relationships, *self.relationships(api, response, context.result)),
+            path_values=context.path_values,
+            query=context.query,
+            capabilities=context.capabilities,
+            action_bindings={binding.operation: binding.fields for binding in response.bindings},
+        )
+        document = self.projection.project_resource(api, request, resource)
+        next_links = self.pagination_links(api, operation, resource, context, response)
+        return document.model_copy(update={"links": (*(document.links or ()), *next_links)})
+
+    def pagination_links(
+        self,
+        api: SirenApi,
+        operation: SirenOperation,
+        resource: SirenResource,
+        context: SirenResponseContext,
+        response: SirenResponse,
+    ) -> tuple[SirenLink, ...]:
+        if not isinstance(context.result, Mapping) or not self.paginated(response):
+            raise SirenityError("Siren paginated response requires has_more metadata")
+        has_more = context.result.get("has_more")
+        if not isinstance(has_more, bool):
+            raise SirenityError("Siren paginated response has_more value must be boolean")
+        if not has_more:
+            return ()
+        links = [link for link in response.links if "next" in link.rel]
+        if len(links) != 1:
+            raise SirenityError("Siren paginated response requires exactly one next link")
+        link = links[0]
+        target = self.operation(api, link.operation)
+        path_values = dict(context.path_values)
+        query_names = set()
+        query_values = []
+        for name, expression in link.parameters.items():
+            value = self.pointer(expression, context.result)
+            if value is None:
+                raise SirenityError("Siren pagination continuation values cannot be null")
+            if name.startswith("path."):
+                path_values[name[len("path."):]] = value
+            elif name.startswith("query."):
+                query_name = name[len("query."):]
+                query_names.add(query_name)
+                query_values.append((query_name, value))
+            elif any(field.name == name for field in target.fields):
+                query_names.add(name)
+                query_values.append((name, value))
+            else:
+                path_values[name] = value
+        query = tuple(
+            (name, value) for name, value in context.query if name not in query_names
+        ) + tuple(query_values)
+        request = SirenContext(
+            base_url=context.base_url,
+            scope=SirenScope.COLLECTION,
+            resource=resource.name,
+            path_values=path_values,
+            query=query,
+        )
+        return (SirenLink(
+            rel=("next",),
+            title="Next page",
+            href=self.hrefs.href(target.route.path, request, resource),
+        ),)
+
+    def paginated(self, response: SirenResponse) -> bool:
+        return any("next" in link.rel for link in response.links)
+
+    def page_items(self, response: SirenResponse) -> str:
+        if not isinstance(response.definition, Mapping):
+            raise SirenityError("Siren paginated response requires an object schema")
+        properties = response.definition.get("properties")
+        if not isinstance(properties, Mapping):
+            raise SirenityError("Siren paginated response requires object properties")
+        candidates = [
+            name
+            for name, value in properties.items()
+            if (
+                isinstance(value, Mapping)
+                and value.get("type") == "array"
+                and isinstance(value.get("items"), Mapping)
+                and value["items"].get("type") == "object"
+            )
+        ]
+        if len(candidates) != 1:
+            raise SirenityError("Siren paginated response requires exactly one item collection")
+        return candidates[0]
 
     def command(
         self, api: SirenApi, operation: SirenOperation, resource: SirenResource | None,
@@ -247,6 +376,8 @@ class SirenResponseProjectionService:
     ) -> tuple[SirenRelationship, ...]:
         links = []
         for link in response.links:
+            if "next" in link.rel:
+                continue
             target = self.operation(api, link.operation)
             resource = self.resource(api, target)
             if resource is None:

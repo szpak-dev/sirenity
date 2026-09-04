@@ -199,6 +199,62 @@ def siren(
     `SirenRelationship` for relationships that are defined by application runtime policy rather than
     the OpenAPI contract.
 
+    #### Discoverable pagination
+
+    Declare collection continuation with a standard OpenAPI response Link Object named `next`. It
+    targets the same collection `GET` operation and maps one or more of that operation's query
+    parameters to required, non-nullable scalar values in the response body. The response schema is
+    an object with exactly one required array-of-object property and a required, non-nullable boolean
+    `has_more` property:
+
+    ```yaml
+    paths:
+      /articles:
+        get:
+          operationId: list_articles
+          parameters:
+            - name: offset
+              in: query
+              schema: {type: integer, default: 0}
+            - name: limit
+              in: query
+              schema: {type: integer, default: 20}
+            - name: revision
+              in: query
+              schema: {type: string}
+          responses:
+            "200":
+              description: Article page
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    title: Article page
+                    required: [items, has_more, next_offset, limit, revision]
+                    properties:
+                      items:
+                        type: array
+                        items: {$ref: "#/components/schemas/Article"}
+                      has_more: {type: boolean}
+                      next_offset: {type: integer}
+                      limit: {type: integer}
+                      revision: {type: string}
+              links:
+                next:
+                  operationId: list_articles
+                  parameters:
+                    offset: $response.body#/next_offset
+                    limit: $response.body#/limit
+                    revision: $response.body#/revision
+    ```
+
+    The page projects as a Siren collection. When `has_more` is true, Sirenity emits an official
+    `next` link on the public mount, preserves current query filters, and replaces the declared
+    continuation parameters with values from the response. This retains opaque cursor or revision
+    tokens without interpreting them. When `has_more` is false, Sirenity emits no continuation and
+    does not evaluate its parameter expressions. Pagination needs no `x-sirenity` metadata, adapter
+    profile, application policy relationship, or Siren-specific response transformation.
+
     #### Explicit title metadata
 
     The root document uses `info.title`, and exposes `info.version` as the official Siren
