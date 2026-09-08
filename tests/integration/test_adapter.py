@@ -1605,11 +1605,21 @@ class TestAdapter:
         assert isinstance(configuration, SirenConfiguration)
         assert configuration.adapter() is configuration.adapter()
         assert django_openapi_provider.calls == 1
-        middleware = configuration.django(lambda request: JsonResponse({}))
-        assert middleware.adapter is configuration.adapter()
-        assert isinstance(middleware.policy, CapabilityPolicy)
+        with override_settings(ALLOWED_HOSTS=["testserver"]):
+            response = configuration.django(lambda request: JsonResponse({
+                "example_resource_id": "42",
+                "title": "Example resource",
+            }))(
+                RequestFactory().get(
+                    "/siren/example_resources/42",
+                    HTTP_ACCEPT="application/vnd.siren+json",
+                )
+            )
 
-    def test_standard_django_loader_reuses_the_exact_public_configuration_from_settings(self):
+        assert response.status_code == 200
+        assert response["Content-Type"] == "application/vnd.siren+json"
+
+    def test_standard_django_loader_does_not_reload_a_caller_owned_configuration(self):
         django_openapi_provider.calls = 0
         example_configuration = siren_configuration(
             openapi=("tests.framework_fixtures.django_openapi_provider.django_openapi_provider"),
@@ -1618,17 +1628,35 @@ class TestAdapter:
             policy="tests.framework_fixtures.capability_policy.CapabilityPolicy",
         )
 
-        with override_settings(SIRENITY=example_configuration):
+        with override_settings(ALLOWED_HOSTS=["testserver"], SIRENITY=example_configuration):
             example_first = SirenMiddleware(
-                lambda example_request: JsonResponse({"example_result": "example-first"})
+                lambda example_request: JsonResponse({
+                    "example_resource_id": "first",
+                    "title": "First example",
+                })
             )
             example_second = SirenMiddleware(
-                lambda example_request: JsonResponse({"example_result": "example-second"})
+                lambda example_request: JsonResponse({
+                    "example_resource_id": "second",
+                    "title": "Second example",
+                })
+            )
+            first_response = example_first(
+                RequestFactory().get(
+                    "/example-siren/example_resources/first",
+                    HTTP_ACCEPT="application/vnd.siren+json",
+                )
+            )
+            second_response = example_second(
+                RequestFactory().get(
+                    "/example-siren/example_resources/second",
+                    HTTP_ACCEPT="application/vnd.siren+json",
+                )
             )
 
-        assert example_first.middleware.adapter is example_configuration.adapter()
-        assert example_second.middleware.adapter is example_configuration.adapter()
         assert django_openapi_provider.calls == 1
+        assert json.loads(first_response.content)["properties"]["example_resource_id"] == "first"
+        assert json.loads(second_response.content)["properties"]["example_resource_id"] == "second"
 
     def test_root_import_keeps_django_optional(self):
         script = (

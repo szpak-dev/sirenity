@@ -15,13 +15,6 @@ if not settings.configured:
 from ninja import NinjaAPI, Schema
 
 import sirenity
-from sirenity import (
-    SirenMcpExecution,
-    SirenMcpOperation,
-    SirenMiddleware,
-    siren_configuration,
-    siren_mcp,
-)
 
 
 class ExampleUpdateResourcePayload(Schema):
@@ -108,14 +101,14 @@ urlpatterns = [path("", example_api.urls)]
 
 
 class ExampleExecutor:
-    def execute(self, example_operation: SirenMcpOperation) -> SirenMcpExecution:
+    def execute(self, example_operation: sirenity.SirenMcpOperation) -> sirenity.SirenMcpExecution:
         example_response = Client().generic(
             example_operation.method,
             example_operation.dispatch_path,
             data=json.dumps(example_operation.body),
             content_type="application/json",
         )
-        return SirenMcpExecution(
+        return sirenity.SirenMcpExecution(
             status=example_response.status_code,
             result=example_response.json(),
             base_url="http://testserver",
@@ -124,7 +117,7 @@ class ExampleExecutor:
         )
 
 
-example_configuration = siren_configuration(
+example_configuration = sirenity.siren_configuration(
     openapi="wheel_example_django_mcp_consumer.example_api",
     source_path="/api",
     public_path="/siren",
@@ -149,7 +142,7 @@ def example_response(example_request):
 
 
 with override_settings(SIRENITY=example_configuration):
-    example_django = SirenMiddleware(example_response)
+    example_django = sirenity.SirenMiddleware(example_response)
     example_group_response = example_django(
         RequestFactory().get(
             "/siren/example_groups/example-group-42",
@@ -162,7 +155,7 @@ with override_settings(SIRENITY=example_configuration):
             HTTP_ACCEPT="application/vnd.siren+json",
         )
     )
-example_mcp = siren_mcp(example_configuration, executor=ExampleExecutor())
+example_mcp = sirenity.siren_mcp(example_configuration, executor=ExampleExecutor())
 example_result = example_mcp.invoke(sirenity.SirenMcpInvocation(
     operation_id="update_example_resource",
     arguments={
@@ -171,8 +164,6 @@ example_result = example_mcp.invoke(sirenity.SirenMcpInvocation(
     },
 ))
 
-assert example_django.middleware.adapter is example_configuration.adapter()
-assert example_mcp.adapter is example_configuration.adapter()
 assert example_result.is_error is False, example_result.structured_content
 assert example_application_calls == 1
 assert json.loads(example_group_response.content)["links"] == [

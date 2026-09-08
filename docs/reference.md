@@ -46,3 +46,4 @@ The supported root imports below are generated from `sirenity.__all__`.
 | `siren_adapter` | Compile a framework-neutral boundary for operation-aware Siren HTTP responses. | — |
 | `siren_configuration` | Resolve one immutable configuration for every supported integration. | — |
 | `siren_mcp` | Expose every compiled OpenAPI operation as a correctly described MCP tool. | — |
+| `siren_pagination` | Declare one typed paginated Django Ninja or Ninja Extra operation. | — |

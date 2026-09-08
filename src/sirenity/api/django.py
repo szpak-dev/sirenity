@@ -5,11 +5,100 @@
 
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass, field
+from typing import Any
 
 from ..contexts.runtime.adapter import SirenDjangoMiddleware
 from ..contexts.runtime.configuration import SirenConfiguration
 from ..contexts.shared import SirenityError
 from .configuration import siren_configuration
+
+
+def siren_pagination(
+    route: Callable[..., Callable[[Callable[..., Any]], Callable[..., Any]]],
+    path: str = "",
+    *,
+    response: type[Any],
+    operation_id: str,
+    continuation: Mapping[str, str],
+    status: int = 200,
+    **operation: object,
+) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
+    """Declare one typed paginated Django Ninja or Ninja Extra operation.
+
+    Pass ``api.get`` for Django Ninja or ``http_get`` for Ninja Extra. The response model and
+    continuation mapping produce one successful response containing a standard OpenAPI ``next``
+    Link Object. The operation ID is declared once and reused as the link target. Sirenity's normal
+    startup compilation validates every mapped query parameter and response property.
+
+    ```python
+    from ninja import Schema
+
+    from sirenity import siren_pagination
+
+    class ArticlePage(Schema):
+        items: list[Article]
+        has_more: bool
+        next_offset: int
+        limit: int
+
+    @siren_pagination(
+        api.get,
+        "/api/articles",
+        response=ArticlePage,
+        operation_id="list_articles",
+        continuation={"offset": "next_offset", "limit": "limit"},
+        summary="List articles",
+        description="List one page of articles.",
+    )
+    def list_articles(request, offset: int = 0, limit: int = 20):
+        return ArticlePage(items=[], has_more=False, next_offset=0, limit=limit)
+    ```
+    """
+
+    if not callable(route):
+        raise SirenityError("Siren pagination route must be callable")
+    if not isinstance(path, str):
+        raise SirenityError("Siren pagination path must be a string")
+    if not isinstance(response, type):
+        raise SirenityError("Siren pagination response model is required")
+    if not isinstance(operation_id, str) or not operation_id:
+        raise SirenityError("Siren pagination operation_id must be non-empty")
+    if isinstance(status, bool) or not isinstance(status, int) or not 200 <= status < 300:
+        raise SirenityError("Siren pagination status must be a successful integer status")
+    if not isinstance(continuation, Mapping) or not continuation or any(
+        not isinstance(query, str)
+        or not query
+        or not isinstance(property_name, str)
+        or not property_name
+        for query, property_name in continuation.items()
+    ):
+        raise SirenityError("Siren pagination continuation must map query names to response properties")
+    if len(set(continuation.values())) != len(continuation):
+        raise SirenityError("Siren pagination response properties must be unique")
+    if "openapi_extra" in operation:
+        raise SirenityError("Siren pagination owns openapi_extra")
+    parameters = {
+        query: f"$response.body#/{property_name.replace('~', '~0').replace('/', '~1')}"
+        for query, property_name in continuation.items()
+    }
+    return route(
+        path,
+        response={status: response},
+        operation_id=operation_id,
+        openapi_extra={
+            "responses": {
+                status: {
+                    "links": {
+                        "next": {
+                            "operationId": operation_id,
+                            "parameters": parameters,
+                        }
+                    }
+                }
+            }
+        },
+        **operation,
+    )
 
 
 @dataclass(frozen=True)

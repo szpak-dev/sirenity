@@ -3,13 +3,13 @@
 <!-- docs:order=10 -->
 """
 
-import json
 from collections.abc import Mapping
 from typing import Any
 
 from openapi_spec_validator import validate
 
 from ..contexts.compiler import SirenApiService
+from ..contexts.compiler.document import normalized_openapi
 from ..contexts.runtime.engine import SirenEngine, SirenEngineFactory
 from ..contexts.shared import SirenContractError, SirenityError
 from ..wiring import application
@@ -361,11 +361,7 @@ def siren(
             "#/public_path", "input", "Siren public path must start with '/'.")
     source_path = source_path.rstrip("/") or "/"
     public_path = public_path.rstrip("/") or "/"
-    try:
-        document = json.loads(json.dumps(openapi))
-    except Exception as error:
-        raise SirenContractError(
-            "#", "input", "OpenAPI document must be JSON-compatible.") from error
+    document = normalized_openapi(openapi)
     try:
         validate(document)
     except Exception as error:
