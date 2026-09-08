@@ -1633,7 +1633,10 @@ class TestAdapter:
     def test_root_import_keeps_django_optional(self):
         script = (
             "import builtins\n"
+            "import pkgutil\n"
             "original = builtins.__import__\n"
+            "pkgutil.walk_packages = lambda *args, **kwargs: (_ for _ in ()).throw("
+            "AssertionError('root import scanned service packages'))\n"
             "def guarded(name, *args, **kwargs):\n"
             "    level = kwargs.get('level', args[3] if len(args) > 3 else 0)\n"
             "    if level == 0 and (name == 'django' or name.startswith('django.')):\n"

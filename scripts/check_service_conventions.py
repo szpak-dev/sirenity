@@ -135,12 +135,12 @@ class ServiceConventionChecker:
 
     def check_composition(self) -> list[str]:
         try:
-            from sirenity.wiring import SirenApplicationContainer
+            from wireup import SyncContainer
 
-            application = SirenApplicationContainer().application()
-            application.api_service()
-            application.engine_factory()
-            application.conformance_service()
+            from sirenity.wiring import application
+
+            if not isinstance(application.container, SyncContainer):
+                return ["Wireup composition did not create a synchronous container."]
         except Exception as error:
             return [f"Wireup composition is unresolvable: {error}"]
         return []

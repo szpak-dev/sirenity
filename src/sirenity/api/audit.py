@@ -9,6 +9,7 @@ from typing import Any
 
 from openapi_spec_validator import validate
 
+from ..contexts.compiler import SirenApiService
 from ..contexts.compiler.compatibility import SirenCompatibilityReport
 from ..contexts.shared import SirenContractError
 from ..wiring import application
@@ -32,4 +33,4 @@ def audit(openapi: Mapping[str, Any]) -> SirenCompatibilityReport:
         validate(document)
     except Exception as error:
         raise SirenContractError("#", "openapi", "OpenAPI document does not conform to OpenAPI 3.1.") from error
-    return application.api_service().audit(document)
+    return application.container.get(SirenApiService).audit(document)

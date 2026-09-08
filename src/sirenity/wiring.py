@@ -2,13 +2,10 @@ import fnmatch
 import importlib
 import pkgutil
 from dataclasses import dataclass, field
+from functools import cached_property
 from types import ModuleType
 
-from wireup import create_sync_container
-
-from .contexts.compiler import SirenApiService
-from .contexts.conformance import SirenConformanceService
-from .contexts.runtime.engine import SirenEngineFactory
+from wireup import SyncContainer, create_sync_container
 
 
 @dataclass(frozen=True)
@@ -26,28 +23,12 @@ class SirenServiceModuleDiscovery:
 
 
 @dataclass(frozen=True)
-class SirenApplicationContainer:
+class SirenApplication:
     discovery: SirenServiceModuleDiscovery = field(default_factory=SirenServiceModuleDiscovery)
 
-    def application(self) -> "SirenApplication":
-        return SirenApplication(self.container())
-
-    def container(self):
+    @cached_property
+    def container(self) -> SyncContainer:
         return create_sync_container(injectables=self.discovery.modules(("sirenity.**.services",)))
 
 
-@dataclass(frozen=True)
-class SirenApplication:
-    container: object
-
-    def api_service(self) -> SirenApiService:
-        return self.container.get(SirenApiService)
-
-    def engine_factory(self) -> SirenEngineFactory:
-        return self.container.get(SirenEngineFactory)
-
-    def conformance_service(self) -> SirenConformanceService:
-        return self.container.get(SirenConformanceService)
-
-
-application = SirenApplicationContainer().application()
+application = SirenApplication()
