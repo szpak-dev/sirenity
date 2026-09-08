@@ -9,6 +9,12 @@ Generated README regions project root `__all__` and public docstrings. Edit thos
 
 ```bash
 uv sync --all-groups --frozen
+make verify-fast
+```
+
+Use the fast verification tier during development. Before review, run the complete gate:
+
+```bash
 make verify
 ```
 

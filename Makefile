@@ -1,4 +1,4 @@
-.PHONY: docs docs-check package-check quality service-check siren-spec verify
+.PHONY: docs docs-check package-check quality service-check siren-spec verify verify-fast
 
 UV ?= uv
 DUMP ?= .dump
@@ -18,6 +18,10 @@ service-check:
 
 siren-spec:
 	$(RUN) scripts/siren_spec.py
+
+verify-fast:
+	$(RUN) -m ruff check .
+	$(RUN) -m pytest -m "not complete"
 
 verify: docs-check service-check siren-spec
 	$(RUN) -m ruff check .
