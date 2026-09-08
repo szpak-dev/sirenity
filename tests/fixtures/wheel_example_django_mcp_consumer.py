@@ -12,18 +12,27 @@ if not settings.configured:
         ROOT_URLCONF=__name__,
     )
 
-from ninja import NinjaAPI, Schema
+from ninja import Cookie, Header, NinjaAPI, Query, Schema
 
 import sirenity
 
 
+class ExampleMetadata(Schema):
+    source: str
+
+
 class ExampleUpdateResourcePayload(Schema):
     title: str
+    metadata: ExampleMetadata
 
 
 class ExampleResource(Schema):
     example_resource_id: str
     title: str
+    metadata: ExampleMetadata
+    example_page: int
+    example_trace: str
+    example_session: str
 
 
 class ExampleGroup(Schema):
@@ -52,12 +61,19 @@ def example_update_resource(
     request,
     example_resource_id: str,
     payload: ExampleUpdateResourcePayload,
+    example_page: Query[int],
+    example_trace: Header[str],
+    example_session: Cookie[str],
 ):
     global example_application_calls
     example_application_calls += 1
     return {
         "example_resource_id": example_resource_id,
         "title": payload.title,
+        "metadata": payload.metadata,
+        "example_page": example_page,
+        "example_trace": example_trace,
+        "example_session": example_session,
     }
 
 
@@ -102,26 +118,43 @@ urlpatterns = [path("", example_api.urls)]
 
 class ExampleExecutor:
     def execute(self, example_operation: sirenity.SirenMcpOperation) -> sirenity.SirenMcpExecution:
-        example_response = Client().generic(
+        client = Client()
+        for name, value in example_operation.cookie_values.items():
+            client.cookies[name] = value
+        example_response = client.generic(
             example_operation.method,
             example_operation.dispatch_path,
             data=json.dumps(example_operation.body),
             content_type="application/json",
+            headers=example_operation.header_values,
+            query_params=example_operation.query_values,
         )
         return sirenity.SirenMcpExecution(
             status=example_response.status_code,
             result=example_response.json(),
             base_url="http://testserver",
-            request_url=f"http://testserver{example_operation.dispatch_path}",
             headers=dict(example_response.headers),
         )
+
+
+example_policy_calls: list[str] = []
+
+
+def example_policy(
+    operation_id: str,
+    status: int,
+    request: object,
+    result: object,
+) -> sirenity.SirenAdapterPolicy:
+    example_policy_calls.append(operation_id)
+    return sirenity.SirenAdapterPolicy(all_capabilities=True)
 
 
 example_configuration = sirenity.siren_configuration(
     openapi="wheel_example_django_mcp_consumer.example_api",
     source_path="/api",
     public_path="/siren",
-    policy="sirenity.SirenAllowAllPolicy",
+    policy="wheel_example_django_mcp_consumer.example_policy",
 )
 
 
@@ -161,11 +194,35 @@ example_result = example_mcp.invoke(sirenity.SirenMcpInvocation(
     arguments={
         "example_resource_id": "example-resource-42",
         "title": "Updated example resource",
+        "metadata": {"source": "example"},
+        "example_page": 2,
+        "example_trace": "example-trace",
+        "example_session": "example-session",
+    },
+))
+example_failure = example_mcp.invoke(sirenity.SirenMcpInvocation(
+    operation_id="update_example_resource",
+    arguments={
+        "example_resource_id": "example-resource-42",
+        "title": "Invalid example resource",
+        "metadata": "not-an-object",
+        "example_page": 2,
+        "example_trace": "example-trace",
+        "example_session": "example-session",
     },
 ))
 
 assert example_result.is_error is False, example_result.structured_content
+assert example_failure.is_error is True
+assert example_failure.structured_content == {"detail": "Siren MCP invocation is invalid"}
 assert example_application_calls == 1
+assert "update_example_resource" in example_policy_calls
+assert {tool.name for tool in example_mcp.tools()} == {
+    "get_example_group",
+    "get_example_group_item",
+    "list_example_group_items",
+    "update_example_resource",
+}
 assert json.loads(example_group_response.content)["links"] == [
     {
         "title": "ExampleGroup",
@@ -186,5 +243,9 @@ assert json.loads(example_items_response.content)["entities"][0]["links"] == [{
 assert example_result.structured_content["properties"] == {
     "example_resource_id": "example-resource-42",
     "title": "Updated example resource",
+    "metadata": {"source": "example"},
+    "example_page": 2,
+    "example_trace": "example-trace",
+    "example_session": "example-session",
 }
 print(sirenity.__file__)
