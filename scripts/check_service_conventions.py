@@ -1,21 +1,30 @@
 import ast
+from dataclasses import dataclass
 from pathlib import Path
 
 
+@dataclass(frozen=True)
 class ServiceConventionChecker:
+    root: Path
+    include_composition: bool = True
+
     def run(self) -> int:
-        root = Path(__file__).parents[1] / "src" / "sirenity"
-        paths = tuple(sorted(path for path in root.glob("**/*.py") if path.name != "__init__.py"))
-        collaborators = self.collaborators(paths)
-        injectables = self.injectables(paths)
-        failures: list[str] = []
-        for path in paths:
-            failures.extend(self.check(path, root, collaborators, injectables))
-        failures.extend(self.check_composition())
+        failures = self.violations()
         if not failures:
             return 0
         print("\n".join(failures))
         return 1
+
+    def violations(self) -> tuple[str, ...]:
+        paths = tuple(sorted(path for path in self.root.glob("**/*.py") if path.name != "__init__.py"))
+        collaborators = self.collaborators(paths)
+        injectables = self.injectables(paths)
+        failures: list[str] = []
+        for path in paths:
+            failures.extend(self.check(path, self.root, collaborators, injectables))
+        if self.include_composition:
+            failures.extend(self.check_composition())
+        return tuple(failures)
 
     def check(
         self, path: Path, root: Path, collaborators: frozenset[str], injectables: frozenset[str]
@@ -137,4 +146,5 @@ class ServiceConventionChecker:
         return []
 
 
-raise SystemExit(ServiceConventionChecker().run())
+if __name__ == "__main__":
+    raise SystemExit(ServiceConventionChecker(Path(__file__).parents[1] / "src" / "sirenity").run())

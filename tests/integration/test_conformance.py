@@ -139,6 +139,7 @@ class TestConformance:
             }
         ]
 
+    @pytest.mark.complete
     def test_built_wheel_supports_the_documented_public_consumer_flow(self, tmp_path: Path):
         project = Path(__file__).parents[2]
         artifacts = tmp_path / "artifacts"

@@ -5,64 +5,70 @@ import subprocess
 import sys
 from pathlib import Path
 
+import pytest
+
+from scripts.siren_spec import SirenSpecCommand
+from sirenity import SirenityError
+
 
 class TestSirenSpecCommand:
     def test_command_fails_when_the_committed_gherkin_inventory_has_duplicates(self, tmp_path: Path):
-        workspace = self.workspace(tmp_path)
-        feature = workspace / "tests/conformance/features/relations.feature"
-        shutil.copy2(feature, feature.with_name("relations_copy.feature"))
+        cucumber_report, feature_directory = self.evidence(tmp_path)
+        feature = next(feature_directory.glob("*.feature"))
+        shutil.copy2(feature, feature.with_name("example_copy.feature"))
 
-        result = self.command(workspace)
+        with pytest.raises(SirenityError) as error:
+            SirenSpecCommand().verify_evidence(cucumber_report, feature_directory)
 
-        assert result.returncode != 0
-        assert "Gherkin feature inventory contains duplicate scenarios." in result.stderr
+        assert str(error.value) == "Gherkin feature inventory contains duplicate scenarios."
 
     def test_command_fails_when_a_committed_scenario_has_no_cucumber_evidence(self, tmp_path: Path):
-        workspace = self.workspace(tmp_path)
-        (workspace / "tests/conformance/steps/test_relation_steps.py").unlink()
+        cucumber_report, feature_directory = self.evidence(
+            tmp_path,
+            committed=("Example scenario", "Missing example scenario"),
+        )
 
-        result = self.command(workspace)
+        with pytest.raises(SirenityError) as error:
+            SirenSpecCommand().verify_evidence(cucumber_report, feature_directory)
 
-        assert result.returncode != 0
-        assert "Cucumber report is missing committed scenarios: Siren relations:" in result.stderr
+        assert str(error.value) == (
+            "Cucumber report is missing committed scenarios: Example feature: Missing example scenario."
+        )
 
     def test_command_fails_when_junit_contains_a_non_cucumber_testcase(self, tmp_path: Path):
-        workspace = self.workspace(tmp_path)
-        evidence = workspace / "tests/conformance/test_unmapped_evidence.py"
-        evidence.write_text("def test_unmapped_evidence() -> None:\n    pass\n")
+        cucumber_report, feature_directory = self.evidence(
+            tmp_path,
+            junit=(("example-scenario", None), ("test_unmapped_evidence", None)),
+        )
 
-        result = self.command(workspace)
+        with pytest.raises(SirenityError) as error:
+            SirenSpecCommand().verify_evidence(cucumber_report, feature_directory)
 
-        assert result.returncode != 0
-        assert "JUnit report contains non-Cucumber testcases: test_unmapped_evidence." in result.stderr
+        assert str(error.value) == "JUnit report contains non-Cucumber testcases: test_unmapped_evidence."
 
     def test_command_fails_when_junit_contains_an_ordinary_skip(self, tmp_path: Path):
-        workspace = self.workspace(tmp_path)
-        evidence = workspace / "tests/conformance/test_skipped_evidence.py"
-        evidence.write_text(
-            'import pytest\n\n\ndef test_skipped_evidence() -> None:\n    pytest.skip("ordinary skip")\n'
+        cucumber_report, feature_directory = self.evidence(
+            tmp_path,
+            junit=(("example-scenario", "pytest.skip"),),
         )
 
-        result = self.command(workspace)
+        with pytest.raises(SirenityError) as error:
+            SirenSpecCommand().verify_evidence(cucumber_report, feature_directory)
 
-        assert result.returncode != 0
-        assert "JUnit report contains a skipped test that is not a strict expected failure." in result.stderr
+        assert str(error.value) == "JUnit report contains a skipped test that is not a strict expected failure."
 
     def test_command_fails_when_an_expected_failure_unexpectedly_passes(self, tmp_path: Path):
-        workspace = self.workspace(tmp_path)
-        evidence = workspace / "tests/conformance/test_xpass_evidence.py"
-        evidence.write_text(
-            "import pytest\n\n\n"
-            '@pytest.mark.xfail(reason="tracked expected failure")\n'
-            "def test_xpass_evidence() -> None:\n"
-            "    pass\n"
+        cucumber_report, feature_directory = self.evidence(
+            tmp_path,
+            junit=(("example-scenario", "pytest.xfail"),),
         )
 
-        result = self.command(workspace)
+        with pytest.raises(SirenityError) as error:
+            SirenSpecCommand().verify_evidence(cucumber_report, feature_directory)
 
-        assert result.returncode != 0
-        assert "XPASS" in result.stderr
+        assert str(error.value) == "Cucumber report scenario 'Example scenario' unexpectedly passed."
 
+    @pytest.mark.complete
     def test_command_fails_after_a_public_schema_narrows_an_official_requirement(self, tmp_path: Path):
         workspace = self.workspace(tmp_path)
         field_value = workspace / "src/sirenity/contexts/runtime/document/values/field_value.py"
@@ -77,6 +83,7 @@ class TestSirenSpecCommand:
         assert "Siren conformance ledger has unimplemented structural requirements:" in result.stderr
         assert "FieldValueObject.value." in result.stderr
 
+    @pytest.mark.complete
     def test_command_fails_for_an_unsupported_official_schema_term(self, tmp_path: Path):
         workspace = self.workspace(tmp_path)
         schema = workspace / "src/sirenity/contexts/shared/siren_schema/values/siren.schema.json"
@@ -89,6 +96,7 @@ class TestSirenSpecCommand:
         assert result.returncode != 0
         assert "Unsupported Siren schema terms: minLength" in result.stderr
 
+    @pytest.mark.complete
     def test_command_prints_the_unified_siren_conformance_ledger(self):
         result = self.command(Path(__file__).parents[2])
 
@@ -124,6 +132,43 @@ class TestSirenSpecCommand:
             "FieldValueObject",
             "Link",
         )
+
+    def evidence(
+        self,
+        tmp_path: Path,
+        *,
+        committed: tuple[str, ...] = ("Example scenario",),
+        reported: tuple[str, ...] = ("Example scenario",),
+        junit: tuple[tuple[str, str | None], ...] | None = None,
+    ) -> tuple[Path, Path]:
+        feature_directory = tmp_path / "features"
+        feature_directory.mkdir()
+        scenarios = "\n".join(
+            f"  Scenario: {name}\n    Given an example precondition\n" for name in committed
+        )
+        (feature_directory / "example.feature").write_text(f"Feature: Example feature\n\n{scenarios}")
+        elements = [
+            {
+                "id": self.identifier(name),
+                "name": name,
+                "steps": [{"result": {"status": "passed"}}],
+            }
+            for name in reported
+        ]
+        cucumber_report = tmp_path / "cucumber.json"
+        cucumber_report.write_text(json.dumps([{"name": "Example feature", "elements": elements}]))
+        cases = junit or tuple((self.identifier(name), None) for name in reported)
+        testcases = "".join(
+            f'<testcase name="{name}">{f"<skipped type={json.dumps(skipped)} />" if skipped else ""}</testcase>'
+            for name, skipped in cases
+        )
+        cucumber_report.with_name("junit.xml").write_text(
+            f"<testsuites><testsuite>{testcases}</testsuite></testsuites>"
+        )
+        return cucumber_report, feature_directory
+
+    def identifier(self, name: str) -> str:
+        return name.lower().replace(" ", "-")
 
     def command(self, workspace: Path) -> subprocess.CompletedProcess[str]:
         python_path = os.pathsep.join((str(workspace / "src"), os.environ.get("PYTHONPATH", "")))

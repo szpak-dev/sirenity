@@ -78,6 +78,9 @@ testpaths = ["tests"]
 addopts = ["-ra", "--strict-config", "--strict-markers"]
 cache_dir = ".dump/pytest-cache"
 filterwarnings = ["error"]
+markers = [
+    "complete: command, distribution, or installed-consumer verification reserved for the complete quality gate",
+]
 xfail_strict = true
 
 [tool.ruff]
