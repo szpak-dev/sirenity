@@ -53,3 +53,36 @@ Django Ninja merges this declaration into its generated response without an Open
 post-processing provider. Middleware construction validates the operation target, path bindings,
 runtime expression, relation, and scope while compiling that generated document. The declared
 relationship therefore needs no application Siren policy solely to appear in the representation.
+
+## `siren_pagination`
+
+Declare one typed paginated Django Ninja or Ninja Extra operation.
+
+Pass ``api.get`` for Django Ninja or ``http_get`` for Ninja Extra. The response model and
+continuation mapping produce one successful response containing a standard OpenAPI ``next``
+Link Object. The operation ID is declared once and reused as the link target. Sirenity's normal
+startup compilation validates every mapped query parameter and response property.
+
+```python
+from ninja import Schema
+
+from sirenity import siren_pagination
+
+class ArticlePage(Schema):
+    items: list[Article]
+    has_more: bool
+    next_offset: int
+    limit: int
+
+@siren_pagination(
+    api.get,
+    "/api/articles",
+    response=ArticlePage,
+    operation_id="list_articles",
+    continuation={"offset": "next_offset", "limit": "limit"},
+    summary="List articles",
+    description="List one page of articles.",
+)
+def list_articles(request, offset: int = 0, limit: int = 20):
+    return ArticlePage(items=[], has_more=False, next_offset=0, limit=limit)
+```

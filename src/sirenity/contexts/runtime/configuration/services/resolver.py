@@ -1,11 +1,11 @@
 import importlib
-import json
 from collections.abc import Mapping
 from dataclasses import dataclass
 
 from wireup import injectable
 
 from sirenity.contexts.compiler import SirenApiService
+from sirenity.contexts.compiler.document import normalized_openapi
 from sirenity.contexts.runtime.adapter import SirenAdapter, SirenAdapterProfile, SirenCapabilityPolicy
 from sirenity.contexts.runtime.adapter.values import SirenAdapterRoute
 from sirenity.contexts.runtime.engine import SirenEngineFactory
@@ -71,7 +71,7 @@ class SirenDefaultConfigurationResolver(SirenConfigurationResolver):
                     f"Siren configuration profile could not load {profile_path!r}: {error}"
                 ) from error
         try:
-            document = json.loads(json.dumps(schema))
+            document = normalized_openapi(schema)
             api = self.api_service.build(document, declaration.source_path, declaration.public_path)
             engine = self.engine_factory.create(api)
             adapter = SirenAdapter(

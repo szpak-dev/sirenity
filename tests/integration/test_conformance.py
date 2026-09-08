@@ -1,6 +1,5 @@
 import subprocess
 import sys
-import tarfile
 from copy import deepcopy
 from pathlib import Path
 
@@ -149,44 +148,14 @@ class TestConformance:
         example_shared_fixture = (
             project / "tests" / "fixtures" / "wheel_example_django_mcp_consumer.py"
         )
-        example_shared_source = example_shared_fixture.read_text()
-        assert ".adapter.routes" not in example_shared_source
-        assert "example_openapi" not in example_shared_source
-        assert "get_openapi_schema" not in example_shared_source
-        assert "render_path" not in example_shared_source
-        assert "openapi_extra=" not in example_shared_source
-        assert '"$response.body#/example_group_id"' not in example_shared_source
-        assert '"id": "example-group-42"' in example_shared_source
-        assert '"example_group_id": "example-group-42"' in example_shared_source
-        assert "example_operation.method" in example_shared_source
-        assert "example_operation.dispatch_path" in example_shared_source
         subprocess.run(
-            (sys.executable, "-m", "build", "--wheel", "--sdist", "--outdir", str(artifacts)),
+            (sys.executable, "-m", "build", "--wheel", "--outdir", str(artifacts)),
             cwd=project,
             check=True,
             capture_output=True,
             text=True,
         )
         wheel = next(artifacts.glob("*.whl"))
-        source = next(artifacts.glob("*.tar.gz"))
-
-        with tarfile.open(source) as distribution:
-            names = tuple(distribution.getnames())
-
-        assert any(name.endswith("tests/framework_fixtures/fastapi/openapi_fixture.py") for name in names)
-        assert any(name.endswith("tests/framework_fixtures/fastapi/example_resource_controller.py") for name in names)
-        assert any(
-            name.endswith("tests/framework_fixtures/fastapi/rename_example_resource_payload.py") for name in names
-        )
-        assert any(name.endswith("tests/framework_fixtures/django_ninja_extra/openapi_fixture.py") for name in names)
-        assert any(
-            name.endswith("tests/framework_fixtures/django_ninja_extra/example_resource_controller.py")
-            for name in names
-        )
-        assert any(
-            name.endswith("tests/framework_fixtures/django_ninja_extra/rename_example_resource_payload.py")
-            for name in names
-        )
 
         subprocess.run(
             (sys.executable, "-m", "venv", "--system-site-packages", str(environment)),

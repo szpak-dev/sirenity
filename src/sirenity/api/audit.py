@@ -3,7 +3,6 @@
 <!-- docs:order=60 -->
 """
 
-import json
 from collections.abc import Mapping
 from typing import Any
 
@@ -11,6 +10,7 @@ from openapi_spec_validator import validate
 
 from ..contexts.compiler import SirenApiService
 from ..contexts.compiler.compatibility import SirenCompatibilityReport
+from ..contexts.compiler.document import normalized_openapi
 from ..contexts.shared import SirenContractError
 from ..wiring import application
 
@@ -25,10 +25,7 @@ def audit(openapi: Mapping[str, Any]) -> SirenCompatibilityReport:
 
     if not isinstance(openapi, Mapping):
         raise SirenContractError("#", "input", "OpenAPI document must be a mapping.")
-    try:
-        document = json.loads(json.dumps(openapi))
-    except Exception as error:
-        raise SirenContractError("#", "input", "OpenAPI document must be JSON-compatible.") from error
+    document = normalized_openapi(openapi)
     try:
         validate(document)
     except Exception as error:
