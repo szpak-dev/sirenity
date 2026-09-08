@@ -1,5 +1,13 @@
 from typing import Any, ClassVar
 
+import pydantic
+
+from sirenity.contexts.graph import (
+    SirenDelegatedInput,
+    SirenField,
+    SirenInput,
+    SirenParameterInput,
+)
 from sirenity.contexts.shared import (
     BaseState,
     SirenActionMethod,
@@ -9,8 +17,8 @@ from sirenity.contexts.shared import (
     SirenScope,
 )
 
-from ..values import DelegatedInputDraft, Field, InputDraft, ParameterInputDraft
-from .assembly import SirenAssembly
+from ...compatibility import SirenCompatibilityFinding
+from ..values import OperationDraft
 from .components import ComponentResolver
 from .field_projection import OpenApiFieldProjection
 from .response_projection import OpenApiResponseProjection
@@ -21,97 +29,193 @@ class OpenApiOperationCompiler(BaseState):
     methods: ClassVar[frozenset[SirenHttpMethod]] = frozenset(
         SirenHttpMethod(value) for value in SirenActionMethod.values()
     )
-    assembly: SirenAssembly
     routes: RouteCatalog
     components: ComponentResolver
     projection: OpenApiFieldProjection
     responses: OpenApiResponseProjection
+    findings: list[SirenCompatibilityFinding] = pydantic.Field(default_factory=list)
+    operation_ids: set[str] = pydantic.Field(default_factory=set)
+    operations: list[OperationDraft] = pydantic.Field(default_factory=list)
+    root_operations: list[str] = pydantic.Field(default_factory=list)
 
-    def compile(self) -> None:
+    def compile(self) -> tuple[SirenCompatibilityFinding, ...]:
         for path, path_item in self.routes.paths.items():
+            location = self.location("paths", path)
             if not isinstance(path_item, dict):
+                self.add(
+                    location,
+                    "route",
+                    "OpenAPI path item must be an object",
+                    "Use an object-valued OpenAPI path item.",
+                )
                 continue
             if "$ref" in path_item:
-                raise SirenityError(
-                    f"OpenAPI path item reference is unsupported: {path}")
-            for method, operation in path_item.items():
-                method_name = method.lower()
-                if method_name == "trace":
-                    raise SirenityError(
-                        f"OpenAPI operation method is unsupported: {method.upper()} {path}")
-                try:
-                    operation_method = SirenHttpMethod(method.upper())
-                except ValueError:
-                    continue
-                if operation_method in {SirenHttpMethod.HEAD, SirenHttpMethod.OPTIONS}:
-                    raise SirenityError(
-                        f"OpenAPI operation method is unsupported: {method.upper()} {path}")
-                if operation_method not in self.methods or not isinstance(operation, dict):
-                    continue
-                name = operation.get("operationId")
-                if not isinstance(name, str) or not name:
-                    raise SirenityError(
-                        f"OpenAPI operation requires operationId: {method.upper()} {path}")
-                title = operation.get("summary")
-                if not isinstance(title, str) or not title:
-                    raise SirenityError(
-                        f"OpenAPI operation requires a non-empty summary: {method.upper()} {path}")
-                description = operation.get("description")
-                if not isinstance(description, str) or not description:
-                    raise SirenityError(
-                        f"OpenAPI operation requires a non-empty description: {method.upper()} {path}")
-                ownership = self.routes.ownership(path)
-                fields, input = self.input(path_item, operation)
-                media_type = input.media_type if input else None
-                responses = self.response_links(
-                    self.responses.responses(operation))
-                if ownership is None:
-                    self.assembly.add_operation(
-                        None,
-                        SirenScope.ROOT,
-                        name,
-                        operation_method,
-                        self.routes.public(path),
-                        path,
-                        title,
-                        description,
-                        media_type,
-                        input,
-                        responses,
-                    )
-                    self.assembly.add_root_operation(name)
-                    for field in fields:
-                        self.assembly.add_field(
-                            name, field.name, field.type, field.title, field.values, field.default)
-                    continue
-                resource, scope = ownership
-                self.assembly.add_operation(
-                    resource.reference,
-                    scope,
-                    name,
-                    operation_method,
-                    self.routes.public(path),
-                    path,
-                    title,
-                    description,
-                    media_type,
-                    input,
-                    responses,
+                self.add(
+                    location,
+                    "component-reference",
+                    f"OpenAPI path item reference is unsupported: {path}",
+                    "Inline the path item in the Siren-facing contract.",
                 )
-                for field in fields:
-                    self.assembly.add_field(
-                        name, field.name, field.type, field.title, field.values, field.default)
-                if (
-                    scope == SirenScope.COLLECTION
-                    and path == resource.collection_path
-                    and not self.routes.parameters(path)
-                    and operation_method != SirenHttpMethod.GET
-                ):
-                    self.assembly.add_root_operation(name)
+                continue
+            for method, operation in path_item.items():
+                self.operation(path, path_item, method, operation)
+        return tuple(self.findings)
+
+    def operation(self, path: str, path_item: dict[str, Any], method: Any, operation: Any) -> None:
+        if not isinstance(method, str):
+            return
+        method_name = method.lower()
+        if method_name == "trace":
+            self.unsupported_method(path, method)
+            return
+        try:
+            operation_method = SirenHttpMethod(method.upper())
+        except ValueError:
+            return
+        if operation_method in {SirenHttpMethod.HEAD, SirenHttpMethod.OPTIONS}:
+            self.unsupported_method(path, method)
+            return
+        if operation_method not in self.methods or not isinstance(operation, dict):
+            return
+        finding_count = len(self.findings)
+        location = self.location("paths", path, method_name)
+        name = operation.get("operationId")
+        if not isinstance(name, str) or not name:
+            self.add(
+                location,
+                "operation-id",
+                f"OpenAPI operation requires operationId: {method.upper()} {path}",
+                "Provide a unique operationId.",
+            )
+        elif name in self.operation_ids:
+            self.add(
+                self.location_from(location, "operationId"),
+                "operation-id",
+                f"OpenAPI operationId is duplicated: {name}",
+                "Use a unique operationId for every Siren action.",
+            )
+        else:
+            self.operation_ids.add(name)
+        title = operation.get("summary")
+        if not isinstance(title, str) or not title:
+            self.add(
+                self.location_from(location, "summary"),
+                "operation-summary",
+                f"OpenAPI operation requires a non-empty summary: {method.upper()} {path}",
+                "Provide a non-empty summary for the Siren action title.",
+            )
+        description = operation.get("description")
+        if not isinstance(description, str) or not description:
+            self.add(
+                self.location_from(location, "description"),
+                "operation-description",
+                f"OpenAPI operation requires a non-empty description: {method.upper()} {path}",
+                "Provide a non-empty description for the caller-facing operation contract.",
+            )
+        try:
+            ownership = self.routes.ownership(path)
+        except (SirenityError, ValueError) as error:
+            self.add(
+                self.location("paths", path),
+                "route",
+                str(error),
+                "Use an unambiguous plural collection or entity route.",
+            )
+            ownership = None
+        try:
+            fields, input = self.input(path_item, operation)
+        except (SirenityError, ValueError) as error:
+            self.input_error(location, error)
+            fields, input = (), None
+        try:
+            responses = self.response_links(self.responses.responses(operation))
+        except (SirenityError, ValueError) as error:
+            self.add(
+                self.location_from(location, "responses"),
+                "response-schema",
+                str(error),
+                "Use object, array-of-object, or content-free responses with resolvable local schema references.",
+            )
+            responses = ()
+        if len(self.findings) != finding_count:
+            return
+        if not isinstance(name, str) or not isinstance(title, str) or not isinstance(description, str):
+            return
+        media_type = input.media_type if input else None
+        resource, scope = ownership or (None, SirenScope.ROOT)
+        self.operations.append(OperationDraft(
+            resource=resource.reference if resource else None,
+            scope=scope,
+            name=name,
+            method=operation_method,
+            path=self.routes.public(path),
+            source_path=path,
+            title=title,
+            description=description,
+            media_type=media_type,
+            fields=fields,
+            input=input,
+            responses=responses,
+        ))
+        if ownership is None:
+            self.root_operations.append(name)
+            return
+        if (
+            scope == SirenScope.COLLECTION
+            and path == resource.collection_path
+            and not self.routes.parameters(path)
+            and operation_method != SirenHttpMethod.GET
+        ):
+            self.root_operations.append(name)
+
+    def unsupported_method(self, path: str, method: str) -> None:
+        self.add(
+            self.location("paths", path, method.lower()),
+            "http-method",
+            f"OpenAPI operation method is unsupported: {method.upper()} {path}",
+            "Use an official Siren action method: GET, POST, PUT, PATCH, or DELETE.",
+        )
+
+    def input_error(self, location: str, error: Exception) -> None:
+        detail = str(error)
+        if "component reference" in detail:
+            category = "component-reference"
+            remediation = "Use resolvable local component references."
+        elif "parameter location" in detail:
+            category = "parameter-location"
+            remediation = "Use a path, query, header, or cookie parameter."
+        elif "parameter" in detail:
+            category = "parameter"
+            remediation = "Provide uniquely named parameters with supported locations and schemas."
+        elif "media type" in detail or "content must" in detail:
+            category = "body-media-type"
+            remediation = "Provide application/json or exactly one declared request media type."
+        else:
+            category = "body-schema"
+            remediation = "Use an object-valued request body with supported fields."
+        suffix = ("requestBody", "content") if category == "body-media-type" else ("parameters",)
+        self.add(self.location_from(location, *suffix), category, detail, remediation)
+
+    def add(self, location: str, category: str, detail: str, remediation: str) -> None:
+        self.findings.append(SirenCompatibilityFinding(
+            location=location,
+            category=category,
+            detail=detail,
+            remediation=remediation,
+        ))
+
+    def location(self, *tokens: str) -> str:
+        return "#" + "".join("/" + self.escape(token) for token in tokens)
+
+    def location_from(self, location: str, *tokens: str) -> str:
+        return location + "".join("/" + self.escape(token) for token in tokens)
+
+    def escape(self, token: str) -> str:
+        return token.replace("~", "~0").replace("/", "~1")
 
     def input(
         self, path_item: dict[str, Any], operation: dict[str, Any]
-    ) -> tuple[tuple[Field, ...], InputDraft | None]:
+    ) -> tuple[tuple[SirenField, ...], SirenInput | None]:
         parameters = (*path_item.get("parameters", ()),
                       *operation.get("parameters", ()))
         parameter_index: dict[tuple[str, str], dict[str, Any]] = {}
@@ -130,9 +234,9 @@ class OpenApiOperationCompiler(BaseState):
                 raise SirenityError(
                     f"OpenAPI parameter schema is required: {name}")
             parameter_index[name, location] = definition
-        fields: list[Field] = []
-        delegated: list[DelegatedInputDraft] = []
-        normalized_parameters: list[ParameterInputDraft] = []
+        fields: list[SirenField] = []
+        delegated: list[SirenDelegatedInput] = []
+        normalized_parameters: list[SirenParameterInput] = []
         names: set[str] = set()
         for (name, location), parameter in parameter_index.items():
             definition = self.components.schema_tree(parameter["schema"])
@@ -143,7 +247,7 @@ class OpenApiOperationCompiler(BaseState):
                 raise SirenityError(
                     f"OpenAPI parameters cannot share a name across locations: {name}")
             names.add(name)
-            normalized_parameters.append(ParameterInputDraft(
+            normalized_parameters.append(SirenParameterInput(
                 name=name,
                 location=location,
                 required=parameter.get("required") is True or location == "path",
@@ -162,7 +266,7 @@ class OpenApiOperationCompiler(BaseState):
             else:
                 kind = self.projection.delegated_kind(
                     name, definition) or "json"
-            delegated.append(DelegatedInputDraft(
+            delegated.append(SirenDelegatedInput(
                 name=name,
                 location=location,
                 kind=kind,
@@ -198,7 +302,7 @@ class OpenApiOperationCompiler(BaseState):
         if definition is not None and not isinstance(definition, dict):
             raise SirenityError("OpenAPI request body schema is required")
         if content and media_name != "application/json":
-            delegated.append(DelegatedInputDraft(
+            delegated.append(SirenDelegatedInput(
                 name="body",
                 location="body",
                 kind=self.projection.delegated_kind(
@@ -207,7 +311,7 @@ class OpenApiOperationCompiler(BaseState):
                 media_type=media_type,
                 definition=definition,
             ))
-            return tuple(fields), InputDraft(
+            return tuple(fields), SirenInput(
                 media_type=media_type,
                 definition=definition,
                 official_fields=tuple(field.name for field in fields),
@@ -238,7 +342,7 @@ class OpenApiOperationCompiler(BaseState):
                 kind = self.projection.delegated_kind(name, value)
                 if kind is None:
                     raise
-                delegated.append(DelegatedInputDraft(
+                delegated.append(SirenDelegatedInput(
                     name=name,
                     location="body",
                     kind=kind,
@@ -248,7 +352,7 @@ class OpenApiOperationCompiler(BaseState):
                 ))
         if not fields and not delegated and not normalized_parameters and not content:
             return (), None
-        return tuple(fields), InputDraft(
+        return tuple(fields), SirenInput(
             media_type=media_type,
             definition=definition,
             official_fields=tuple(field.name for field in fields),

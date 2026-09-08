@@ -5,11 +5,8 @@ from wireup import injectable
 
 from sirenity.contexts.graph import (
     SirenApi,
-    SirenDelegatedInput,
     SirenField,
-    SirenInput,
     SirenOperation,
-    SirenParameterInput,
     SirenResource,
     SirenResponse,
     SirenResponseBinding,
@@ -19,26 +16,25 @@ from sirenity.contexts.graph import (
 )
 from sirenity.contexts.shared import SirenHttpMethod, SirenityError, SirenRelation, SirenScope
 
-from ..state import SirenAssembly
-from ..values import FieldDraft, OperationDraft, Resource
+from ..values import NormalizedOpenApi, OperationDraft, Resource
 
 
 @injectable
 @dataclass(frozen=True)
 class SirenBuilder:
-    """Build a validated Siren API graph from one operation's assembly state."""
+    """Resolve cross-operation references from the normalized source into the graph."""
 
-    def build(self, assembly: SirenAssembly) -> SirenApi:
-        resources = self.resource_index(assembly.resources)
-        operations = self.operation_index(assembly.operations, resources)
-        fields = self.field_index(assembly.fields, operations)
+    def build(self, normalized: NormalizedOpenApi) -> SirenApi:
+        resources = self.resource_index(normalized.resources)
+        operations = self.operation_index(normalized.operations, resources)
+        fields = {name: operation.fields for name, operation in operations.items()}
         resource_operations = self.resource_operation_index(operations)
         return SirenApi(
             root=SirenRoot(
-                route=SirenRoute(path=assembly.root_path),
-                title=assembly.root_title,
-                version=assembly.root_version,
-                operations=tuple(dict.fromkeys(assembly.root_operations)),
+                route=SirenRoute(path=normalized.root_path),
+                title=normalized.root_title,
+                version=normalized.root_version,
+                operations=tuple(dict.fromkeys(normalized.root_operations)),
             ),
             resources=tuple(
                 SirenResource(
@@ -69,44 +65,8 @@ class SirenBuilder:
                     title=operation.title,
                     description=operation.description,
                     media_type=operation.media_type,
-                    fields=tuple(
-                        SirenField(
-                            name=item.name,
-                            type=item.type,
-                            values=item.values,
-                            title=item.title,
-                            default=item.default,
-                        )
-                        for item in fields.get(operation.name, ())
-                    ),
-                    input=SirenInput(
-                        media_type=operation.input.media_type,
-                        definition=operation.input.definition,
-                        official_fields=operation.input.official_fields,
-                        parameters=tuple(
-                            SirenParameterInput(
-                                name=item.name,
-                                location=item.location,
-                                required=item.required,
-                                definition=item.definition,
-                            )
-                            for item in operation.input.parameters
-                        ),
-                        delegated_inputs=tuple(
-                            SirenDelegatedInput(
-                                name=item.name,
-                                location=item.location,
-                                kind=item.kind,
-                                required=item.required,
-                                media_type=item.media_type,
-                                style=item.style,
-                                explode=item.explode,
-                                allow_reserved=item.allow_reserved,
-                                definition=item.definition,
-                            )
-                            for item in operation.input.delegated_inputs
-                        ),
-                    ) if operation.input else None,
+                    fields=operation.fields,
+                    input=operation.input,
                     responses=tuple(
                         SirenResponse(
                             status=response.status,
@@ -226,7 +186,7 @@ class SirenBuilder:
         return value.replace("~", "~0").replace("/", "~1")
 
     def response_bindings(
-        self, response, fields: Mapping[str, tuple[FieldDraft, ...]]
+        self, response, fields: Mapping[str, tuple[SirenField, ...]]
     ) -> tuple[SirenResponseBinding, ...]:
         values = []
         for binding in response.bindings:
@@ -241,7 +201,7 @@ class SirenBuilder:
                 )
             if any(not expression.startswith("$response.body#") for expression in binding.fields.values()):
                 raise SirenityError("OpenAPI response action binding runtime expression is unsupported")
-            values.append(SirenResponseBinding(operation=binding.operation, fields=binding.fields))
+            values.append(binding)
         return tuple(values)
 
     def resource_title(
@@ -378,7 +338,7 @@ class SirenBuilder:
                     f"OpenAPI response link runtime expression is invalid: {expression}"
                 )
 
-    def resource_index(self, resources: list[Resource]) -> dict[str, Resource]:
+    def resource_index(self, resources: tuple[Resource, ...]) -> dict[str, Resource]:
         index: dict[str, Resource] = {}
         for resource in resources:
             if resource.reference in index:
@@ -388,7 +348,7 @@ class SirenBuilder:
         return index
 
     def operation_index(
-        self, operations: list[OperationDraft], resources: Mapping[str, Resource]
+        self, operations: tuple[OperationDraft, ...], resources: Mapping[str, Resource]
     ) -> dict[str, OperationDraft]:
         index: dict[str, OperationDraft] = {}
         for operation in operations:
@@ -430,24 +390,6 @@ class SirenBuilder:
                 f"Siren operation {operation.name!r} path {operation.path!r} does not belong to "
                 f"{operation.scope} scope of resource {resource.name!r}"
             )
-
-    def field_index(
-        self, fields: list[FieldDraft], operations: Mapping[str, OperationDraft]
-    ) -> dict[str, tuple[FieldDraft, ...]]:
-        index: dict[str, list[FieldDraft]] = {}
-        names: dict[str, set[str]] = {}
-        for item in fields:
-            if item.operation not in operations:
-                raise SirenityError(
-                    f"Siren field {item.name!r} references unknown operation {item.operation!r}")
-            operation_fields = index.setdefault(item.operation, [])
-            operation_names = names.setdefault(item.operation, set())
-            if item.name in operation_names:
-                raise SirenityError(
-                    f"Siren operation {item.operation!r} has duplicate field {item.name!r}")
-            operation_fields.append(item)
-            operation_names.add(item.name)
-        return {operation: tuple(items) for operation, items in index.items()}
 
     def resource_operation_index(
         self, operations: Mapping[str, OperationDraft]
