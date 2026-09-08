@@ -3,12 +3,13 @@ import sys
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
-from sirenity.wiring import SirenApplicationContainer
+from sirenity.contexts.conformance import SirenConformanceService
+from sirenity.wiring import application
 
 
 class SirenSpecCommand:
     def verify_evidence(self, cucumber_report: Path, feature_directory: Path) -> str:
-        conformance = SirenApplicationContainer().application().conformance_service()
+        conformance = application.container.get(SirenConformanceService)
         report = conformance.inspect(cucumber_report, feature_directory)
         rendered = conformance.render(report)
         print(rendered)
