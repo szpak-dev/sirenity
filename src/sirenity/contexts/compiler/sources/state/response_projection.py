@@ -1,5 +1,6 @@
 from typing import Any
 
+from sirenity.contexts.graph import SirenResponseBinding
 from sirenity.contexts.shared import (
     BaseState,
     SirenActionMethod,
@@ -8,7 +9,7 @@ from sirenity.contexts.shared import (
     SirenScope,
 )
 
-from ..values import ResponseDraft, ResponseLinkDraft, RuntimeBindingDraft
+from ..values import ResponseDraft, ResponseLinkDraft
 from .components import ComponentResolver
 
 
@@ -25,11 +26,14 @@ class OpenApiResponseProjection(BaseState):
             for method, operation in path_item.items():
                 if not isinstance(method, str) or method.lower() not in supported or not isinstance(operation, dict):
                     continue
-                shapes.update(
-                    response.shape
-                    for response in self.responses(operation)
-                    if response.status.startswith("2")
-                )
+                try:
+                    shapes.update(
+                        response.shape
+                        for response in self.responses(operation)
+                        if response.status.startswith("2")
+                    )
+                except (SirenityError, ValueError):
+                    continue
             if "object" in shapes and "array" not in shapes:
                 selected.add(path)
         return frozenset(selected)
@@ -254,7 +258,7 @@ class OpenApiResponseProjection(BaseState):
                 "OpenAPI pagination continuation properties must be non-nullable scalars"
             )
 
-    def bindings(self, response: dict[str, Any]) -> tuple[RuntimeBindingDraft, ...]:
+    def bindings(self, response: dict[str, Any]) -> tuple[SirenResponseBinding, ...]:
         extension = response.get("x-sirenity", {})
         if not isinstance(extension, dict):
             raise SirenityError("OpenAPI response x-sirenity metadata must be an object")
@@ -270,5 +274,5 @@ class OpenApiResponseProjection(BaseState):
                 for name, expression in fields.items()
             ):
                 raise SirenityError("OpenAPI response action binding fields are invalid")
-            bindings.append(RuntimeBindingDraft(operation=operation, fields=fields))
+            bindings.append(SirenResponseBinding(operation=operation, fields=fields))
         return tuple(bindings)

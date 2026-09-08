@@ -45,6 +45,8 @@ class TestCompatibility:
             "[body-media-type]: OpenAPI request body media "
             "types are ambiguous. Remediation: Provide application/json or exactly one declared request media type."
         )
+        with pytest.raises(SirenityError, match=report.findings[0].detail):
+            siren(document)
 
     def test_public_facade_reports_a_compatible_contract_without_changing_fail_fast_compilation(self):
         report = audit(PARAMETER_MEDIA_SCHEMA)
@@ -52,13 +54,17 @@ class TestCompatibility:
         assert report.compatible is True
         assert report.findings == ()
         assert report.render() == "OpenAPI-to-Siren compatibility: compatible"
+        assert siren(PARAMETER_MEDIA_SCHEMA) is not None
 
         incompatible = deepcopy(PARAMETER_MEDIA_SCHEMA)
         incompatible["paths"]["/example_resources"]["get"]["parameters"] = [
             {"name": "page", "in": "query", "schema": {"type": "string", "format": "hostname"}}
         ]
 
-        with pytest.raises(SirenityError):
+        incompatible_report = audit(incompatible)
+
+        assert incompatible_report.compatible is False
+        with pytest.raises(SirenityError, match=incompatible_report.findings[0].detail):
             siren(incompatible)
 
     def test_public_facade_audits_response_shapes_with_the_strict_compiler_policy(self):

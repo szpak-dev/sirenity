@@ -1,8 +1,8 @@
 from typing import Any, Literal
 
+from sirenity.contexts.graph import SirenField
 from sirenity.contexts.shared import BaseState, SirenFieldType, SirenityError
 
-from ..values import Field
 from .components import ComponentResolver
 
 
@@ -49,7 +49,7 @@ class OpenApiFieldProjection(BaseState):
             return None if self.values(name, definition) else "array"
         return None
 
-    def field(self, name: str, schema: dict[str, Any]) -> Field:
+    def field(self, name: str, schema: dict[str, Any]) -> SirenField:
         definition = self.definition(name, schema)
         values = self.values(name, definition)
         field_type = self.type(name, definition, values)
@@ -66,7 +66,7 @@ class OpenApiFieldProjection(BaseState):
             raise SirenityError(f"OpenAPI field schema is unsupported: {name}")
         if values and default is not None and default not in values:
             raise SirenityError(f"OpenAPI field schema is unsupported: {name}")
-        return Field(name=name, type=field_type, values=values, title=title, default=default)
+        return SirenField(name=name, type=field_type, values=values, title=title, default=default)
 
     def definition(self, name: str, schema: dict[str, Any]) -> dict[str, Any]:
         definition = self.components.schema(schema)

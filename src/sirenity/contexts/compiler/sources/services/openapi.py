@@ -3,20 +3,18 @@ from typing import Any
 
 from wireup import injectable
 
-from sirenity.contexts.graph import SirenApi
 from sirenity.contexts.shared import SirenityError
 
-from ...compatibility import SirenCompatibilityFinding
+from ...compatibility import SirenCompatibilityFinding, SirenCompilation, SirenDiagnostics
 from ..contracts import SirenSource
 from ..state import (
     ComponentResolver,
-    OpenApiCompatibilityInspection,
     OpenApiFieldProjection,
     OpenApiResponseProjection,
     RouteCatalog,
 )
-from ..state.assembly import SirenAssembly
 from ..state.compiler import OpenApiOperationCompiler
+from ..values import NormalizedOpenApi
 from .builder import SirenBuilder
 
 
@@ -25,7 +23,9 @@ from .builder import SirenBuilder
 class OpenApiSource(SirenSource):
     builder: SirenBuilder
 
-    def audit(self, schema: dict[str, Any]) -> tuple[SirenCompatibilityFinding, ...]:
+    def compile(
+        self, schema: dict[str, Any], source_path: str, public_path: str
+    ) -> SirenCompilation | SirenDiagnostics:
         findings: list[SirenCompatibilityFinding] = []
         info = schema.get("info")
         if not isinstance(info, dict):
@@ -47,27 +47,13 @@ class OpenApiSource(SirenSource):
                     ))
         paths = schema.get("paths")
         if not isinstance(paths, dict):
-            return (*findings,
-                SirenCompatibilityFinding(
+            findings.append(SirenCompatibilityFinding(
                     location="#/paths",
                     category="route",
                     detail="OpenAPI schema requires an object-valued paths field",
                     remediation="Use an object-valued paths field.",
-                ))
-        components = ComponentResolver(components=schema.get("components", {}))
-        responses = OpenApiResponseProjection(components=components)
-        return (*findings, *OpenApiCompatibilityInspection(
-            components=components,
-            projection=OpenApiFieldProjection(components=components),
-            responses=responses,
-            routes=RouteCatalog(paths=paths),
-        ).inspect())
-
-    def load(self, schema: dict[str, Any], source_path: str, public_path: str) -> SirenApi:
-        paths = schema.get("paths")
-        if not isinstance(paths, dict):
-            raise SirenityError(
-                "OpenAPI schema requires an object-valued paths field")
+            ))
+            return SirenDiagnostics(findings=tuple(findings))
         components = ComponentResolver(components=schema.get("components", {}))
         responses = OpenApiResponseProjection(components=components)
         routes = RouteCatalog(
@@ -76,39 +62,54 @@ class OpenApiSource(SirenSource):
             public_path=public_path,
             single_object_paths=responses.single_object_paths(paths),
         )
-        routes.validate_paths()
-        info = schema.get("info")
-        if not isinstance(info, dict):
-            raise SirenityError("OpenAPI schema requires an object-valued info field")
-        title = info.get("title")
-        version = info.get("version")
-        if not isinstance(title, str) or not title:
-            raise SirenityError("OpenAPI info requires a non-empty title")
-        if not isinstance(version, str) or not version:
-            raise SirenityError("OpenAPI info requires a non-empty version")
-        assembly = SirenAssembly().set_root(
-            path=public_path,
-            title=title,
-            version=version,
-        )
-        for resource in routes.resources():
-            assembly.add_resource(
-                reference=resource.reference,
-                name=resource.name,
-                resource_class=resource.resource_class,
-                collection_path=routes.public(resource.collection_path),
-                path_bindings=resource.path_bindings,
-                entity_path=(
-                    routes.public(resource.entity_path)
-                    if resource.entity_path else None
-                ),
-                identifier=resource.identifier,
-            )
-        OpenApiOperationCompiler(
-            assembly=assembly,
+        compiler = OpenApiOperationCompiler(
             routes=routes,
             components=components,
             projection=OpenApiFieldProjection(components=components),
             responses=responses,
-        ).compile()
-        return self.builder.build(assembly)
+        )
+        findings.extend(compiler.compile())
+        try:
+            routes.validate_paths()
+            resources = tuple(
+                resource.model_copy(update={
+                    "collection_path": routes.public(resource.collection_path),
+                    "entity_path": (
+                        routes.public(resource.entity_path)
+                        if resource.entity_path else None
+                    ),
+                })
+                for resource in routes.resources()
+            )
+        except (SirenityError, ValueError) as error:
+            findings.append(SirenCompatibilityFinding(
+                location="#/paths",
+                category="route",
+                detail=str(error),
+                remediation="Use valid, unambiguous routes within the configured source path.",
+            ))
+            resources = ()
+        if findings:
+            return SirenDiagnostics(findings=tuple(findings))
+        assert isinstance(info, dict)
+        title = info["title"]
+        version = info["version"]
+        assert isinstance(title, str)
+        assert isinstance(version, str)
+        normalized = NormalizedOpenApi(
+            root_path=public_path,
+            root_title=title,
+            root_version=version,
+            resources=resources,
+            operations=tuple(compiler.operations),
+            root_operations=tuple(compiler.root_operations),
+        )
+        try:
+            return SirenCompilation(api=self.builder.build(normalized))
+        except (SirenityError, ValueError) as error:
+            return SirenDiagnostics(findings=(SirenCompatibilityFinding(
+                location="#",
+                category="graph",
+                detail=str(error),
+                remediation="Correct the conflicting normalized OpenAPI declarations.",
+            ),))

@@ -1,6 +1,6 @@
+from sirenity.contexts.graph import SirenField, SirenInput
 from sirenity.contexts.shared import BaseValue, SirenHttpMethod, SirenMediaType, SirenScope
 
-from .input_draft import InputDraft
 from .response_draft import ResponseDraft
 
 
@@ -14,5 +14,6 @@ class OperationDraft(BaseValue):
     title: str
     description: str
     media_type: SirenMediaType | None
-    input: InputDraft | None = None
+    fields: tuple[SirenField, ...] = ()
+    input: SirenInput | None = None
     responses: tuple[ResponseDraft, ...] = ()
