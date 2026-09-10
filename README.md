@@ -178,6 +178,7 @@ Guides are generated from marked public modules. Run `make docs` after changing 
 - [Django integration](docs/django.md)
 - [MCP integration](docs/mcp.md)
 - [Compatibility audit](docs/audit.md)
+- [Current architecture](docs/architecture.md)
 - [Public API reference](docs/reference.md)
 
 ## License
