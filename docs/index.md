@@ -7,5 +7,6 @@
 - [Django integration](django.md)
 - [MCP integration](mcp.md)
 - [Compatibility audit](audit.md)
+- [Current architecture](architecture.md)
 - [Public API reference](reference.md)
 - [License](../LICENSE)
