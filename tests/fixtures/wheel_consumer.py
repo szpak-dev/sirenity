@@ -1,5 +1,11 @@
+import importlib.metadata
+
 import sirenity
 from sirenity import SirenContext, siren
+
+distribution = importlib.metadata.distribution("sirenity")
+assert distribution.metadata["License-Expression"] == "LicenseRef-Proprietary"
+assert any(path.parts[-2:] == ("licenses", "LICENSE") for path in distribution.files or ())
 
 schema = {
     "openapi": "3.1.1",

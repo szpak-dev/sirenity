@@ -11,6 +11,12 @@ ROOT = Path(__file__).parents[1]
 START = "<!-- generated:public-api:start -->"
 END = "<!-- generated:public-api:end -->"
 ORDER = re.compile(r"<!-- docs:order=(\d+) -->")
+PROPRIETARY_LICENSE = "LicenseRef-Proprietary"
+LICENSE_MARKERS = (
+    "All rights reserved",
+    "No license or other rights are granted",
+    "Any unauthorized use is strictly prohibited",
+)
 
 
 class AnnotationText(str):
@@ -28,9 +34,32 @@ class Guide:
 
 class DocumentationGenerator:
     @classmethod
+    def project(cls) -> dict[str, object]:
+        return tomllib.loads((ROOT / "pyproject.toml").read_text())["project"]
+
+    @classmethod
     def package(cls) -> object:
-        project = tomllib.loads((ROOT / "pyproject.toml").read_text())
-        return importlib.import_module(project["project"]["name"].replace("-", "_"))
+        return importlib.import_module(str(cls.project()["name"]).replace("-", "_"))
+
+    @classmethod
+    def license(cls) -> tuple[str, ...]:
+        project = cls.project()
+        license_text = (ROOT / "LICENSE").read_text()
+        if project.get("license") != PROPRIETARY_LICENSE:
+            raise ValueError(f"Project license must be {PROPRIETARY_LICENSE}")
+        if project.get("license-files") != ["LICENSE"]:
+            raise ValueError("Project license-files must contain only LICENSE")
+        missing = tuple(marker for marker in LICENSE_MARKERS if marker not in license_text)
+        if missing:
+            raise ValueError(f"Proprietary LICENSE is missing markers: {', '.join(missing)}")
+        return (
+            "## License",
+            "",
+            "Sirenity is proprietary software. No permission to use, copy, modify, or distribute it is granted "
+            "without prior express written permission. "
+            "See [LICENSE](LICENSE) for the complete terms.",
+            "",
+        )
 
     @classmethod
     def guides(cls, package: object) -> tuple[Guide, ...]:
@@ -171,6 +200,8 @@ class DocumentationGenerator:
             "",
             *cls.navigation(guides, "docs/"),
             "- [Public API reference](docs/reference.md)",
+            "",
+            *cls.license(),
             END,
         ))
         if START not in current or END not in current:
@@ -187,6 +218,7 @@ class DocumentationGenerator:
             "- [Overview](../README.md)",
             *cls.navigation(guides),
             "- [Public API reference](reference.md)",
+            "- [License](../LICENSE)",
             "",
         ))
 
