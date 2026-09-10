@@ -179,4 +179,9 @@ Guides are generated from marked public modules. Run `make docs` after changing 
 - [MCP integration](docs/mcp.md)
 - [Compatibility audit](docs/audit.md)
 - [Public API reference](docs/reference.md)
+
+## License
+
+Sirenity is proprietary software. No permission to use, copy, modify, or distribute it is granted without prior express written permission. See [LICENSE](LICENSE) for the complete terms.
+
 <!-- generated:public-api:end -->

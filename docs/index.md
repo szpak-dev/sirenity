@@ -8,3 +8,4 @@
 - [MCP integration](mcp.md)
 - [Compatibility audit](audit.md)
 - [Public API reference](reference.md)
+- [License](../LICENSE)
