@@ -2,7 +2,7 @@ from collections.abc import Mapping
 
 from pydantic import Field, model_validator
 
-from sirenity.contexts.shared import BaseValue, SirenScope
+from ....shared import BaseValue, SirenScope
 
 
 class ResponseLinkDraft(BaseValue):

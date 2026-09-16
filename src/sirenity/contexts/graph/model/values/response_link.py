@@ -2,7 +2,7 @@ from collections.abc import Mapping
 
 from pydantic import Field
 
-from sirenity.contexts.shared import BaseValue, SirenRelation, SirenScope
+from ....shared import BaseValue, SirenRelation, SirenScope
 
 
 class SirenResponseLink(BaseValue):

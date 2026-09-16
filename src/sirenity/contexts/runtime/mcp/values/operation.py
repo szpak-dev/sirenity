@@ -2,12 +2,10 @@ from collections.abc import Mapping
 
 from pydantic import Field, JsonValue
 
-from sirenity.contexts.shared import BaseValue
+from ....shared import BaseValue
 
 
 class SirenMcpOperation(BaseValue):
-    """Represent a validated HTTP dispatch target and arguments separated by placement."""
-
     operation_id: str
     method: str
     dispatch_path: str

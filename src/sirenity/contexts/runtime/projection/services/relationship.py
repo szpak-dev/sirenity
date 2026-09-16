@@ -2,14 +2,17 @@ from dataclasses import dataclass
 
 from wireup import injectable
 
-from sirenity.contexts.graph import SirenApi
-from sirenity.contexts.shared import SirenityError, SirenScope
-
-from ...capabilities import SirenCapabilityValidator
-from ...document import SirenEmbeddedRepresentation, SirenLink
-from ...request import SirenContext, SirenRelationship
-from ...routing import SirenHrefService, SirenResourceResolver
-from ..contracts import SirenEntityDocumentService, SirenRelationshipDocumentService
+from ....graph import SirenApi
+from ....shared import SirenityError, SirenScope
+from ...capabilities.contracts.validator import SirenCapabilityValidator
+from ...document.values.embedded_representation import SirenEmbeddedRepresentation
+from ...document.values.link import SirenLink
+from ...request.values.context import SirenContext
+from ...request.values.relationship import SirenRelationship
+from ...routing.contracts.href import SirenHrefService
+from ...routing.contracts.resolver import SirenResourceResolver
+from ..contracts.entity import SirenEntityDocumentService
+from ..contracts.relationship import SirenRelationshipDocumentService
 
 
 @injectable(as_type=SirenRelationshipDocumentService)
@@ -44,8 +47,7 @@ class SirenDefaultRelationshipDocumentService(SirenRelationshipDocumentService):
             }
         )
         resource = self.resources.resolve(api, related_context)
-        self.capabilities.validate(
-            resource, related_context, relationship.scope)
+        self.capabilities.validate(resource, related_context, relationship.scope)
         path = (
             resource.collection.path
             if relationship.scope == SirenScope.COLLECTION or resource.entity is None
@@ -58,10 +60,10 @@ class SirenDefaultRelationshipDocumentService(SirenRelationshipDocumentService):
                 title=relationship.title or resource.title,
             )
         if resource.entity is None:
-            raise SirenityError(
-                f"Siren embedded relationship requires an entity resource: {resource.name}")
-        document = self.entities.entity(
-            api, resource, relationship.value, related_context, relationship.rel)
-        if isinstance(document, SirenEmbeddedRepresentation):
-            return document
-        raise SirenityError("Siren embedded relationship produced a document")
+            raise SirenityError(f"Siren embedded relationship requires an entity resource: {resource.name}")
+        document = self.entities.entity(api, resource, relationship.value, related_context, relationship.rel)
+        match document:
+            case SirenEmbeddedRepresentation():
+                return document
+            case _:
+                raise SirenityError("Siren embedded relationship produced a document")

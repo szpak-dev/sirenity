@@ -2,10 +2,10 @@ from dataclasses import dataclass
 
 from wireup import injectable
 
-from sirenity.contexts.graph import SirenApi
-
-from ...projection import SirenProjectionService, SirenResponseProjectionService
-from ..state import SirenEngine
+from ....graph import SirenApi
+from ...projection.services.projection import SirenProjectionService
+from ...projection.services.response import SirenResponseProjectionService
+from ..engine import SirenEngine
 
 
 @injectable

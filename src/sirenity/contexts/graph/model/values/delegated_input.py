@@ -3,7 +3,7 @@ from typing import Literal
 
 from pydantic import JsonValue, model_validator
 
-from sirenity.contexts.shared import BaseValue, SirenMediaType
+from ....shared import BaseValue, SirenMediaType
 
 
 class SirenDelegatedInput(BaseValue):

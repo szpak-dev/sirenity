@@ -2,7 +2,7 @@ from dataclasses import dataclass
 
 from wireup import injectable
 
-from sirenity.contexts.runtime.document import (
+from ....runtime.document import (
     SirenAction,
     SirenDocument,
     SirenEmbeddedLink,
@@ -11,9 +11,8 @@ from sirenity.contexts.runtime.document import (
     SirenFieldValue,
     SirenLink,
 )
-
-from ..contracts import SirenContractSource
-from ..values import SirenCapability
+from ..contracts.source import SirenContractSource
+from ..values.capability import SirenCapability
 from .exporter import SirenSerializationSchemaExporter
 
 

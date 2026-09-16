@@ -1,15 +1,13 @@
-from typing import Any, ClassVar
+from typing import ClassVar, Self
 
+from pydantic import GetCoreSchemaHandler, GetJsonSchemaHandler
+from pydantic.json_schema import JsonSchemaValue
 from pydantic_core import CoreSchema, core_schema
-
-from sirenity.contexts.shared import SirenityError
 
 from .uri import SirenUri
 
 
 class SirenRelation(str):
-    """Represent an official Siren relation value."""
-
     registered_values: ClassVar[tuple[str, ...]] = (
         "about",
         "alternate",
@@ -94,22 +92,18 @@ class SirenRelation(str):
     )
 
     @classmethod
-    def __get_pydantic_core_schema__(cls, source_type: object, handler: Any) -> CoreSchema:
+    def __get_pydantic_core_schema__(cls, source_type: type[Self], handler: GetCoreSchemaHandler) -> CoreSchema:
         return core_schema.no_info_after_validator_function(cls.validate, core_schema.str_schema())
 
     @classmethod
-    def __get_pydantic_json_schema__(cls, core_schema: CoreSchema, handler: Any) -> dict[str, Any]:
+    def __get_pydantic_json_schema__(cls, core_schema: CoreSchema, handler: GetJsonSchemaHandler) -> JsonSchemaValue:
         return cls.schema()
 
     @classmethod
     def validate(cls, value: str) -> "SirenRelation":
         if value in cls.registered():
             return cls(value)
-        try:
-            SirenUri.validate(value)
-        except SirenityError as error:
-            message = "Siren relation must be an official relation token or URI."
-            raise SirenityError(message) from error
+        SirenUri.validate(value)
         return cls(value)
 
     @classmethod
@@ -117,7 +111,7 @@ class SirenRelation(str):
         return frozenset(cls.registered_values)
 
     @classmethod
-    def schema(cls) -> dict[str, Any]:
+    def schema(cls) -> JsonSchemaValue:
         return {
             "anyOf": [
                 {"format": "uri", "type": "string"},

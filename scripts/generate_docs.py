@@ -71,12 +71,14 @@ class DocumentationGenerator:
             if match is None:
                 continue
             title = documentation.splitlines()[0].rstrip(".")
-            values.append(Guide(
-                module=module.__name__,
-                title=title or candidate.name.rsplit(".", 1)[-1].replace("_", " ").title(),
-                order=int(match.group(1)),
-                path=ROOT / "docs" / f"{candidate.name.rsplit('.', 1)[-1]}.md",
-            ))
+            values.append(
+                Guide(
+                    module=module.__name__,
+                    title=title or candidate.name.rsplit(".", 1)[-1].replace("_", " ").title(),
+                    order=int(match.group(1)),
+                    path=ROOT / "docs" / f"{candidate.name.rsplit('.', 1)[-1]}.md",
+                )
+            )
         return tuple(sorted(values, key=lambda guide: (guide.order, guide.module)))
 
     @classmethod
@@ -100,16 +102,18 @@ class DocumentationGenerator:
         rows = []
         for name, value in definitions:
             rows.append(f"| `{name}` | {cls.purpose(name, value)} | {cls.operations(value)} |")
-        return "\n".join((
-            "# Public API reference",
-            "",
-            f"The supported root imports below are generated from `{package.__name__}.__all__`.",
-            "",
-            "| Symbol | Purpose | Primary API |",
-            "| --- | --- | --- |",
-            *rows,
-            "",
-        ))
+        return "\n".join(
+            (
+                "# Public API reference",
+                "",
+                f"The supported root imports below are generated from `{package.__name__}.__all__`.",
+                "",
+                "| Symbol | Purpose | Primary API |",
+                "| --- | --- | --- |",
+                *rows,
+                "",
+            )
+        )
 
     @staticmethod
     def purpose(name: str, value: object) -> str:
@@ -146,10 +150,13 @@ class DocumentationGenerator:
     @staticmethod
     def signature(value: object) -> inspect.Signature:
         signature = inspect.signature(value)
-        parameters = tuple(parameter.replace(
-            annotation=DocumentationGenerator.annotation(parameter.annotation),
-            default=DocumentationGenerator.default(parameter.default),
-        ) for parameter in signature.parameters.values())
+        parameters = tuple(
+            parameter.replace(
+                annotation=DocumentationGenerator.annotation(parameter.annotation),
+                default=DocumentationGenerator.default(parameter.default),
+            )
+            for parameter in signature.parameters.values()
+        )
         return signature.replace(
             parameters=parameters,
             return_annotation=DocumentationGenerator.annotation(signature.return_annotation),
@@ -185,26 +192,28 @@ class DocumentationGenerator:
         integration_guide = inspect.getdoc(configuration)
         if not integration_guide:
             raise ValueError("Public symbol siren_configuration must have a docstring")
-        generated = "\n".join((
-            START,
-            "## Supported integrations",
-            "",
-            "This task-oriented guide is generated from the same public source as "
-            "[`docs/configuration.md`](docs/configuration.md).",
-            "",
-            integration_guide,
-            "",
-            "## Documentation",
-            "",
-            "Guides are generated from marked public modules. Run `make docs` after changing public guidance.",
-            "",
-            *cls.navigation(guides, "docs/"),
-            "- [Current architecture](docs/architecture.md)",
-            "- [Public API reference](docs/reference.md)",
-            "",
-            *cls.license(),
-            END,
-        ))
+        generated = "\n".join(
+            (
+                START,
+                "## Supported integrations",
+                "",
+                "This task-oriented guide is generated from the same public source as "
+                "[`docs/configuration.md`](docs/configuration.md).",
+                "",
+                integration_guide,
+                "",
+                "## Documentation",
+                "",
+                "Guides are generated from marked public modules. Run `make docs` after changing public guidance.",
+                "",
+                *cls.navigation(guides, "docs/"),
+                "- [Current architecture](docs/architecture.md)",
+                "- [Public API reference](docs/reference.md)",
+                "",
+                *cls.license(),
+                END,
+            )
+        )
         if START not in current or END not in current:
             raise ValueError("Missing generated documentation markers in README.md")
         prefix, remainder = current.split(START, 1)
@@ -213,16 +222,18 @@ class DocumentationGenerator:
 
     @classmethod
     def index(cls, guides: tuple[Guide, ...]) -> str:
-        return "\n".join((
-            "# Sirenity documentation",
-            "",
-            "- [Overview](../README.md)",
-            *cls.navigation(guides),
-            "- [Current architecture](architecture.md)",
-            "- [Public API reference](reference.md)",
-            "- [License](../LICENSE)",
-            "",
-        ))
+        return "\n".join(
+            (
+                "# Sirenity documentation",
+                "",
+                "- [Overview](../README.md)",
+                *cls.navigation(guides),
+                "- [Current architecture](architecture.md)",
+                "- [Public API reference](reference.md)",
+                "- [License](../LICENSE)",
+                "",
+            )
+        )
 
     @staticmethod
     def update(path: Path, expected: str, check: bool) -> bool:
@@ -239,10 +250,12 @@ class DocumentationGenerator:
         package = cls.package()
         guides = cls.guides(package)
         definitions = cls.definitions(package)
-        targets = [(
-            ROOT / "README.md",
-            cls.readme((ROOT / "README.md").read_text(), guides, definitions),
-        )]
+        targets = [
+            (
+                ROOT / "README.md",
+                cls.readme((ROOT / "README.md").read_text(), guides, definitions),
+            )
+        ]
         targets.append((ROOT / "docs" / "index.md", cls.index(guides)))
         targets.append((ROOT / "docs" / "reference.md", cls.reference(package, definitions)))
         targets.extend((guide.path, cls.guide(guide, definitions)) for guide in guides)

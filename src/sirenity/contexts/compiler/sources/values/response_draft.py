@@ -3,9 +3,9 @@ from typing import Literal
 
 from pydantic import JsonValue
 
-from sirenity.contexts.graph import SirenResponseBinding
-from sirenity.contexts.shared import BaseValue, SirenMediaType
-
+from ....shared import BaseValue, SirenMediaType
+from .response_binding import ResponseBindingDraft
+from .response_continuation import ResponseContinuationDraft
 from .response_link_draft import ResponseLinkDraft
 
 
@@ -15,4 +15,5 @@ class ResponseDraft(BaseValue):
     shape: Literal["object", "array", "empty"]
     definition: Mapping[str, JsonValue] | None = None
     links: tuple[ResponseLinkDraft, ...] = ()
-    bindings: tuple[SirenResponseBinding, ...] = ()
+    continuations: tuple[ResponseContinuationDraft, ...] = ()
+    bindings: tuple[ResponseBindingDraft, ...] = ()

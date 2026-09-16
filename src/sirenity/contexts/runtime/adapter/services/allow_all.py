@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from pydantic import JsonValue
 from wireup import injectable
 
-from ..values import SirenAdapterPolicy
+from ..policy import SirenAdapterPolicy
 
 
 @injectable
@@ -11,7 +11,5 @@ from ..values import SirenAdapterPolicy
 class SirenAllowAllPolicy:
     """Permit every capability owned by the matched operation's compiled graph scope."""
 
-    def select(
-        self, operation_id: str | None, status: int, request: object, result: JsonValue
-    ) -> SirenAdapterPolicy:
+    def select(self, operation_id: str | None, status: int, request: object, result: JsonValue) -> SirenAdapterPolicy:
         return SirenAdapterPolicy(all_capabilities=True)

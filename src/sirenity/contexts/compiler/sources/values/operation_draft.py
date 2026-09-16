@@ -1,6 +1,5 @@
-from sirenity.contexts.graph import SirenField, SirenInput
-from sirenity.contexts.shared import BaseValue, SirenHttpMethod, SirenMediaType, SirenScope
-
+from ....graph import SirenField, SirenInput
+from ....shared import BaseValue, SirenHttpMethod, SirenMediaType, SirenScope
 from .response_draft import ResponseDraft
 
 

@@ -4,20 +4,17 @@
 """
 
 from collections.abc import Mapping
-from typing import Any
 
 from openapi_spec_validator import validate
+from pydantic import JsonValue
 
 from ..contexts.compiler import SirenApiService
-from ..contexts.compiler.document import normalized_openapi
 from ..contexts.runtime.engine import SirenEngine, SirenEngineFactory
-from ..contexts.shared import SirenContractError, SirenityError
+from ..contexts.shared import SirenContractError
 from ..wiring import application
 
 
-def siren(
-    openapi: Mapping[str, Any], *, source_path: str = "/", public_path: str = "/"
-) -> SirenEngine:
+def siren(openapi: Mapping[str, JsonValue], *, source_path: str = "/", public_path: str = "/") -> SirenEngine:
     """Compile a complete OpenAPI 3.1 document into a reusable Siren engine.
 
     Call this once during application startup, then call `engine.project(context)` for each
@@ -350,31 +347,15 @@ def siren(
     slash. Every OpenAPI path must belong to `source_path`.
     """
 
-    if not isinstance(openapi, Mapping):
-        raise SirenContractError(
-            "#", "input", "OpenAPI document must be a mapping.")
-    if not isinstance(source_path, str) or not source_path.startswith("/"):
-        raise SirenContractError(
-            "#/source_path", "input", "Siren source path must start with '/'.")
-    if not isinstance(public_path, str) or not public_path.startswith("/"):
-        raise SirenContractError(
-            "#/public_path", "input", "Siren public path must start with '/'.")
+    if not source_path.startswith("/"):
+        raise SirenContractError("#/source_path", "input", "Siren source path must start with '/'.")
+    if not public_path.startswith("/"):
+        raise SirenContractError("#/public_path", "input", "Siren public path must start with '/'.")
     source_path = source_path.rstrip("/") or "/"
     public_path = public_path.rstrip("/") or "/"
-    document = normalized_openapi(openapi)
-    try:
-        validate(document)
-    except Exception as error:
-        raise SirenContractError(
-            "#", "openapi", "OpenAPI document does not conform to OpenAPI 3.1.") from error
-    try:
-        container = application.container
-        api = container.get(SirenApiService).build(document, source_path, public_path)
-        return container.get(SirenEngineFactory).create(api)
-    except SirenContractError:
-        raise
-    except SirenityError as error:
-        raise SirenContractError("#", "compilation", str(error)) from error
-    except Exception as error:
-        raise SirenContractError(
-            "#", "compilation", "Sirenity could not compile the OpenAPI document.") from error
+    container = application.container
+    api_service = container.get(SirenApiService)
+    document = api_service.normalize(openapi)
+    validate(document)
+    api = api_service.build(document, source_path, public_path)
+    return container.get(SirenEngineFactory).create(api)

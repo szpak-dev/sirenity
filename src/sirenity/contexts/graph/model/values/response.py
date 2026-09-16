@@ -3,8 +3,8 @@ from typing import Literal
 
 from pydantic import JsonValue, model_validator
 
-from sirenity.contexts.shared import BaseValue, SirenMediaType
-
+from ....shared import BaseValue, SirenMediaType
+from .continuation import SirenContinuation
 from .response_binding import SirenResponseBinding
 from .response_link import SirenResponseLink
 
@@ -15,6 +15,7 @@ class SirenResponse(BaseValue):
     shape: Literal["object", "array", "empty"]
     definition: Mapping[str, JsonValue] | None = None
     links: tuple[SirenResponseLink, ...] = ()
+    continuations: tuple[SirenContinuation, ...] = ()
     bindings: tuple[SirenResponseBinding, ...] = ()
 
     @model_validator(mode="after")

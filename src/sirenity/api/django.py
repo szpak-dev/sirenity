@@ -5,24 +5,93 @@
 
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass, field
-from typing import Any
+from typing import NotRequired, Protocol, TypedDict
+
+from pydantic import JsonValue
 
 from ..contexts.runtime.adapter import SirenDjangoMiddleware
-from ..contexts.runtime.configuration import SirenConfiguration
-from ..contexts.shared import SirenityError
-from .configuration import siren_configuration
+from ..contexts.runtime.mcp import SirenMcpToolCatalogueService
+from ..wiring import application
+from .configuration import SirenConfigurationResolver
 
 
-def siren_pagination(
-    route: Callable[..., Callable[[Callable[..., Any]], Callable[..., Any]]],
+class SirenHandler[**P, R](Protocol):
+    def __call__(self, *args: P.args, **kwargs: P.kwargs) -> R: ...
+
+
+class SirenOperationDecorator[**P, R](Protocol):
+    def __call__(self, handler: SirenHandler[P, R]) -> SirenHandler[P, R]: ...
+
+
+class SirenRouteDecorator[**P, R, S](Protocol):
+    def __call__(
+        self,
+        path: str,
+        *,
+        response: Mapping[int, type[S]],
+        operation_id: str,
+        openapi_extra: Mapping[str, JsonValue],
+        **operation: object,
+    ) -> SirenOperationDecorator[P, R]: ...
+
+
+class SirenDjangoSettings(TypedDict):
+    OPENAPI: str
+    SOURCE_PATH: NotRequired[str]
+    PUBLIC_PATH: NotRequired[str]
+    POLICY: NotRequired[str]
+    PROFILES: NotRequired[list[str]]
+
+
+@dataclass(frozen=True)
+class SirenContinuation[**P, R, S]:
+    route: SirenRouteDecorator[P, R, S]
+    path: str
+    response: type[S]
+    operation_id: str
+    continuation: Mapping[str, str]
+    summary: str
+    description: str
+    status: int = 200
+
+    def __call__(self, handler: SirenHandler[P, R]) -> SirenHandler[P, R]:
+        parameters = {
+            name: f"$response.body#/{property_name.replace('~', '~0').replace('/', '~1')}"
+            for name, property_name in self.continuation.items()
+        }
+        decorator = self.route(
+            self.path,
+            response={self.status: self.response},
+            operation_id=self.operation_id,
+            summary=self.summary,
+            description=self.description,
+            openapi_extra={
+                "responses": {
+                    self.status: {
+                        "links": {
+                            "next": {
+                                "operationId": self.operation_id,
+                                "parameters": parameters,
+                                "x-sirenity": {"continuation": "bounded"},
+                            }
+                        }
+                    }
+                }
+            },
+        )
+        return decorator(handler)
+
+
+def siren_pagination[**P, R, S](
+    route: SirenRouteDecorator[P, R, S],
     path: str = "",
     *,
-    response: type[Any],
+    response: type[S],
     operation_id: str,
     continuation: Mapping[str, str],
     status: int = 200,
     **operation: object,
-) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
+) -> SirenOperationDecorator[P, R]:
     """Declare one typed paginated Django Ninja or Ninja Extra operation.
 
     Pass ``api.get`` for Django Ninja or ``http_get`` for Ninja Extra. The response model and
@@ -55,28 +124,6 @@ def siren_pagination(
     ```
     """
 
-    if not callable(route):
-        raise SirenityError("Siren pagination route must be callable")
-    if not isinstance(path, str):
-        raise SirenityError("Siren pagination path must be a string")
-    if not isinstance(response, type):
-        raise SirenityError("Siren pagination response model is required")
-    if not isinstance(operation_id, str) or not operation_id:
-        raise SirenityError("Siren pagination operation_id must be non-empty")
-    if isinstance(status, bool) or not isinstance(status, int) or not 200 <= status < 300:
-        raise SirenityError("Siren pagination status must be a successful integer status")
-    if not isinstance(continuation, Mapping) or not continuation or any(
-        not isinstance(query, str)
-        or not query
-        or not isinstance(property_name, str)
-        or not property_name
-        for query, property_name in continuation.items()
-    ):
-        raise SirenityError("Siren pagination continuation must map query names to response properties")
-    if len(set(continuation.values())) != len(continuation):
-        raise SirenityError("Siren pagination response properties must be unique")
-    if "openapi_extra" in operation:
-        raise SirenityError("Siren pagination owns openapi_extra")
     parameters = {
         query: f"$response.body#/{property_name.replace('~', '~0').replace('/', '~1')}"
         for query, property_name in continuation.items()
@@ -105,12 +152,11 @@ def siren_pagination(
 class SirenMiddleware:
     """Install Siren through Django's standard middleware loader.
 
-    The loader consumes an exact immutable ``SirenConfiguration`` or turns the current ``SIRENITY``
-    mapping into one, then installs middleware from that same configuration. Resolved settings
-    declarations remain fresh for each Django startup, autoreload process, and ``override_settings``
-    lifecycle; a supplied configuration retains its caller-owned adapter lifecycle. ``OPENAPI`` and
-    ``POLICY`` are dotted import paths; ``PROFILES`` is an optional sequence of profile paths. A
-    missing policy retains the standard allow-all behavior.
+    The loader turns the current ``SIRENITY`` mapping into one immutable configuration, then installs
+    middleware from that configuration. Resolved settings declarations remain fresh for each Django
+    startup, autoreload process, and ``override_settings`` lifecycle. ``OPENAPI`` and ``POLICY`` are
+    dotted import paths; ``PROFILES`` is an optional sequence of profile paths. A missing policy retains
+    the standard allow-all behavior.
 
     Sirenity derives an unambiguous immediate nested collection directly from Django Ninja's
     generated resource routes and response schemas. A parent response can expose canonical ``id``
@@ -160,40 +206,18 @@ class SirenMiddleware:
     middleware: SirenDjangoMiddleware = field(init=False)
 
     def __post_init__(self):
-        try:
-            from django.conf import settings
+        from django.conf import settings
 
-            configured = getattr(settings, "SIRENITY", None)
-            if isinstance(configured, SirenConfiguration):
-                selected = configured
-            else:
-                if not isinstance(configured, Mapping):
-                    raise SirenityError("SIRENITY must be a SirenConfiguration or mapping")
-                openapi = configured.get("OPENAPI")
-                policy = configured.get("POLICY", "sirenity.SirenAllowAllPolicy")
-                source_path = configured.get("SOURCE_PATH", "/")
-                public_path = configured.get("PUBLIC_PATH", "/")
-                profiles = configured.get("PROFILES", ())
-                if not isinstance(openapi, str) or not openapi:
-                    raise SirenityError("SIRENITY.OPENAPI must be a dotted import path")
-                if not isinstance(policy, str) or not policy:
-                    raise SirenityError("SIRENITY.POLICY must be a dotted import path")
-                if not isinstance(source_path, str) or not isinstance(public_path, str):
-                    raise SirenityError("SIRENITY source and public paths must be strings")
-                if not isinstance(profiles, list | tuple) or any(
-                    not isinstance(path, str) or not path for path in profiles
-                ):
-                    raise SirenityError("SIRENITY.PROFILES must be a sequence of dotted import paths")
-                selected = siren_configuration(
-                    openapi=openapi,
-                    source_path=source_path,
-                    public_path=public_path,
-                    policy=policy,
-                    profiles=tuple(profiles),
-                )
-            object.__setattr__(self, "middleware", selected.django(self.get_response))
-        except Exception as error:
-            raise SirenityError(f"Django Siren middleware startup failed: {error}") from error
+        declaration: SirenDjangoSettings = settings.SIRENITY
+        resolver = SirenConfigurationResolver(catalogue_service=application.container.get(SirenMcpToolCatalogueService))
+        selected = resolver.provider(
+            declaration["OPENAPI"],
+            declaration.get("SOURCE_PATH", "/"),
+            declaration.get("PUBLIC_PATH", "/"),
+            declaration.get("POLICY", "sirenity.SirenAllowAllPolicy"),
+            tuple(declaration.get("PROFILES", ())),
+        )
+        object.__setattr__(self, "middleware", selected.django(self.get_response))
 
     def __call__(self, request: object) -> object:
         return self.middleware(request)

@@ -1,12 +1,12 @@
 from abc import ABC, abstractmethod
 from collections.abc import Mapping
-from typing import Any
 
-from sirenity.contexts.graph import SirenApi, SirenOperation, SirenResource
-from sirenity.contexts.shared import SirenityError, SirenScope
+from pydantic import JsonValue
 
-from ...document import SirenAction
-from ...request import SirenContext
+from ....graph import SirenApi, SirenOperation, SirenResource
+from ....shared import SirenityError, SirenScope
+from ...document.values.action import SirenAction
+from ...request.values.context import SirenContext
 
 
 class SirenActionDocumentService(ABC):
@@ -17,7 +17,7 @@ class SirenActionDocumentService(ABC):
         resource: SirenResource,
         scope: SirenScope,
         context: SirenContext,
-        value: Mapping[str, Any],
+        value: Mapping[str, JsonValue],
     ) -> list[SirenAction]:
         raise SirenityError
 
@@ -27,7 +27,7 @@ class SirenActionDocumentService(ABC):
         operation: SirenOperation,
         context: SirenContext,
         resource: SirenResource | None,
-        value: Mapping[str, Any],
+        value: Mapping[str, JsonValue],
         include_query: bool = True,
     ) -> SirenAction:
         raise SirenityError

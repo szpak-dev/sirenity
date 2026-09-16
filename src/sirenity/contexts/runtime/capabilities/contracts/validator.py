@@ -1,9 +1,8 @@
 from abc import ABC, abstractmethod
 
-from sirenity.contexts.graph import SirenResource
-from sirenity.contexts.shared import SirenityError, SirenScope
-
-from ...request import SirenContext
+from ....graph import SirenResource
+from ....shared import SirenityError, SirenScope
+from ...request.values.context import SirenContext
 
 
 class SirenCapabilityValidator(ABC):

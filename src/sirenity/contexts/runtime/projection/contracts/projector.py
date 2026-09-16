@@ -1,9 +1,8 @@
 from abc import ABC, abstractmethod
 
-from sirenity.contexts.shared import SirenityError, SirenScope
-
-from ...document import SirenDocument
-from ..state import SirenProjectionRequest
+from ....shared import SirenityError, SirenScope
+from ...document.values.document import SirenDocument
+from ..values.request import SirenProjectionRequest
 
 
 class SirenScopeProjector(ABC):

@@ -1,6 +1,6 @@
 from collections.abc import Mapping
 
-from sirenity.contexts.shared import BaseValue
+from ....shared import BaseValue
 
 
 class SirenResponseBinding(BaseValue):

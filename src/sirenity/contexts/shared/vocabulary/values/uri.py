@@ -1,22 +1,21 @@
-from typing import Any, ClassVar
+from typing import ClassVar, Self
 
 from jsonschema import FormatChecker
+from pydantic import GetCoreSchemaHandler, GetJsonSchemaHandler
 from pydantic_core import CoreSchema, core_schema
 
-from sirenity.contexts.shared import SirenityError
+from ... import SirenityError
 
 
 class SirenUri(str):
-    """Represent an official Siren URI value."""
-
     checker: ClassVar[FormatChecker] = FormatChecker()
 
     @classmethod
-    def __get_pydantic_core_schema__(cls, source_type: object, handler: Any) -> CoreSchema:
+    def __get_pydantic_core_schema__(cls, source_type: type[Self], handler: GetCoreSchemaHandler) -> CoreSchema:
         return core_schema.no_info_after_validator_function(cls.validate, core_schema.str_schema())
 
     @classmethod
-    def __get_pydantic_json_schema__(cls, core_schema: CoreSchema, handler: Any) -> dict[str, str]:
+    def __get_pydantic_json_schema__(cls, core_schema: CoreSchema, handler: GetJsonSchemaHandler) -> dict[str, str]:
         return {"format": "uri", "type": "string"}
 
     @classmethod

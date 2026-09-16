@@ -1,5 +1,4 @@
-from sirenity.contexts.shared import BaseValue, SirenHttpMethod, SirenMediaType, SirenScope
-
+from ....shared import BaseValue, SirenHttpMethod, SirenMediaType, SirenScope
 from .field import SirenField
 from .input import SirenInput
 from .response import SirenResponse

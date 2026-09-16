@@ -4,16 +4,15 @@
 """
 
 from collections.abc import Mapping
-from typing import Any
 
-from ..contexts.runtime.adapter import SirenAdapter, SirenAdapterProfile
-from ..contexts.runtime.adapter.values import SirenAdapterRoute
-from ..contexts.shared import SirenityError
+from pydantic import JsonValue
+
+from ..contexts.runtime.adapter import SirenAdapter, SirenAdapterProfile, SirenAdapterRoute
 from .siren import siren
 
 
 def siren_adapter(
-    openapi: Mapping[str, Any],
+    openapi: Mapping[str, JsonValue],
     *,
     source_path: str = "/",
     public_path: str = "/",
@@ -125,18 +124,15 @@ def siren_adapter(
     ```
     """
 
-    try:
-        engine = siren(openapi, source_path=source_path,
-                       public_path=public_path)
-        routes = []
-        for operation in engine.api.operations:
-            routes.append(SirenAdapterRoute(
+    engine = siren(openapi, source_path=source_path, public_path=public_path)
+    routes = []
+    for operation in engine.api.operations:
+        routes.append(
+            SirenAdapterRoute(
                 source_path=operation.source_path,
                 public_path=operation.route.path,
                 method=operation.method,
                 operation_id=operation.name,
-            ))
-        return SirenAdapter(engine=engine, routes=tuple(routes), profiles=profiles)
-    except Exception as error:
-        raise SirenityError(
-            f"Invalid or unsupported Siren adapter contract: {error}") from error
+            )
+        )
+    return SirenAdapter(engine=engine, routes=tuple(routes), profiles=profiles)

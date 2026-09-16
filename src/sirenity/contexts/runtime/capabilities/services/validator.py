@@ -2,11 +2,10 @@ from dataclasses import dataclass
 
 from wireup import injectable
 
-from sirenity.contexts.graph import SirenResource
-from sirenity.contexts.shared import SirenityError, SirenScope
-
-from ...request import SirenContext
-from ..contracts import SirenCapabilityValidator
+from ....graph import SirenResource
+from ....shared import SirenityError, SirenScope
+from ...request.values.context import SirenContext
+from ..contracts.validator import SirenCapabilityValidator
 
 
 @injectable(as_type=SirenCapabilityValidator)
@@ -22,5 +21,4 @@ class SirenDefaultCapabilityValidator(SirenCapabilityValidator):
         )
         unknown = sorted(context.capabilities - supported)
         if unknown:
-            raise SirenityError(
-                f"Siren context declares unsupported capabilities for {resource.name!r}: {unknown}")
+            raise SirenityError(f"Siren context declares unsupported capabilities for {resource.name!r}: {unknown}")

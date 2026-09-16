@@ -26,9 +26,7 @@ class ServiceConventionChecker:
             failures.extend(self.check_composition())
         return tuple(failures)
 
-    def check(
-        self, path: Path, root: Path, collaborators: frozenset[str], injectables: frozenset[str]
-    ) -> list[str]:
+    def check(self, path: Path, root: Path, collaborators: frozenset[str], injectables: frozenset[str]) -> list[str]:
         source = path.read_text()
         tree = ast.parse(source, filename=str(path))
         classes = tuple(item for item in tree.body if isinstance(item, ast.ClassDef))
@@ -83,9 +81,7 @@ class ServiceConventionChecker:
                     names.add(node.name)
         return frozenset(names)
 
-    def check_collaborator_parameters(
-        self, path: Path, node: ast.ClassDef, collaborators: frozenset[str]
-    ) -> list[str]:
+    def check_collaborator_parameters(self, path: Path, node: ast.ClassDef, collaborators: frozenset[str]) -> list[str]:
         failures: list[str] = []
         for method in (member for member in node.body if isinstance(member, (ast.FunctionDef, ast.AsyncFunctionDef))):
             parameters = (*method.args.posonlyargs, *method.args.args, *method.args.kwonlyargs)
@@ -101,16 +97,12 @@ class ServiceConventionChecker:
                     )
         return failures
 
-    def check_injectable_construction(
-        self, path: Path, node: ast.ClassDef, injectables: frozenset[str]
-    ) -> list[str]:
+    def check_injectable_construction(self, path: Path, node: ast.ClassDef, injectables: frozenset[str]) -> list[str]:
         failures: list[str] = []
         for call in (item for item in ast.walk(node) if isinstance(item, ast.Call)):
             name = self.call_name(call.func)
             if name in injectables:
-                failures.append(
-                    f"{path}: {node.name} constructs injectable {name}; inject it as a dataclass field"
-                )
+                failures.append(f"{path}: {node.name} constructs injectable {name}; inject it as a dataclass field")
         return failures
 
     def annotation_names(self, annotation: ast.expr) -> set[str]:

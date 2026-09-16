@@ -1,16 +1,14 @@
-import re
 from dataclasses import dataclass
 
 from wireup import injectable
 
-from sirenity.contexts.shared import SirenHttpMethod, SirenRelation, SirenScope
-
-from ...document import SirenDocument, SirenLink
-from ...routing import SirenHrefService
-from ..contracts import SirenActionDocumentService, SirenScopeProjector
-from ..state import SirenProjectionRequest
-
-_PARAMETER = re.compile(r"\{([^}]+)\}")
+from ....shared import SirenHttpMethod, SirenRelation, SirenScope
+from ...document.values.document import SirenDocument
+from ...document.values.link import SirenLink
+from ...routing.contracts.href import SirenHrefService
+from ..contracts.action import SirenActionDocumentService
+from ..contracts.projector import SirenScopeProjector
+from ..values.request import SirenProjectionRequest
 
 
 @injectable(as_type=SirenScopeProjector, qualifier=SirenScope.ROOT)
@@ -28,11 +26,13 @@ class SirenRootScopeProjector(SirenScopeProjector):
         properties = dict(request.context.value)
         if request.api.root.version:
             properties["version"] = request.api.root.version
-        links = [SirenLink(
-            rel=("self",),
-            href=self.hrefs.href(request.api.root.route.path, request.context, None),
-            title=title,
-        )]
+        links = [
+            SirenLink(
+                rel=("self",),
+                href=self.hrefs.href(request.api.root.route.path, request.context, None),
+                title=title,
+            )
+        ]
         links.extend(
             SirenLink(
                 rel=(SirenRelation.validate("collection"),),
@@ -40,7 +40,9 @@ class SirenRootScopeProjector(SirenScopeProjector):
                 title=resource.title,
             )
             for resource in request.api.resources
-            if not _PARAMETER.search(resource.collection.path)
+            if not any(
+                segment.startswith("{") and segment.endswith("}") for segment in resource.collection.path.split("/")
+            )
             and any(
                 operation.scope == SirenScope.COLLECTION
                 and operation.route.path == resource.collection.path

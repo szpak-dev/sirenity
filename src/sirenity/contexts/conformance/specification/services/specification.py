@@ -2,10 +2,9 @@ from dataclasses import dataclass
 
 from wireup import injectable
 
-from sirenity.contexts.shared.siren_schema import SirenSchemaReader
-
-from ..contracts import SirenSpecification
-from ..values import SirenRequirement
+from ....shared.siren_schema import SirenSchemaReader
+from ..contracts.specification import SirenSpecification
+from ..values.requirement import SirenRequirement
 
 
 @injectable(as_type=SirenSpecification)
@@ -29,12 +28,14 @@ class SirenSchemaSpecification(SirenSpecification):
                 )
                 requirements += (requirement,)
                 for value in member_schema.get("enum", []):
-                    requirements += (SirenRequirement(
-                        definition=name,
-                        member=member,
-                        schema=member_schema,
-                        required=requirement.required,
-                        document=document.value,
-                        enum_value=value,
-                    ),)
+                    requirements += (
+                        SirenRequirement(
+                            definition=name,
+                            member=member,
+                            schema=member_schema,
+                            required=requirement.required,
+                            document=document.value,
+                            enum_value=value,
+                        ),
+                    )
         return requirements

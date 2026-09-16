@@ -1,5 +1,4 @@
-from sirenity.contexts.shared import BaseValue
-
+from ....shared import BaseValue
 from .route import SirenRoute
 
 

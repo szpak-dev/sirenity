@@ -1,10 +1,10 @@
 import json
 from collections.abc import Callable
 
-from sirenity.contexts.shared import BaseState, SirenityError
-
-from ..contracts import SirenCapabilityPolicy
-from ..values import SirenAccept, SirenAdapterPolicy, SirenAdapterRequest
+from ....shared import BaseState
+from ..contracts.policy import SirenCapabilityPolicy
+from ..values.accept import SirenAccept
+from ..values.request import SirenAdapterRequest
 from .adapter import SirenAdapter
 
 
@@ -33,12 +33,11 @@ class SirenDjangoMiddleware(BaseState):
 
     get_response: Callable[[object], object]
     adapter: SirenAdapter
-    policy: SirenCapabilityPolicy | Callable[..., SirenAdapterPolicy]
+    policy: SirenCapabilityPolicy
 
     def __call__(self, request: object) -> object:
         match = self.adapter.match(request.method, request.path)
-        dispatch_path = self.adapter.dispatch_path(
-            request.method, request.path)
+        dispatch_path = self.adapter.dispatch_path(request.method, request.path)
         original_path = request.path
         original_path_info = request.path_info
         if dispatch_path is not None:
@@ -58,10 +57,9 @@ class SirenDjangoMiddleware(BaseState):
             return response
         if 300 <= response.status_code < 400:
             return response
-        if getattr(response, "streaming", False):
+        if response.streaming:
             return response
-        content_type = response.get(
-            "Content-Type", "").split(";", 1)[0].strip().lower()
+        content_type = response.get("Content-Type", "").split(";", 1)[0].strip().lower()
         if content_type == "application/vnd.siren+json":
             patch_vary_headers(response, ("Accept",))
             return response
@@ -73,31 +71,24 @@ class SirenDjangoMiddleware(BaseState):
         if not SirenAccept(value=accept).selects_siren():
             return response
         result = json.loads(content) if content else None
-        if isinstance(self.policy, SirenCapabilityPolicy):
-            selected = self.policy.select(
-                match.operation_id, response.status_code, request, result)
-        else:
-            selected = self.policy(
-                match.operation_id, response.status_code, request, result)
-        if not isinstance(selected, SirenAdapterPolicy):
-            raise SirenityError(
-                "Siren capability policy must return SirenAdapterPolicy")
-        query = tuple((name, value)
-                      for name in request.GET for value in request.GET.getlist(name))
-        projected = self.adapter.respond(SirenAdapterRequest(
-            operation_id=match.operation_id,
-            method=request.method,
-            path=request.path,
-            status=response.status_code,
-            result=result,
-            base_url=request.build_absolute_uri("/").rstrip("/"),
-            request_url=request.build_absolute_uri(),
-            media_type=content_type if content else None,
-            path_values=match.path_values,
-            query=query,
-            headers=dict(response.items()),
-            policy=selected,
-        ))
+        selected = self.policy.select(match.operation_id, response.status_code, request, result)
+        query = tuple((name, value) for name in request.GET for value in request.GET.getlist(name))
+        projected = self.adapter.respond(
+            SirenAdapterRequest(
+                operation_id=match.operation_id,
+                method=request.method,
+                path=request.path,
+                status=response.status_code,
+                result=result,
+                base_url=request.build_absolute_uri("/").rstrip("/"),
+                request_url=request.build_absolute_uri(),
+                media_type=content_type if content else None,
+                path_values=match.path_values,
+                query=query,
+                headers=dict(response.items()),
+                policy=selected,
+            )
+        )
         from django.http import JsonResponse
 
         rendered = JsonResponse(

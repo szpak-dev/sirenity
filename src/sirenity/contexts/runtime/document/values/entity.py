@@ -4,8 +4,7 @@ from collections.abc import Mapping
 
 from pydantic import Field, JsonValue
 
-from sirenity.contexts.shared import BaseValue
-
+from ....shared import BaseValue
 from .action import SirenAction
 from .link import SirenLink
 

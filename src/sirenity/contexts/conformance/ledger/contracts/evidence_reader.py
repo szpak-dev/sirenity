@@ -1,9 +1,8 @@
 from abc import ABC, abstractmethod
 from pathlib import Path
 
-from sirenity.contexts.shared import SirenityError
-
-from ..values import SirenBddFeature
+from ....shared import SirenityError
+from ..values.feature import SirenBddFeature
 
 
 class SirenBddEvidenceReader(ABC):

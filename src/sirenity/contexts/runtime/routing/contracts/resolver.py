@@ -1,9 +1,8 @@
 from abc import ABC, abstractmethod
 
-from sirenity.contexts.graph import SirenApi, SirenResource
-from sirenity.contexts.shared import SirenityError
-
-from ...request import SirenContext
+from ....graph import SirenApi, SirenResource
+from ....shared import SirenityError
+from ...request.values.context import SirenContext
 
 
 class SirenResourceResolver(ABC):

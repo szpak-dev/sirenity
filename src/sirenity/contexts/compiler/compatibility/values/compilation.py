@@ -1,5 +1,5 @@
-from sirenity.contexts.graph import SirenApi
-from sirenity.contexts.shared import BaseValue
+from ....graph import SirenApi
+from ....shared import BaseValue
 
 
 class SirenCompilation(BaseValue):

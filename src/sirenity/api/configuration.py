@@ -3,9 +3,90 @@
 <!-- docs:order=30 -->
 """
 
-from ..contexts.runtime.configuration import SirenConfiguration, SirenConfigurationResolver
-from ..contexts.runtime.configuration.values import SirenConfigurationDeclaration
+from collections.abc import Callable, Mapping
+from dataclasses import dataclass
+from pkgutil import resolve_name
+
+from pydantic import JsonValue
+
+from ..contexts.runtime.adapter import (
+    SirenAdapter,
+    SirenAdapterProfile,
+    SirenCapabilityPolicy,
+    SirenDjangoMiddleware,
+)
+from ..contexts.runtime.mcp import SirenMcpToolCatalogue, SirenMcpToolCatalogueService
 from ..wiring import application
+from .adapter import siren_adapter
+
+
+@dataclass(frozen=True)
+class SirenConfiguration:
+    adapter_value: SirenAdapter
+    policy: SirenCapabilityPolicy
+    catalogue_value: SirenMcpToolCatalogue
+
+    def adapter(self) -> SirenAdapter:
+        return self.adapter_value
+
+    def catalogue(self) -> SirenMcpToolCatalogue:
+        return self.catalogue_value
+
+    def django(self, get_response: Callable[[object], object]) -> SirenDjangoMiddleware:
+        return SirenDjangoMiddleware(
+            get_response=get_response,
+            adapter=self.adapter_value,
+            policy=self.policy,
+        )
+
+
+@dataclass(frozen=True)
+class SirenConfigurationResolver:
+    catalogue_service: SirenMcpToolCatalogueService
+
+    def mapping(
+        self,
+        openapi: str,
+        source_path: str,
+        public_path: str,
+        policy: str,
+        profiles: tuple[str, ...],
+    ) -> SirenConfiguration:
+        schema: Mapping[str, JsonValue] = resolve_name(openapi)
+        return self.resolve(schema, source_path, public_path, policy, profiles)
+
+    def provider(
+        self,
+        openapi: str,
+        source_path: str,
+        public_path: str,
+        policy: str,
+        profiles: tuple[str, ...],
+    ) -> SirenConfiguration:
+        schema = resolve_name(openapi).get_openapi_schema()
+        return self.resolve(schema, source_path, public_path, policy, profiles)
+
+    def resolve(
+        self,
+        schema: Mapping[str, JsonValue],
+        source_path: str,
+        public_path: str,
+        policy: str,
+        profiles: tuple[str, ...],
+    ) -> SirenConfiguration:
+        policy_factory: type[SirenCapabilityPolicy] = resolve_name(policy)
+        profile_factories: tuple[type[SirenAdapterProfile], ...] = tuple(map(resolve_name, profiles))
+        adapter = siren_adapter(
+            schema,
+            source_path=source_path,
+            public_path=public_path,
+            profiles=tuple(factory() for factory in profile_factories),
+        )
+        return SirenConfiguration(
+            adapter_value=adapter,
+            policy=policy_factory(),
+            catalogue_value=self.catalogue_service.build(adapter.engine.api),
+        )
 
 
 def siren_configuration(
@@ -161,11 +242,5 @@ def siren_configuration(
     caller adapters and policies.
     """
 
-    declaration = SirenConfigurationDeclaration(
-        openapi=openapi,
-        source_path=source_path,
-        public_path=public_path,
-        policy=policy,
-        profiles=profiles,
-    )
-    return application.container.get(SirenConfigurationResolver).resolve(declaration)
+    resolver = SirenConfigurationResolver(catalogue_service=application.container.get(SirenMcpToolCatalogueService))
+    return resolver.mapping(openapi, source_path, public_path, policy, profiles)
