@@ -1,1 +1,0 @@
-"""OpenAPI compilation behavior tests."""

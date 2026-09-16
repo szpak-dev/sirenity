@@ -1,7 +1,6 @@
 from pydantic import Field, model_validator
 
-from sirenity.contexts.shared import BaseValue, SirenityError, SirenScope
-
+from ....shared import BaseValue, SirenityError, SirenScope
 from .operation import SirenOperation
 from .resource import SirenResource
 from .root import SirenRoot
@@ -14,10 +13,8 @@ class SirenApi(BaseValue):
 
     @model_validator(mode="after")
     def validate_graph(self) -> "SirenApi":
-        resource_references = tuple(
-            resource.reference for resource in self.resources)
-        operation_names = tuple(
-            operation.name for operation in self.operations)
+        resource_references = tuple(resource.reference for resource in self.resources)
+        operation_names = tuple(operation.name for operation in self.operations)
         if len(resource_references) != len(set(resource_references)):
             raise SirenityError("Siren resource references must be unique")
         if len(operation_names) != len(set(operation_names)):
@@ -29,13 +26,10 @@ class SirenApi(BaseValue):
             if operation not in operation_names
         }
         if unknown:
-            raise SirenityError(
-                f"Siren resources reference unknown operations: {sorted(unknown)}")
-        unknown_root_operations = sorted(
-            set(self.root.operations) - set(operation_names))
+            raise SirenityError(f"Siren resources reference unknown operations: {sorted(unknown)}")
+        unknown_root_operations = sorted(set(self.root.operations) - set(operation_names))
         if unknown_root_operations:
-            raise SirenityError(
-                f"Siren root references unknown operations: {unknown_root_operations}")
+            raise SirenityError(f"Siren root references unknown operations: {unknown_root_operations}")
         resource_references_set = set(resource_references)
         unknown_resources = sorted(
             {
@@ -45,10 +39,8 @@ class SirenApi(BaseValue):
             }
         )
         if unknown_resources:
-            raise SirenityError(
-                f"Siren operations reference unknown resources: {unknown_resources}")
-        resources = {
-            resource.reference: resource for resource in self.resources}
+            raise SirenityError(f"Siren operations reference unknown resources: {unknown_resources}")
+        resources = {resource.reference: resource for resource in self.resources}
         unowned = []
         for operation in self.operations:
             if operation.scope == SirenScope.ROOT:
@@ -61,6 +53,5 @@ class SirenApi(BaseValue):
             ):
                 unowned.append(operation.name)
         if unowned:
-            raise SirenityError(
-                f"Siren operations are not owned by their declared resource scope: {unowned}")
+            raise SirenityError(f"Siren operations are not owned by their declared resource scope: {unowned}")
         return self

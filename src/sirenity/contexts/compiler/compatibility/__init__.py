@@ -1,3 +1,4 @@
-from .values import SirenCompatibilityFinding, SirenCompatibilityReport, SirenCompilation, SirenDiagnostics
+from .values.finding import SirenCompatibilityFinding
+from .values.report import SirenCompatibilityReport
 
-__all__ = ["SirenCompatibilityFinding", "SirenCompatibilityReport", "SirenCompilation", "SirenDiagnostics"]
+__all__ = ["SirenCompatibilityFinding", "SirenCompatibilityReport"]

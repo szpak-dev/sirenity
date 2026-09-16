@@ -1,8 +1,7 @@
 from abc import ABC, abstractmethod
 
-from sirenity.contexts.shared import SirenityError
-
-from ..values import SirenCapability
+from ....shared import SirenityError
+from ..values.capability import SirenCapability
 
 
 class SirenImplementation(ABC):

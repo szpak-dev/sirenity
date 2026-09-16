@@ -1,67 +1,80 @@
-from collections.abc import Sequence
+import json
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
-from typing import Any
 
+from pydantic import JsonValue, TypeAdapter
 from wireup import injectable
 
-from sirenity.contexts.graph import SirenApi
-from sirenity.contexts.shared import SirenityError
-
-from ...compatibility import (
-    SirenCompatibilityFinding,
-    SirenCompatibilityReport,
-    SirenCompilation,
-    SirenDiagnostics,
-)
-from ...sources import SirenSource
-from ..contracts import SirenApiAssembler
+from ....graph import SirenApi
+from ....shared import SirenContractError, SirenityError
+from ...compatibility.values.compilation import SirenCompilation
+from ...compatibility.values.diagnostics import SirenDiagnostics
+from ...compatibility.values.finding import SirenCompatibilityFinding
+from ...compatibility.values.report import SirenCompatibilityReport
+from ...sources.contracts.source import SirenSource
+from ..contracts.assembler import SirenApiAssembler
 
 
 @injectable
 @dataclass(frozen=True)
 class SirenApiService:
-    """Build a validated Siren API graph from one or more sources."""
-
     sources: Sequence[SirenSource]
     assembler: SirenApiAssembler
 
-    def build(
-        self, schema: dict[str, Any], source_path: str = "/", public_path: str = "/"
-    ) -> SirenApi:
+    def build(self, schema: dict[str, JsonValue], source_path: str = "/", public_path: str = "/") -> SirenApi:
         compilation = self.compile(schema, source_path, public_path)
-        if isinstance(compilation, SirenDiagnostics):
-            raise SirenityError(compilation.findings[0].detail)
-        return compilation.api
+        match compilation:
+            case SirenDiagnostics(findings=findings):
+                raise SirenityError(findings[0].detail)
+            case SirenCompilation(api=api):
+                return api
 
-    def audit(self, schema: dict[str, Any]) -> SirenCompatibilityReport:
+    def audit(self, schema: dict[str, JsonValue]) -> SirenCompatibilityReport:
         compilation = self.compile(schema, "/", "/")
-        findings = compilation.findings if isinstance(compilation, SirenDiagnostics) else ()
-        return SirenCompatibilityReport(findings=findings)
+        match compilation:
+            case SirenDiagnostics(findings=findings):
+                return SirenCompatibilityReport(findings=findings)
+            case SirenCompilation():
+                return SirenCompatibilityReport(findings=())
 
     def compile(
-        self, schema: dict[str, Any], source_path: str, public_path: str
+        self, schema: dict[str, JsonValue], source_path: str, public_path: str
     ) -> SirenCompilation | SirenDiagnostics:
         compilations = tuple(source.compile(schema, source_path, public_path) for source in self.sources)
-        findings = tuple(
-            finding
-            for compilation in compilations
-            if isinstance(compilation, SirenDiagnostics)
-            for finding in compilation.findings
-        )
+        findings: list[SirenCompatibilityFinding] = []
+        apis: list[SirenApi] = []
+        for compilation in compilations:
+            match compilation:
+                case SirenDiagnostics(findings=diagnostics):
+                    findings.extend(diagnostics)
+                case SirenCompilation(api=api):
+                    apis.append(api)
         ordered = sorted(findings, key=lambda finding: (finding.location, finding.category))
         if ordered:
             return SirenDiagnostics(findings=tuple(ordered))
-        try:
-            api = self.assembler.assemble(
-                tuple(compilation.api for compilation in compilations if isinstance(compilation, SirenCompilation))
-            )
-        except (SirenityError, ValueError) as error:
-            return SirenDiagnostics(
-                findings=(SirenCompatibilityFinding(
-                    location="#",
-                    category="graph",
-                    detail=str(error),
-                    remediation="Correct the conflicting normalized OpenAPI declarations.",
-                ),),
-            )
+        api = self.assembler.assemble(tuple(apis))
         return SirenCompilation(api=api)
+
+    def normalize(self, openapi: Mapping[str, JsonValue]) -> dict[str, JsonValue]:
+        paths = openapi.get("paths", {})
+        for path, path_item in paths.items():
+            for method, operation in path_item.items():
+                if method not in {"get", "post", "put", "patch", "delete", "head", "options", "trace"}:
+                    continue
+                responses = operation.get("responses")
+                if responses is None:
+                    continue
+                statuses: set[str] = set()
+                for status in responses:
+                    normalized = str(status)
+                    if normalized in statuses:
+                        escaped_path = str(path).replace("~", "~0").replace("/", "~1")
+                        escaped_method = str(method).replace("~", "~0").replace("/", "~1")
+                        location = f"#/paths/{escaped_path}/{escaped_method}/responses"
+                        raise SirenContractError(
+                            location,
+                            "input",
+                            f"OpenAPI operation declares duplicate response status: {normalized}",
+                        )
+                    statuses.add(normalized)
+        return TypeAdapter(dict[str, JsonValue]).validate_json(json.dumps(openapi))

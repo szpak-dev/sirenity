@@ -1,15 +1,50 @@
 # Django integration
 
+## `SirenContinuation`
+
+Declare one typed bounded Django Ninja or Ninja Extra continuation.
+
+Wrap ``api.get`` or Ninja Extra's ``http_get``. The response model must expose a required
+``has_more`` boolean and every mapped continuation property as a required non-nullable scalar.
+Sirenity compiles the generated OpenAPI Link Object and returns one official ``next`` link plus
+one typed MCP invocation only while ``has_more`` is true.
+
+```python
+from ninja import Schema
+
+from sirenity import SirenContinuation
+
+class ExampleJobState(Schema):
+    example_job_id: str
+    has_more: bool
+    next_cursor: str
+
+@SirenContinuation(
+    api.get,
+    "/api/example-jobs/{example_job_id}",
+    response=ExampleJobState,
+    operation_id="get_example_job",
+    continuation={"cursor": "next_cursor"},
+    summary="Read example job",
+    description="Read the current example job state.",
+)
+def get_example_job(request, example_job_id: str, cursor: str = "first") -> ExampleJobState:
+    return ExampleJobState(
+        example_job_id=example_job_id,
+        has_more=False,
+        next_cursor=cursor,
+    )
+```
+
 ## `SirenMiddleware`
 
 Install Siren through Django's standard middleware loader.
 
-The loader consumes an exact immutable ``SirenConfiguration`` or turns the current ``SIRENITY``
-mapping into one, then installs middleware from that same configuration. Resolved settings
-declarations remain fresh for each Django startup, autoreload process, and ``override_settings``
-lifecycle; a supplied configuration retains its caller-owned adapter lifecycle. ``OPENAPI`` and
-``POLICY`` are dotted import paths; ``PROFILES`` is an optional sequence of profile paths. A
-missing policy retains the standard allow-all behavior.
+The loader turns the current ``SIRENITY`` mapping into one immutable configuration, then installs
+middleware from that configuration. Resolved settings declarations remain fresh for each Django
+startup, autoreload process, and ``override_settings`` lifecycle. ``OPENAPI`` and ``POLICY`` are
+dotted import paths; ``PROFILES`` is an optional sequence of profile paths. A missing policy retains
+the standard allow-all behavior.
 
 Sirenity derives an unambiguous immediate nested collection directly from Django Ninja's
 generated resource routes and response schemas. A parent response can expose canonical ``id``

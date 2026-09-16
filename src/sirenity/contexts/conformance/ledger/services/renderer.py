@@ -2,7 +2,7 @@ from dataclasses import dataclass
 
 from wireup import injectable
 
-from ..values import SirenConformanceReport
+from ..values.report import SirenConformanceReport
 
 
 @injectable

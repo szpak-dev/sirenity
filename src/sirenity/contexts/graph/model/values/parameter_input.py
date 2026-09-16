@@ -3,7 +3,7 @@ from typing import Literal
 
 from pydantic import JsonValue
 
-from sirenity.contexts.shared import BaseValue
+from ....shared import BaseValue
 
 
 class SirenParameterInput(BaseValue):

@@ -1,10 +1,9 @@
 from typing import Protocol, runtime_checkable
 
-from ..values import SirenMcpExecution, SirenMcpOperation
+from ..values.execution import SirenMcpExecution
+from ..values.operation import SirenMcpOperation
 
 
 @runtime_checkable
 class SirenMcpExecutor(Protocol):
-    """Execute one normalized MCP operation exactly once."""
-
     def execute(self, operation: SirenMcpOperation) -> SirenMcpExecution: ...

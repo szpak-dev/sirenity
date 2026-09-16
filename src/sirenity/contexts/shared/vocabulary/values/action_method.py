@@ -1,20 +1,20 @@
-from typing import Any, ClassVar
+from typing import ClassVar, Self
 
+from pydantic import GetCoreSchemaHandler, GetJsonSchemaHandler
+from pydantic.json_schema import JsonSchemaValue
 from pydantic_core import CoreSchema, PydanticCustomError, core_schema
 
 
 class SirenActionMethod(str):
-    """Represent an official Siren action method."""
-
     default_value: ClassVar[str] = "GET"
     official_values: ClassVar[tuple[str, ...]] = ("DELETE", "GET", "PATCH", "POST", "PUT")
 
     @classmethod
-    def __get_pydantic_core_schema__(cls, source_type: object, handler: Any) -> CoreSchema:
+    def __get_pydantic_core_schema__(cls, source_type: type[Self], handler: GetCoreSchemaHandler) -> CoreSchema:
         return core_schema.no_info_after_validator_function(cls.validate, core_schema.str_schema())
 
     @classmethod
-    def __get_pydantic_json_schema__(cls, core_schema: CoreSchema, handler: Any) -> dict[str, Any]:
+    def __get_pydantic_json_schema__(cls, core_schema: CoreSchema, handler: GetJsonSchemaHandler) -> JsonSchemaValue:
         return cls.schema()
 
     @classmethod
@@ -32,7 +32,7 @@ class SirenActionMethod(str):
         return cls(value)
 
     @classmethod
-    def schema(cls) -> dict[str, Any]:
+    def schema(cls) -> JsonSchemaValue:
         return {
             "default": cls.default_value,
             "description": (

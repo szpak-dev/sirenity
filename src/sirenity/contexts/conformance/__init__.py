@@ -1,5 +1,3 @@
-"""Provide Siren specification, implementation, and assessment conformance services."""
-
-from .ledger import SirenConformanceService
+from .ledger.services.conformance import SirenConformanceService
 
 __all__ = ["SirenConformanceService"]

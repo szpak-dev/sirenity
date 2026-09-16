@@ -1,4 +1,4 @@
-from sirenity.contexts.shared import BaseValue, SirenFieldType
+from ....shared import BaseValue, SirenFieldType
 
 
 class SirenField(BaseValue):

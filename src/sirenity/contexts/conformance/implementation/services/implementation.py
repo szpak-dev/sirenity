@@ -2,10 +2,10 @@ from dataclasses import dataclass
 
 from wireup import injectable
 
-from sirenity.contexts.shared import SirenityError
-
-from ..contracts import SirenContractSource, SirenImplementation
-from ..values import SirenCapability
+from ....shared import SirenityError
+from ..contracts.implementation import SirenImplementation
+from ..contracts.source import SirenContractSource
+from ..values.capability import SirenCapability
 
 
 @injectable(as_type=SirenImplementation)

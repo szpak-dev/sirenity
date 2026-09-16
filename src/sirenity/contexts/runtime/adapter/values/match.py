@@ -2,7 +2,7 @@ from collections.abc import Mapping
 
 from pydantic import Field, JsonValue
 
-from sirenity.contexts.shared import BaseValue
+from ....shared import BaseValue
 
 
 class SirenAdapterMatch(BaseValue):

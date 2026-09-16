@@ -1,12 +1,13 @@
 from abc import ABC, abstractmethod
 from collections.abc import Mapping
-from typing import Any
 
-from sirenity.contexts.graph import SirenApi, SirenResource
-from sirenity.contexts.shared import SirenityError, SirenRelation
+from pydantic import JsonValue
 
-from ...document import SirenDocument, SirenEmbeddedRepresentation
-from ...request import SirenContext
+from ....graph import SirenApi, SirenResource
+from ....shared import SirenityError, SirenRelation
+from ...document.values.document import SirenDocument
+from ...document.values.embedded_representation import SirenEmbeddedRepresentation
+from ...request.values.context import SirenContext
 
 
 class SirenEntityDocumentService(ABC):
@@ -15,7 +16,7 @@ class SirenEntityDocumentService(ABC):
         self,
         api: SirenApi,
         resource: SirenResource,
-        value: Mapping[str, Any],
+        value: Mapping[str, JsonValue],
         context: SirenContext,
         rel: tuple[SirenRelation, ...],
     ) -> SirenDocument | SirenEmbeddedRepresentation:

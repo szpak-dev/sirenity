@@ -1,4 +1,4 @@
-from sirenity.contexts.shared import BaseValue, SirenHttpMethod
+from ....shared import BaseValue, SirenHttpMethod
 
 
 class SirenAdapterRoute(BaseValue):

@@ -2,12 +2,10 @@ from collections.abc import Mapping
 
 from pydantic import Field, JsonValue
 
-from sirenity.contexts.shared import BaseValue
+from ....shared import BaseValue
 
 
 class SirenMcpExecution(BaseValue):
-    """Carry one caller-executed MCP operation result back to the bridge."""
-
     status: int
     result: JsonValue = None
     base_url: str

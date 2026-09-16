@@ -5,9 +5,8 @@ from dataclasses import dataclass
 from pydantic import JsonValue
 from wireup import injectable
 
-from sirenity.contexts.graph import SirenDelegatedInput, SirenInput
-
-from ...request import SirenResponseContext
+from ....graph import SirenDelegatedInput, SirenInput
+from ...request.values.response import SirenResponseContext
 
 
 @injectable
@@ -47,8 +46,8 @@ class SirenStructuredFormProfile:
         operation_inputs: Mapping[str, SirenInput | None],
     ) -> Mapping[str, JsonValue]:
         enriched = deepcopy(dict(entity))
-        actions = enriched.get("actions")
-        if isinstance(actions, list):
+        actions = enriched.get("actions", [])
+        if actions:
             enriched_actions = []
             for action in actions:
                 enriched_action = dict(action)
@@ -56,18 +55,13 @@ class SirenStructuredFormProfile:
                 if operation_input is not None and operation_input.delegated_inputs:
                     enriched_action[self.extension] = {
                         "version": "1",
-                        "controls": [
-                            self.control(delegated) for delegated in operation_input.delegated_inputs
-                        ],
+                        "controls": [self.control(delegated) for delegated in operation_input.delegated_inputs],
                     }
                 enriched_actions.append(enriched_action)
             enriched["actions"] = enriched_actions
-        entities = enriched.get("entities")
-        if isinstance(entities, list):
-            enriched["entities"] = [
-                self.enrich(value, operation_inputs) if isinstance(value, dict) else value
-                for value in entities
-            ]
+        entities = enriched.get("entities", [])
+        if entities:
+            enriched["entities"] = [self.enrich(value, operation_inputs) for value in entities]
         return enriched
 
     def control(self, delegated: SirenDelegatedInput) -> Mapping[str, JsonValue]:

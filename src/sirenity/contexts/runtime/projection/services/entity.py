@@ -1,16 +1,18 @@
 from collections.abc import Mapping
 from dataclasses import dataclass
-from typing import Any
 
+from pydantic import JsonValue
 from wireup import injectable
 
-from sirenity.contexts.graph import SirenApi, SirenResource
-from sirenity.contexts.shared import SirenRelation, SirenScope
-
-from ...document import SirenDocument, SirenEmbeddedRepresentation, SirenLink
-from ...request import SirenContext
-from ...routing import SirenHrefService
-from ..contracts import SirenActionDocumentService, SirenEntityDocumentService
+from ....graph import SirenApi, SirenResource
+from ....shared import SirenRelation, SirenScope
+from ...document.values.document import SirenDocument
+from ...document.values.embedded_representation import SirenEmbeddedRepresentation
+from ...document.values.link import SirenLink
+from ...request.values.context import SirenContext
+from ...routing.contracts.href import SirenHrefService
+from ..contracts.action import SirenActionDocumentService
+from ..contracts.entity import SirenEntityDocumentService
 
 
 @injectable(as_type=SirenEntityDocumentService)
@@ -23,7 +25,7 @@ class SirenDefaultEntityDocumentService(SirenEntityDocumentService):
         self,
         api: SirenApi,
         resource: SirenResource,
-        value: Mapping[str, Any],
+        value: Mapping[str, JsonValue],
         context: SirenContext,
         rel: tuple[SirenRelation, ...],
     ) -> SirenDocument | SirenEmbeddedRepresentation:

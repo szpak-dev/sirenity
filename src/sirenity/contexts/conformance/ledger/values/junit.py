@@ -1,4 +1,4 @@
-from sirenity.contexts.shared import BaseValue
+from ....shared import BaseValue
 
 
 class SirenJunitEvidence(BaseValue):

@@ -1,14 +1,11 @@
-import json
-from collections.abc import Mapping
+from copy import deepcopy
 from dataclasses import dataclass
-from functools import cache
 from importlib.resources import files
-from types import MappingProxyType
-from typing import Any
 
+from pydantic import JsonValue, TypeAdapter
 from wireup import injectable
 
-from ..values import SirenSchemaDocument
+from ..values.document import SirenSchemaDocument
 
 
 @injectable
@@ -17,18 +14,8 @@ class SirenSchemaReader:
     """Load the pinned official Siren schema as an immutable document."""
 
     def document(self) -> SirenSchemaDocument:
-        return self.official()
-
-    @classmethod
-    @cache
-    def official(cls) -> SirenSchemaDocument:
         source = files("sirenity.contexts.shared.siren_schema.values").joinpath("siren.schema.json")
-        return SirenSchemaDocument(value=cls.freeze(json.loads(source.read_text())))
+        return SirenSchemaDocument(value=TypeAdapter(dict[str, JsonValue]).validate_json(source.read_text()))
 
-    @classmethod
-    def freeze(cls, value: Any) -> Any:
-        if isinstance(value, Mapping):
-            return MappingProxyType({key: cls.freeze(item) for key, item in value.items()})
-        if isinstance(value, list):
-            return tuple(cls.freeze(item) for item in value)
-        return value
+    def freeze(self, value: JsonValue) -> JsonValue:
+        return deepcopy(value)

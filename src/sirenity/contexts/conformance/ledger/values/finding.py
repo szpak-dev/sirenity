@@ -1,5 +1,5 @@
-from sirenity.contexts.conformance.specification.values import SirenRequirement
-from sirenity.contexts.shared import BaseValue
+from ....shared import BaseValue
+from ...specification.values.requirement import SirenRequirement
 
 
 class SirenFinding(BaseValue):

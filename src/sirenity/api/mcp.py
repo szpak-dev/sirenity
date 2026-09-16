@@ -3,8 +3,8 @@
 <!-- docs:order=50 -->
 """
 
-from ..contexts.runtime.configuration import SirenConfiguration
 from ..contexts.runtime.mcp import SirenMcpBridge, SirenMcpExecutor
+from .configuration import SirenConfiguration
 
 
 def siren_mcp(configuration: SirenConfiguration, *, executor: SirenMcpExecutor) -> SirenMcpBridge:

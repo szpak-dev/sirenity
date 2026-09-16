@@ -1,11 +1,10 @@
+import re
 from math import isfinite
 
-from sirenity.contexts.shared import BaseValue
+from ....shared import BaseValue
 
 
 class SirenAccept(BaseValue):
-    """Select Siren against JSON using HTTP media-range precedence."""
-
     value: str
 
     def preference(self, media_type: str) -> tuple[float, int, int] | None:
@@ -24,11 +23,10 @@ class SirenAccept(BaseValue):
                 name, separator, raw_value = parameter.partition("=")
                 if name.strip().lower() != "q":
                     continue
-                try:
-                    quality = float(raw_value.strip()) if separator else -1.0
-                except ValueError:
+                if not separator or re.fullmatch(r"(?:0(?:\.\d+)?|1(?:\.0+)?)", raw_value.strip()) is None:
                     valid = False
                     break
+                quality = float(raw_value.strip())
                 if not isfinite(quality) or not 0.0 <= quality <= 1.0:
                     valid = False
                     break

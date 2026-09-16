@@ -1,10 +1,9 @@
 from abc import ABC, abstractmethod
 
-from sirenity.contexts.conformance.implementation.values import SirenCapability
-from sirenity.contexts.conformance.specification.values import SirenRequirement
-from sirenity.contexts.shared import SirenityError
-
-from ..values import SirenConformanceReport
+from ....shared import SirenityError
+from ...implementation.values.capability import SirenCapability
+from ...specification.values.requirement import SirenRequirement
+from ..values.report import SirenConformanceReport
 
 
 class SirenRequirementMatcher(ABC):

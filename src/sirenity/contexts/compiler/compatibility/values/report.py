@@ -1,11 +1,8 @@
-from sirenity.contexts.shared import BaseValue
-
+from ....shared import BaseValue
 from .finding import SirenCompatibilityFinding
 
 
 class SirenCompatibilityReport(BaseValue):
-    """Expose deterministic OpenAPI-to-Siren compatibility findings."""
-
     findings: tuple[SirenCompatibilityFinding, ...]
 
     @property

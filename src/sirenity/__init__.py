@@ -1,15 +1,5 @@
 from .api import (
-    SirenMiddleware,
-    audit,
-    siren,
-    siren_adapter,
-    siren_configuration,
-    siren_mcp,
-    siren_pagination,
-)
-from .contexts.compiler.compatibility import SirenCompatibilityFinding, SirenCompatibilityReport
-from .contexts.graph import SirenDelegatedInput, SirenInput, SirenParameterInput
-from .contexts.runtime.adapter import (
+    SirenAction,
     SirenAdapter,
     SirenAdapterMatch,
     SirenAdapterPolicy,
@@ -18,20 +8,22 @@ from .contexts.runtime.adapter import (
     SirenAdapterResponse,
     SirenAllowAllPolicy,
     SirenCapabilityPolicy,
+    SirenCompatibilityFinding,
+    SirenCompatibilityReport,
+    SirenConfiguration,
+    SirenContext,
+    SirenContinuation,
+    SirenContractError,
+    SirenDelegatedInput,
     SirenDjangoMiddleware,
-    SirenStructuredFormProfile,
-)
-from .contexts.runtime.configuration import SirenConfiguration
-from .contexts.runtime.document import (
-    SirenAction,
     SirenDocument,
     SirenEmbeddedLink,
     SirenEmbeddedRepresentation,
     SirenField,
     SirenFieldValue,
+    SirenInput,
+    SirenityError,
     SirenLink,
-)
-from .contexts.runtime.mcp import (
     SirenMcpExecution,
     SirenMcpExecutor,
     SirenMcpInvocation,
@@ -39,9 +31,19 @@ from .contexts.runtime.mcp import (
     SirenMcpResult,
     SirenMcpTool,
     SirenMcpToolCatalogue,
+    SirenMiddleware,
+    SirenParameterInput,
+    SirenRelationship,
+    SirenResponseContext,
+    SirenScope,
+    SirenStructuredFormProfile,
+    audit,
+    siren,
+    siren_adapter,
+    siren_configuration,
+    siren_mcp,
+    siren_pagination,
 )
-from .contexts.runtime.request import SirenContext, SirenRelationship, SirenResponseContext
-from .contexts.shared import SirenContractError, SirenityError, SirenScope
 
 __all__ = [
     "SirenAction",
@@ -57,6 +59,7 @@ __all__ = [
     "SirenCompatibilityReport",
     "SirenConfiguration",
     "SirenContext",
+    "SirenContinuation",
     "SirenContractError",
     "SirenDelegatedInput",
     "SirenDjangoMiddleware",

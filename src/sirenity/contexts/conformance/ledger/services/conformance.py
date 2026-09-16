@@ -3,11 +3,11 @@ from pathlib import Path
 
 from wireup import injectable
 
-from sirenity.contexts.conformance.implementation.contracts import SirenImplementation
-from sirenity.contexts.conformance.specification.contracts import SirenSpecification
-
-from ..contracts import SirenBddEvidenceReader, SirenRequirementMatcher
-from ..values import SirenConformanceReport
+from ...implementation.contracts.implementation import SirenImplementation
+from ...specification.contracts.specification import SirenSpecification
+from ..contracts.evidence_reader import SirenBddEvidenceReader
+from ..contracts.matcher import SirenRequirementMatcher
+from ..values.report import SirenConformanceReport
 from .renderer import SirenLedgerRenderer
 from .verdict import SirenLedgerVerdict
 

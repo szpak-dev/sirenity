@@ -1,21 +1,20 @@
 from collections.abc import Mapping
-from typing import Any
 
-from pydantic import Field
+from pydantic import Field, JsonValue
 
-from sirenity.contexts.shared import BaseValue
+from ....shared import BaseValue
 
 
 class SirenRequirement(BaseValue):
     definition: str
     member: str
-    schema_: Mapping[str, Any] = Field(alias="schema", serialization_alias="schema")
+    schema_: Mapping[str, JsonValue] = Field(alias="schema", serialization_alias="schema")
     required: bool
-    document: Mapping[str, Any]
+    document: Mapping[str, JsonValue]
     enum_value: str | int | float | bool | None = None
 
     @property
-    def schema(self) -> Mapping[str, Any]:
+    def schema(self) -> Mapping[str, JsonValue]:
         return self.schema_
 
     @property

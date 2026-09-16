@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 
-from sirenity.contexts.graph import SirenApi
-from sirenity.contexts.shared import SirenityError
+from ....graph import SirenApi
+from ....shared import SirenityError
 
 
 class SirenApiAssembler(ABC):
