@@ -1,7 +1,7 @@
 from collections.abc import Mapping
 from dataclasses import dataclass
 
-from pydantic import JsonValue
+from pydantic import JsonValue, TypeAdapter, ValidationError
 from wireup import injectable
 
 from .... import graph
@@ -153,6 +153,14 @@ class SirenResponseProjectionService:
     def validate_result(self, response: graph.SirenResponse, result: JsonValue) -> None:
         if response.shape == "empty" and result is not None:
             raise SirenityError("OpenAPI content-free response requires a null result")
+        try:
+            if response.shape == "array":
+                TypeAdapter(list[JsonValue]).validate_python(result)
+            elif response.shape == "object":
+                TypeAdapter(dict[str, JsonValue]).validate_python(result)
+        except ValidationError as error:
+            shape = "array" if response.shape == "array" else "mapping"
+            raise SirenityError(f"OpenAPI {response.shape} response requires a {shape} result") from error
 
     def entity(
         self,
@@ -240,9 +248,14 @@ class SirenResponseProjectionService:
             return ()
         if len(response.continuations) != 1:
             raise SirenityError("Siren response requires one compiled continuation")
-        has_more = context.result.get("has_more")
-        if not has_more:
-            return ()
+        has_more = context.result["has_more"]
+        match has_more:
+            case False:
+                return ()
+            case True:
+                pass
+            case _:
+                raise SirenityError("Siren continuation has_more value must be boolean")
         continuation = response.continuations[0]
         target = self.operation(api, continuation.operation)
         target_resource = self.resource(api, target)

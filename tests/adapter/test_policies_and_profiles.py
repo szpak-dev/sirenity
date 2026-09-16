@@ -4,8 +4,8 @@ from sirenity.api import (
     SirenAdapterPolicy,
     SirenAdapterRequest,
     SirenAllowAllPolicy,
-    SirenStructuredFormProfile,
     SirenityError,
+    SirenStructuredFormProfile,
     siren_adapter,
 )
 

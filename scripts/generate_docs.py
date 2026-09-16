@@ -134,13 +134,17 @@ class DocumentationGenerator:
         for name, member in value.__dict__.items():
             if name.startswith("_") or name in validators:
                 continue
-            if isinstance(member, property):
-                annotation = DocumentationGenerator.annotation(inspect.signature(member.fget).return_annotation)
-                operations.append(f"`{name}: {annotation}`")
+            match member:
+                case property() as selected:
+                    annotation = DocumentationGenerator.annotation(
+                        inspect.signature(selected.fget).return_annotation
+                    )
+                    operations.append(f"`{name}: {annotation}`")
+                    continue
+            selected = getattr(value, name)
+            if not (inspect.isroutine(selected) or inspect.ismethoddescriptor(selected)):
                 continue
-            if not callable(getattr(value, name, None)):
-                continue
-            signature = DocumentationGenerator.signature(getattr(value, name))
+            signature = DocumentationGenerator.signature(selected)
             parameters = tuple(signature.parameters.values())
             if parameters and parameters[0].name in {"self", "cls"}:
                 signature = signature.replace(parameters=parameters[1:])
@@ -166,16 +170,23 @@ class DocumentationGenerator:
     def annotation(value: object) -> object:
         if value is inspect.Signature.empty:
             return value
-        text = value if isinstance(value, str) else str(value)
+        match value:
+            case str() as text:
+                pass
+            case _:
+                text = str(value)
         return AnnotationText(re.sub(r"(?<![.\w])Any(?![\w])", "typing.Any", text))
 
     @staticmethod
     def default(value: object) -> object:
         if value is inspect.Parameter.empty:
             return value
-        if isinstance(value, str | int | float | bool | tuple | dict | type(None)):
-            return value
-        return AnnotationText(f"<{type(value).__module__}.{type(value).__qualname__}>")
+        match value:
+            case str() | int() | float() | bool() | tuple() | dict() | None:
+                return value
+            case _:
+                value_class = value.__class__
+                return AnnotationText(f"<{value_class.__module__}.{value_class.__qualname__}>")
 
     @staticmethod
     def navigation(guides: tuple[Guide, ...], prefix: str = "") -> tuple[str, ...]:

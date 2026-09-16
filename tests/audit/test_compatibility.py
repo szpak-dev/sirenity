@@ -9,7 +9,7 @@ from ..cases import AuditCase
 
 class TestCompatibilityAuditAttacks(AuditCase):
     def test_adversarial_non_openapi_document_is_rejected(self) -> None:
-        with pytest.raises(SirenContractError, match="does not conform to OpenAPI 3.1"):
+        with pytest.raises(SirenContractError, match=r"does not conform to OpenAPI 3\.1"):
             audit({"openapi": "3.1.1", "info": {}, "paths": []})
 
     def test_invariant_non_json_value_is_rejected_before_a_report_is_created(self) -> None:

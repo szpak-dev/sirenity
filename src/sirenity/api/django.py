@@ -12,7 +12,7 @@ from pydantic import JsonValue
 from ..contexts.runtime.adapter import SirenDjangoMiddleware
 from ..contexts.runtime.mcp import SirenMcpToolCatalogueService
 from ..wiring import application
-from .configuration import SirenConfigurationResolver
+from .configuration import SirenConfiguration, SirenConfigurationResolver
 
 
 class SirenHandler[**P, R](Protocol):
@@ -45,6 +45,41 @@ class SirenDjangoSettings(TypedDict):
 
 @dataclass(frozen=True)
 class SirenContinuation[**P, R, S]:
+    """Declare one typed bounded Django Ninja or Ninja Extra continuation.
+
+    Wrap ``api.get`` or Ninja Extra's ``http_get``. The response model must expose a required
+    ``has_more`` boolean and every mapped continuation property as a required non-nullable scalar.
+    Sirenity compiles the generated OpenAPI Link Object and returns one official ``next`` link plus
+    one typed MCP invocation only while ``has_more`` is true.
+
+    ```python
+    from ninja import Schema
+
+    from sirenity import SirenContinuation
+
+    class ExampleJobState(Schema):
+        example_job_id: str
+        has_more: bool
+        next_cursor: str
+
+    @SirenContinuation(
+        api.get,
+        "/api/example-jobs/{example_job_id}",
+        response=ExampleJobState,
+        operation_id="get_example_job",
+        continuation={"cursor": "next_cursor"},
+        summary="Read example job",
+        description="Read the current example job state.",
+    )
+    def get_example_job(request, example_job_id: str, cursor: str = "first") -> ExampleJobState:
+        return ExampleJobState(
+            example_job_id=example_job_id,
+            has_more=False,
+            next_cursor=cursor,
+        )
+    ```
+    """
+
     route: SirenRouteDecorator[P, R, S]
     path: str
     response: type[S]
@@ -208,15 +243,21 @@ class SirenMiddleware:
     def __post_init__(self):
         from django.conf import settings
 
-        declaration: SirenDjangoSettings = settings.SIRENITY
-        resolver = SirenConfigurationResolver(catalogue_service=application.container.get(SirenMcpToolCatalogueService))
-        selected = resolver.provider(
-            declaration["OPENAPI"],
-            declaration.get("SOURCE_PATH", "/"),
-            declaration.get("PUBLIC_PATH", "/"),
-            declaration.get("POLICY", "sirenity.SirenAllowAllPolicy"),
-            tuple(declaration.get("PROFILES", ())),
-        )
+        configured: SirenConfiguration | SirenDjangoSettings = settings.SIRENITY
+        match configured:
+            case SirenConfiguration():
+                selected = configured
+            case declaration:
+                resolver = SirenConfigurationResolver(
+                    catalogue_service=application.container.get(SirenMcpToolCatalogueService)
+                )
+                selected = resolver.provider(
+                    declaration["OPENAPI"],
+                    declaration.get("SOURCE_PATH", "/"),
+                    declaration.get("PUBLIC_PATH", "/"),
+                    declaration.get("POLICY", "sirenity.SirenAllowAllPolicy"),
+                    tuple(declaration.get("PROFILES", ())),
+                )
         object.__setattr__(self, "middleware", selected.django(self.get_response))
 
     def __call__(self, request: object) -> object:

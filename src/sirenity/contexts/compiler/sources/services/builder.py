@@ -146,6 +146,12 @@ class SirenBuilder:
         continuation: ResponseContinuationDraft,
         target: OperationDraft,
     ) -> None:
+        if not continuation.parameters:
+            if continuation.kind == SirenContinuationKind.PAGINATION:
+                raise shared.SirenityError(
+                    "OpenAPI pagination continuation must target the same collection GET operation"
+                )
+            raise shared.SirenityError("OpenAPI bounded continuation parameters are invalid")
         if continuation.kind == SirenContinuationKind.PAGINATION and (
             source.name != target.name
             or target.resource is None

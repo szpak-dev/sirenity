@@ -1,5 +1,9 @@
 # Shared configuration
 
+## `SirenConfiguration`
+
+SirenConfiguration(adapter_value: sirenity.contexts.runtime.adapter.state.adapter.SirenAdapter, policy: sirenity.contexts.runtime.adapter.contracts.policy.SirenCapabilityPolicy, catalogue_value: sirenity.contexts.runtime.mcp.values.catalogue.SirenMcpToolCatalogue)
+
 ## `siren_configuration`
 
 Resolve one immutable configuration for every supported integration.

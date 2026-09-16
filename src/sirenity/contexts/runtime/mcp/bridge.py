@@ -1,3 +1,5 @@
+import jsonschema
+import pydantic
 from jsonschema import Draft202012Validator
 
 from ...graph import SirenInput
@@ -121,22 +123,39 @@ class SirenMcpBridge(BaseState):
         )
 
     def invoke(self, invocation: SirenMcpInvocation) -> SirenMcpResult:
-        operation = self.operation(invocation)
-        request = self.executor.execute(operation)
-        policy = self._policy(operation.operation_id, request)
-        return self.respond(
-            SirenAdapterRequest(
-                operation_id=operation.operation_id,
-                status=request.status,
-                result=request.result,
-                base_url=request.base_url,
-                request_url=request.request_url,
-                path_values=operation.path_values,
-                query=tuple(operation.query_values.items()),
-                headers=request.headers,
-                policy=policy,
+        try:
+            operation = self.operation(invocation)
+        except (SirenityError, jsonschema.ValidationError, pydantic.ValidationError):
+            return SirenMcpResult(
+                structured_content={"detail": "Siren MCP invocation is invalid"},
+                is_error=True,
             )
-        )
+        request = self.executor.execute(operation)
+        try:
+            policy = self._policy(operation.operation_id, request)
+            return self.respond(
+                SirenAdapterRequest(
+                    operation_id=operation.operation_id,
+                    status=request.status,
+                    result=request.result,
+                    base_url=request.base_url,
+                    request_url=request.request_url,
+                    path_values=operation.path_values,
+                    query=tuple(operation.query_values.items()),
+                    headers=request.headers,
+                    policy=policy,
+                )
+            )
+        except SirenityError as error:
+            return SirenMcpResult(
+                structured_content={"detail": str(error)},
+                is_error=True,
+            )
+        except (jsonschema.ValidationError, pydantic.ValidationError):
+            return SirenMcpResult(
+                structured_content={"detail": "Siren MCP invocation is invalid"},
+                is_error=True,
+            )
 
     def _policy(self, operation_id: str, request: SirenMcpExecution) -> SirenAdapterPolicy:
         return self.policy.select(operation_id, request.status, request, request.result)

@@ -29,7 +29,7 @@ class ServiceConventionChecker:
     def check(self, path: Path, root: Path, collaborators: frozenset[str], injectables: frozenset[str]) -> list[str]:
         source = path.read_text()
         tree = ast.parse(source, filename=str(path))
-        classes = tuple(item for item in tree.body if isinstance(item, ast.ClassDef))
+        classes = self.classes(tree)
         failures: list[str] = []
         if "TYPE_CHECKING" in source:
             failures.append(f"{path}: TYPE_CHECKING is forbidden")
@@ -38,10 +38,7 @@ class ServiceConventionChecker:
         if "@injectable" in source and "services" not in path.parts:
             failures.append(f"{path}: injectables belong only in services")
         for node in classes:
-            if any(
-                isinstance(member, (ast.FunctionDef, ast.AsyncFunctionDef)) and member.name == "__init__"
-                for member in node.body
-            ):
+            if "__init__" in {method.name for method in self.methods(node)}:
                 failures.append(f"{path}: {node.name} must not declare __init__")
         if "state" in path.parts:
             for node in classes:
@@ -66,24 +63,25 @@ class ServiceConventionChecker:
             if "services" not in path.parts:
                 continue
             tree = ast.parse(path.read_text(), filename=str(path))
-            for node in (item for item in tree.body if isinstance(item, ast.ClassDef)):
+            for node in self.classes(tree):
                 for member in node.body:
-                    if isinstance(member, ast.AnnAssign):
-                        names.update(self.annotation_names(member.annotation))
+                    match member:
+                        case ast.AnnAssign(annotation=annotation):
+                            names.update(self.annotation_names(annotation))
         return frozenset(names)
 
     def injectables(self, paths: tuple[Path, ...]) -> frozenset[str]:
         names: set[str] = set()
         for path in paths:
             tree = ast.parse(path.read_text(), filename=str(path))
-            for node in (item for item in tree.body if isinstance(item, ast.ClassDef)):
+            for node in self.classes(tree):
                 if any(ast.unparse(decorator).startswith("injectable") for decorator in node.decorator_list):
                     names.add(node.name)
         return frozenset(names)
 
     def check_collaborator_parameters(self, path: Path, node: ast.ClassDef, collaborators: frozenset[str]) -> list[str]:
         failures: list[str] = []
-        for method in (member for member in node.body if isinstance(member, (ast.FunctionDef, ast.AsyncFunctionDef))):
+        for method in self.methods(node):
             parameters = (*method.args.posonlyargs, *method.args.args, *method.args.kwonlyargs)
             for parameter in parameters:
                 if parameter.arg in {"self", "cls"} or parameter.annotation is None:
@@ -99,21 +97,49 @@ class ServiceConventionChecker:
 
     def check_injectable_construction(self, path: Path, node: ast.ClassDef, injectables: frozenset[str]) -> list[str]:
         failures: list[str] = []
-        for call in (item for item in ast.walk(node) if isinstance(item, ast.Call)):
+        for item in ast.walk(node):
+            match item:
+                case ast.Call() as call:
+                    pass
+                case _:
+                    continue
             name = self.call_name(call.func)
             if name in injectables:
                 failures.append(f"{path}: {node.name} constructs injectable {name}; inject it as a dataclass field")
         return failures
 
     def annotation_names(self, annotation: ast.expr) -> set[str]:
-        return {item.id for item in ast.walk(annotation) if isinstance(item, ast.Name)}
+        names = set()
+        for item in ast.walk(annotation):
+            match item:
+                case ast.Name(id=name) if name[:1].isupper():
+                    names.add(name)
+        return names
 
     def call_name(self, expression: ast.expr) -> str | None:
-        if isinstance(expression, ast.Name):
-            return expression.id
-        if isinstance(expression, ast.Attribute):
-            return expression.attr
-        return None
+        match expression:
+            case ast.Name(id=name):
+                return name
+            case ast.Attribute(attr=name):
+                return name
+            case _:
+                return None
+
+    def classes(self, tree: ast.Module) -> tuple[ast.ClassDef, ...]:
+        classes = []
+        for item in tree.body:
+            match item:
+                case ast.ClassDef() as node:
+                    classes.append(node)
+        return tuple(classes)
+
+    def methods(self, node: ast.ClassDef) -> tuple[ast.FunctionDef | ast.AsyncFunctionDef, ...]:
+        methods = []
+        for member in node.body:
+            match member:
+                case ast.FunctionDef() | ast.AsyncFunctionDef():
+                    methods.append(member)
+        return tuple(methods)
 
     def check_export(self, path: Path, root: Path, name: str) -> list[str]:
         relative = path.relative_to(root)
@@ -121,21 +147,21 @@ class ServiceConventionChecker:
         package = root.joinpath(*relative.parts[: service_index + 1], "__init__.py")
         tree = ast.parse(package.read_text(), filename=str(package))
         for statement in tree.body:
-            if isinstance(statement, ast.ImportFrom) and any(alias.name == name for alias in statement.names):
-                return []
+            match statement:
+                case ast.ImportFrom(names=aliases) if any(alias.name == name for alias in aliases):
+                    return []
         return [f"{path}: injectable {name} is not exported by {package}"]
 
     def check_composition(self) -> list[str]:
-        try:
-            from wireup import SyncContainer
+        from wireup import SyncContainer
 
-            from sirenity.wiring import application
+        from sirenity.wiring import application
 
-            if not isinstance(application.container, SyncContainer):
+        match application.container:
+            case SyncContainer():
+                return []
+            case _:
                 return ["Wireup composition did not create a synchronous container."]
-        except Exception as error:
-            return [f"Wireup composition is unresolvable: {error}"]
-        return []
 
 
 if __name__ == "__main__":

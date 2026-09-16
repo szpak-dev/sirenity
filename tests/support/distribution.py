@@ -29,9 +29,9 @@ class InstalledExamplePackage:
             text=True,
         )
         wheel = next(distribution.glob("sirenity-*.whl"))
-        venv.EnvBuilder(with_pip=True, system_site_packages=True).create(self.environment)
+        venv.EnvBuilder(with_pip=True).create(self.environment)
         subprocess.run(
-            [str(self.python), "-m", "pip", "install", "--no-deps", str(wheel)],
+            [str(self.python), "-m", "pip", "install", str(wheel)],
             cwd=self.temporary,
             check=True,
             capture_output=True,

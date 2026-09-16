@@ -38,6 +38,9 @@ class SirenAdapter(BaseState):
 
     @model_validator(mode="after")
     def validate_routes(self) -> "SirenAdapter":
+        profile_classes = tuple(profile.__class__ for profile in self.profiles)
+        if len(set(profile_classes)) != len(profile_classes):
+            raise SirenityError("Siren adapter profile types must be unique")
         templates = {}
         for route in self.routes:
             for template in dict.fromkeys((route.source_path, route.public_path)):

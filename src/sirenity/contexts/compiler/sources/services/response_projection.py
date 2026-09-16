@@ -206,7 +206,7 @@ class OpenApiResponseProjection:
         self, name: str, definition: dict[str, JsonValue]
     ) -> tuple[ResponseContinuationParameter, ...]:
         parameters = definition.get("parameters", {})
-        if not parameters or any(not parameter or not expression for parameter, expression in parameters.items()):
+        if any(not parameter or not expression for parameter, expression in parameters.items()):
             raise SirenityError(f"OpenAPI response link {name!r} parameters are invalid")
         return tuple(
             ResponseContinuationParameter(name=parameter, expression=expression)

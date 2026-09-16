@@ -3,6 +3,8 @@ from urllib.parse import urlsplit
 from django.conf import settings
 from django.test import Client, override_settings
 
+from sirenity.api import siren_configuration
+
 from ..cases import DjangoCase
 
 if not settings.configured:
@@ -49,6 +51,27 @@ class TestDjangoJourneyAttacks(DjangoCase):
 
 
 class TestDjangoJourneyHappyPaths(DjangoCase):
+    def test_prebuilt_configuration_retains_its_caller_owned_lifecycle(self) -> None:
+        configuration = siren_configuration(
+            openapi="tests.support.applications.configuration.EXAMPLE_BOUNDED_OPENAPI",
+            source_path="/api",
+            public_path="/siren",
+            policy="tests.support.collaborators.ExamplePolicy",
+        )
+
+        with override_settings(
+            ALLOWED_HOSTS=["testserver"],
+            ROOT_URLCONF="tests.support.applications.django_ninja",
+            MIDDLEWARE=["sirenity.SirenMiddleware"],
+            SIRENITY=configuration,
+        ):
+            response = Client(HTTP_ACCEPT="application/vnd.siren+json").get(
+                "/siren/example_jobs/example-job-1"
+            )
+
+        assert response.status_code == 200
+        assert configuration.adapter().match("GET", "/siren/example_jobs/example-job-1") is not None
+
     def test_ninja_middleware_and_bounded_continuation_form_one_http_flow(self) -> None:
         with override_settings(
             ALLOWED_HOSTS=["testserver"],

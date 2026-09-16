@@ -2,9 +2,9 @@ import pytest
 
 from sirenity.api import (
     SirenContext,
+    SirenityError,
     SirenResponseContext,
     SirenScope,
-    SirenityError,
     siren,
 )
 
