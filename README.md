@@ -186,3 +186,29 @@ Guides are generated from marked public modules. Run `make docs` after changing 
 Sirenity is proprietary software. No permission to use, copy, modify, or distribute it is granted without prior express written permission. See [LICENSE](LICENSE) for the complete terms.
 
 <!-- generated:public-api:end -->
+
+## Typed MCP verification navigation
+
+Successful state-changing MCP results expose executable safe `GET` response links through
+`result.verifications`, separately from pagination and bounded `result.continuations`. Each value
+is a `SirenMcpInvocation` whose operation identifier and path or query arguments come from the
+compiled OpenAPI response link and runtime response bindings. Callers can pass it directly to
+`invoke()` without parsing a Siren href.
+
+```python
+updated = example_mcp.invoke(SirenMcpInvocation(
+    operation_id="update_example_resource",
+    arguments={
+        "example_resource_id": "example-resource-42",
+        "title": "Updated example resource",
+        "metadata": {"source": "example"},
+        "example_trace": "example-trace",
+    },
+))
+if updated.verifications:
+    verified = example_mcp.invoke(updated.verifications[0])
+```
+
+`verifications` is an empty tuple for errors, read operations, and successful mutations without
+an executable safe-read response link. It does not use `has_more`; targets requiring unbound
+header, cookie, or body inputs are omitted.

@@ -1,5 +1,5 @@
 from .navigation import SirenProjectedNavigation
 
 
-class SirenProjectedContinuation(SirenProjectedNavigation):
+class SirenProjectedVerification(SirenProjectedNavigation):
     pass

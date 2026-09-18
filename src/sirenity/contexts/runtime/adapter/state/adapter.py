@@ -116,6 +116,7 @@ class SirenAdapter(BaseState):
 
     def respond(self, request: SirenAdapterRequest) -> SirenAdapterResponse:
         continuations = ()
+        verifications = ()
         match = None
         if request.operation_id is None and request.method is not None and request.path is not None:
             match = self.match(request.method, request.path)
@@ -148,6 +149,7 @@ class SirenAdapter(BaseState):
                 projected = self.engine.project_response_result(context)
                 document = projected.document
                 continuations = projected.continuations
+                verifications = projected.verifications
         headers = {
             name: value
             for name, value in request.headers.items()
@@ -196,6 +198,7 @@ class SirenAdapter(BaseState):
             payload=payload,
             headers=headers,
             continuations=continuations,
+            verifications=verifications,
         )
 
     def capabilities(self, operation_id: str) -> frozenset[str]:

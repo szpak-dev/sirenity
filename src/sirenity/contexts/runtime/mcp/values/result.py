@@ -10,3 +10,4 @@ class SirenMcpResult(BaseValue):
     structured_content: Mapping[str, JsonValue]
     is_error: bool = False
     continuations: tuple[SirenMcpInvocation, ...] = ()
+    verifications: tuple[SirenMcpInvocation, ...] = ()
