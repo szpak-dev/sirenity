@@ -7,11 +7,13 @@ from wireup import injectable
 
 from ....graph import SirenApi
 from ....shared import SirenContractError, SirenityError
-from ...compatibility.values.compilation import SirenCompilation
-from ...compatibility.values.diagnostics import SirenDiagnostics
-from ...compatibility.values.finding import SirenCompatibilityFinding
-from ...compatibility.values.report import SirenCompatibilityReport
-from ...sources.contracts.source import SirenSource
+from ...compatibility import (
+    SirenCompatibilityFinding,
+    SirenCompatibilityReport,
+    SirenCompilation,
+    SirenDiagnostics,
+)
+from ...sources import SirenSource
 from ..contracts.assembler import SirenApiAssembler
 
 

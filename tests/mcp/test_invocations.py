@@ -274,3 +274,4 @@ class TestMcpInvocationHappyPaths(McpCase):
 
         assert len(executor.calls) == 1
         assert result.structured_content["properties"]["example_title"] == "Example updated"
+        assert result.verifications == ()

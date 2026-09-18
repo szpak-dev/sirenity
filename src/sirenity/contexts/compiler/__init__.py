@@ -1,3 +1,3 @@
-from .assembly.services.api import SirenApiService
+from .assembly import SirenApiService
 
 __all__ = ["SirenApiService"]

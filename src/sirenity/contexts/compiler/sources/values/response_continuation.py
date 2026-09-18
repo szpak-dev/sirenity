@@ -2,7 +2,7 @@ from typing import Literal
 
 from pydantic import Field
 
-from ....graph.model.values.continuation import SirenContinuationKind
+from ....graph.model import SirenContinuationKind
 from ....shared import BaseValue
 
 

@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from pydantic import JsonValue
 from wireup import injectable
 
-from ....graph.model.values.continuation import SirenContinuationKind
+from ....graph.model import SirenContinuationKind
 from ....shared import SirenActionMethod, SirenityError, SirenMediaType, SirenScope
 from ..values.compilation_request import OpenApiCompilationRequest
 from ..values.response_binding import ResponseBindingDraft

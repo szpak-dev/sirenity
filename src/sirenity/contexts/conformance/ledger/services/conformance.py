@@ -3,8 +3,8 @@ from pathlib import Path
 
 from wireup import injectable
 
-from ...implementation.contracts.implementation import SirenImplementation
-from ...specification.contracts.specification import SirenSpecification
+from ...implementation import SirenImplementation
+from ...specification import SirenSpecification
 from ..contracts.evidence_reader import SirenBddEvidenceReader
 from ..contracts.matcher import SirenRequirementMatcher
 from ..values.report import SirenConformanceReport

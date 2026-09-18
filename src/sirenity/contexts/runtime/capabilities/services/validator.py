@@ -4,7 +4,7 @@ from wireup import injectable
 
 from ....graph import SirenResource
 from ....shared import SirenityError, SirenScope
-from ...request.values.context import SirenContext
+from ...request import SirenContext
 from ..contracts.validator import SirenCapabilityValidator
 
 

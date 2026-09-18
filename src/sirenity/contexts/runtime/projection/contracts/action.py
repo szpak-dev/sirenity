@@ -5,8 +5,8 @@ from pydantic import JsonValue
 
 from ....graph import SirenApi, SirenOperation, SirenResource
 from ....shared import SirenityError, SirenScope
-from ...document.values.action import SirenAction
-from ...request.values.context import SirenContext
+from ...document import SirenAction
+from ...request import SirenContext
 
 
 class SirenActionDocumentService(ABC):

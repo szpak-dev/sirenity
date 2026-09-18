@@ -5,10 +5,10 @@ from wireup import injectable
 
 from ....graph import SirenApi, SirenResource
 from ....shared import SirenityError, SirenScope
-from ...capabilities.contracts.validator import SirenCapabilityValidator
-from ...document.values.document import SirenDocument
-from ...request.values.context import SirenContext
-from ...routing.contracts.resolver import SirenResourceResolver
+from ...capabilities import SirenCapabilityValidator
+from ...document import SirenDocument
+from ...request import SirenContext
+from ...routing import SirenResourceResolver
 from ..contracts.projector import SirenScopeProjector
 from ..values.request import SirenProjectionRequest
 

@@ -5,7 +5,7 @@ from pydantic import JsonValue
 
 from ....graph import SirenResource
 from ....shared import SirenityError, SirenUri
-from ...request.values.context import SirenContext
+from ...request import SirenContext
 
 
 class SirenHrefService(ABC):

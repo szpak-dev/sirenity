@@ -6,10 +6,9 @@ from pydantic import JsonValue, model_validator
 
 from ....graph import SirenInput
 from ....shared import BaseState, SirenityError
-from ...document.values.document import SirenDocument
-from ...document.values.link import SirenLink
-from ...engine.engine import SirenEngine
-from ...request.values.response import SirenResponseContext
+from ...document import SirenDocument, SirenLink
+from ...engine import SirenEngine
+from ...request import SirenResponseContext
 from ..contracts.profile import SirenAdapterProfile
 from ..values.match import SirenAdapterMatch
 from ..values.request import SirenAdapterRequest
@@ -116,6 +115,7 @@ class SirenAdapter(BaseState):
 
     def respond(self, request: SirenAdapterRequest) -> SirenAdapterResponse:
         continuations = ()
+        verifications = ()
         match = None
         if request.operation_id is None and request.method is not None and request.path is not None:
             match = self.match(request.method, request.path)
@@ -148,6 +148,7 @@ class SirenAdapter(BaseState):
                 projected = self.engine.project_response_result(context)
                 document = projected.document
                 continuations = projected.continuations
+                verifications = projected.verifications
         headers = {
             name: value
             for name, value in request.headers.items()
@@ -196,6 +197,7 @@ class SirenAdapter(BaseState):
             payload=payload,
             headers=headers,
             continuations=continuations,
+            verifications=verifications,
         )
 
     def capabilities(self, operation_id: str) -> frozenset[str]:

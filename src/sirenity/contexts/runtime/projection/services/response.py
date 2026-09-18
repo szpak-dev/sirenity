@@ -5,16 +5,14 @@ from pydantic import JsonValue, TypeAdapter, ValidationError
 from wireup import injectable
 
 from .... import graph
-from ....graph.model.values.continuation import SirenContinuation, SirenContinuationKind
-from ....shared import SirenityError, SirenRepresentation, SirenScope
-from ...document.values.document import SirenDocument
-from ...document.values.link import SirenLink
-from ...request.values.context import SirenContext
-from ...request.values.relationship import SirenRelationship
-from ...request.values.response import SirenResponseContext
-from ...routing.contracts.href import SirenHrefService
+from ....graph.model import SirenContinuation, SirenContinuationKind
+from ....shared import SirenHttpMethod, SirenityError, SirenRepresentation, SirenScope
+from ...document import SirenDocument, SirenLink
+from ...request import SirenContext, SirenRelationship, SirenResponseContext
+from ...routing import SirenHrefService
 from ..values.continuation import SirenProjectedContinuation
 from ..values.response import SirenProjectedResponse
+from ..values.verification import SirenProjectedVerification
 from .projection import SirenProjectionService
 
 
@@ -37,11 +35,17 @@ class SirenResponseProjectionService:
         if context.representation == SirenRepresentation.ROOT and response.shape != "object":
             raise SirenityError("Siren root response requires an OpenAPI object response")
         if response.shape == "empty":
-            return SirenProjectedResponse(document=self.empty(operation, resource, context))
+            return SirenProjectedResponse(
+                document=self.empty(operation, resource, context),
+                verifications=self.project_verifications(api, context, operation, response),
+            )
         if response.shape == "array":
             if context.representation not in {None, SirenRepresentation.COLLECTION}:
                 raise SirenityError("OpenAPI array response requires collection representation")
-            return SirenProjectedResponse(document=self.collection(api, resource, context, response))
+            return SirenProjectedResponse(
+                document=self.collection(api, resource, context, response),
+                verifications=self.project_verifications(api, context, operation, response),
+            )
         if self.paginated(response):
             if context.representation not in {None, SirenRepresentation.COLLECTION}:
                 raise SirenityError("OpenAPI paginated response requires collection representation")
@@ -79,7 +83,11 @@ class SirenResponseProjectionService:
                     )
                 }
             )
-        return SirenProjectedResponse(document=document, continuations=continuations)
+        return SirenProjectedResponse(
+            document=document,
+            continuations=continuations,
+            verifications=self.project_verifications(api, context, operation, response),
+        )
 
     def root(
         self, api: graph.SirenApi, operation: graph.SirenOperation, context: SirenResponseContext
@@ -322,6 +330,119 @@ class SirenResponseProjectionService:
         for token in pointer:
             value = value[token]
         return value
+
+    def project_verifications(
+        self,
+        api: graph.SirenApi,
+        context: SirenResponseContext,
+        source: graph.SirenOperation,
+        response: graph.SirenResponse,
+    ) -> tuple[SirenProjectedVerification, ...]:
+        if source.method not in {
+            SirenHttpMethod.DELETE,
+            SirenHttpMethod.PATCH,
+            SirenHttpMethod.POST,
+            SirenHttpMethod.PUT,
+        }:
+            return ()
+        verifications = []
+        for link in response.links:
+            target = self.operation(api, link.operation)
+            if target.method != SirenHttpMethod.GET or not self.verification_supported(context, link, target):
+                continue
+            path_values, query, arguments = self.verification_arguments(context, link, target)
+            resource = self.resource(api, target)
+            request = SirenContext(
+                base_url=context.base_url,
+                scope=target.scope,
+                resource=resource.name if resource is not None else None,
+                path_values=path_values,
+                query=query,
+            )
+            verifications.append(
+                SirenProjectedVerification(
+                    operation_id=target.name,
+                    arguments=arguments,
+                    href=self.hrefs.href(target.route.path, request, resource),
+                )
+            )
+        return tuple(verifications)
+
+    def verification_supported(
+        self,
+        context: SirenResponseContext,
+        link: graph.SirenResponseLink,
+        target: graph.SirenOperation,
+    ) -> bool:
+        target_path = {
+            segment[1:-1]
+            for segment in target.route.path.split("/")
+            if segment.startswith("{") and segment.endswith("}")
+        }
+        target_parameters = target.input.parameters if target.input is not None else ()
+        target_query = {parameter.name for parameter in target_parameters if parameter.location == "query"}
+        required_query = {
+            parameter.name
+            for parameter in target_parameters
+            if parameter.location == "query" and parameter.required
+        }
+        if any(
+            parameter.required and parameter.location in {"header", "cookie"}
+            for parameter in target_parameters
+        ):
+            return False
+        if target.input is not None and any(delegated.required for delegated in target.input.delegated_inputs):
+            return False
+        if target.input is not None and (target.input.definition or {}).get("required"):
+            return False
+        linked = {self.parameter_name(name) for name in link.parameters}
+        available_path = target_path.intersection(context.path_values) | target_path.intersection(linked)
+        available_query = target_query.intersection(name for name, _ in context.query) | target_query.intersection(
+            linked
+        )
+        return target_path <= available_path and required_query <= available_query
+
+    def verification_arguments(
+        self,
+        context: SirenResponseContext,
+        link: graph.SirenResponseLink,
+        target: graph.SirenOperation,
+    ) -> tuple[
+        dict[str, JsonValue],
+        tuple[tuple[str, JsonValue], ...],
+        dict[str, JsonValue],
+    ]:
+        target_path = {
+            segment[1:-1]
+            for segment in target.route.path.split("/")
+            if segment.startswith("{") and segment.endswith("}")
+        }
+        target_parameters = target.input.parameters if target.input is not None else ()
+        target_query = {parameter.name for parameter in target_parameters if parameter.location == "query"}
+        path_values = {name: value for name, value in context.path_values.items() if name in target_path}
+        mapped_query = {
+            self.parameter_name(name)
+            for name in link.parameters
+            if name.startswith("query.") or self.parameter_name(name) in target_query
+        }
+        query_values = [
+            (name, value)
+            for name, value in context.query
+            if name in target_query and name not in mapped_query
+        ]
+        for name, expression in link.parameters.items():
+            argument = self.parameter_name(name)
+            value = self.pointer(expression, context.result)
+            if value is None:
+                raise SirenityError("Siren verification values cannot be null")
+            if name.startswith("path.") or argument in target_path:
+                path_values[argument] = value
+            else:
+                query_values.append((argument, value))
+        query = tuple(query_values)
+        arguments = dict(path_values)
+        arguments.update(query)
+        return path_values, query, arguments
 
     def paginated(self, response: graph.SirenResponse) -> bool:
         return any(continuation.kind == SirenContinuationKind.PAGINATION for continuation in response.continuations)
