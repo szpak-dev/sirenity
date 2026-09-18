@@ -283,6 +283,56 @@ class ExampleContracts:
             },
         }
 
+    def verification(self) -> dict[str, object]:
+        contract = self.operation()
+        path = contract["paths"]["/api/example_records/{example_record_id}"]
+        path["patch"]["responses"]["200"]["links"] = {
+            "verification": {
+                "operationId": "get_example_record",
+                "parameters": {
+                    "path.example_record_id": "$response.body#/example_record_id",
+                },
+                "x-sirenity": {"rel": "self", "scope": "entity"},
+            }
+        }
+        path["get"] = {
+            "operationId": "get_example_record",
+            "summary": "Read example record",
+            "description": "Read one example record.",
+            "responses": {
+                "200": {
+                    "description": "Example record.",
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "title": "Example record",
+                                "required": ["example_record_id", "example_title"],
+                                "properties": {
+                                    "example_record_id": {"type": "string"},
+                                    "example_title": {"type": "string"},
+                                },
+                            }
+                        }
+                    },
+                }
+            },
+        }
+        return contract
+
+    def unsupported_verification(self) -> dict[str, object]:
+        contract = self.verification()
+        target = contract["paths"]["/api/example_records/{example_record_id}"]["get"]
+        target["parameters"] = [
+            {
+                "name": "example_authorization",
+                "in": "header",
+                "required": True,
+                "schema": {"type": "string"},
+            }
+        ]
+        return contract
+
     def cross_operation_bounded(self) -> dict[str, object]:
         contract = self.bounded()
         source = contract["paths"]["/api/example_jobs/{example_job_id}"]["get"]
