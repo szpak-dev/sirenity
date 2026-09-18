@@ -192,8 +192,10 @@ Sirenity is proprietary software. No permission to use, copy, modify, or distrib
 Successful state-changing MCP results expose executable safe `GET` response links through
 `result.verifications`, separately from pagination and bounded `result.continuations`. Each value
 is a `SirenMcpInvocation` whose operation identifier and path or query arguments come from the
-compiled OpenAPI response link and runtime response bindings. Callers can pass it directly to
-`invoke()` without parsing a Siren href.
+compiled API graph, runtime path values, and response identity. Explicit OpenAPI response links
+remain supported but are not required when a `POST`, `PUT`, or `PATCH` response identifies the
+resource's canonical entity `GET`. Callers can pass the invocation directly to `invoke()` without
+parsing a Siren href.
 
 ```python
 updated = example_mcp.invoke(SirenMcpInvocation(
@@ -210,5 +212,5 @@ if updated.verifications:
 ```
 
 `verifications` is an empty tuple for errors, read operations, and successful mutations without
-an executable safe-read response link. It does not use `has_more`; targets requiring unbound
-header, cookie, or body inputs are omitted.
+an authorized executable safe read. It does not use `has_more`; targets requiring unbound header,
+cookie, or body inputs are omitted.

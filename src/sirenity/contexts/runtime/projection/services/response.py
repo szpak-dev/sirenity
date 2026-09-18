@@ -345,10 +345,14 @@ class SirenResponseProjectionService:
             SirenHttpMethod.PUT,
         }:
             return ()
-        verifications = []
+        verifications: list[SirenProjectedVerification] = []
         for link in response.links:
             target = self.operation(api, link.operation)
-            if target.method != SirenHttpMethod.GET or not self.verification_supported(context, link, target):
+            if (
+                target.method != SirenHttpMethod.GET
+                or not self.verification_target_supported(context, target)
+                or not self.verification_supported(context, link, target)
+            ):
                 continue
             path_values, query, arguments = self.verification_arguments(context, link, target)
             resource = self.resource(api, target)
@@ -359,33 +363,102 @@ class SirenResponseProjectionService:
                 path_values=path_values,
                 query=query,
             )
-            verifications.append(
-                SirenProjectedVerification(
-                    operation_id=target.name,
-                    arguments=arguments,
-                    href=self.hrefs.href(target.route.path, request, resource),
-                )
+            verification = SirenProjectedVerification(
+                operation_id=target.name,
+                arguments=arguments,
+                href=self.hrefs.href(target.route.path, request, resource),
             )
+            if verification not in verifications:
+                verifications.append(verification)
+        for target, resource in self.canonical_verification_targets(api, context, source, response):
+            path_values = self.canonical_verification_path_values(context, resource, target)
+            query = self.verification_query(context, target)
+            arguments = dict(path_values)
+            arguments.update(query)
+            request = SirenContext(
+                base_url=context.base_url,
+                scope=target.scope,
+                resource=resource.name,
+                path_values=path_values,
+                query=query,
+            )
+            verification = SirenProjectedVerification(
+                operation_id=target.name,
+                arguments=arguments,
+                href=self.hrefs.href(target.route.path, request, resource),
+            )
+            if verification not in verifications:
+                verifications.append(verification)
         return tuple(verifications)
 
-    def verification_supported(
+    def canonical_verification_targets(
+        self,
+        api: graph.SirenApi,
+        context: SirenResponseContext,
+        source: graph.SirenOperation,
+        response: graph.SirenResponse,
+    ) -> tuple[tuple[graph.SirenOperation, graph.SirenResource], ...]:
+        if source.method not in {SirenHttpMethod.PATCH, SirenHttpMethod.POST, SirenHttpMethod.PUT}:
+            return ()
+        if response.shape != "object" or source.resource is None:
+            return ()
+        resource = self.resource(api, source)
+        if resource is None or resource.entity is None:
+            return ()
+        if source.route not in {resource.collection, resource.entity}:
+            return ()
+        targets = tuple(
+            operation
+            for operation in api.operations
+            if operation.resource == resource.reference
+            and operation.method == SirenHttpMethod.GET
+            and operation.scope == SirenScope.ENTITY
+            and operation.route == resource.entity
+        )
+        if len(targets) != 1:
+            return ()
+        target = targets[0]
+        if not self.verification_target_supported(context, target):
+            return ()
+        path_values = self.canonical_verification_path_values(context, resource, target)
+        target_path = self.operation_path_parameters(target)
+        required_query = self.required_query_parameters(target)
+        available_query = {name for name, _ in self.verification_query(context, target)}
+        if target_path - path_values.keys() or required_query - available_query:
+            return ()
+        return ((target, resource),)
+
+    def canonical_verification_path_values(
         self,
         context: SirenResponseContext,
-        link: graph.SirenResponseLink,
+        resource: graph.SirenResource,
+        target: graph.SirenOperation,
+    ) -> dict[str, JsonValue]:
+        target_path = self.operation_path_parameters(target)
+        path_values = {
+            name: value
+            for name, value in context.path_values.items()
+            if name in target_path and value is not None
+        }
+        result = context.result if isinstance(context.result, dict) else {}
+        for name in target_path - path_values.keys():
+            values = tuple(
+                result[candidate]
+                for candidate in resource.path_bindings[name]
+                if candidate in result and result[candidate] is not None
+            )
+            if values:
+                path_values[name] = values[0]
+        return path_values
+
+    def verification_target_supported(
+        self,
+        context: SirenResponseContext,
         target: graph.SirenOperation,
     ) -> bool:
-        target_path = {
-            segment[1:-1]
-            for segment in target.route.path.split("/")
-            if segment.startswith("{") and segment.endswith("}")
-        }
+        if target.name not in context.capabilities:
+            return False
         target_parameters = target.input.parameters if target.input is not None else ()
-        target_query = {parameter.name for parameter in target_parameters if parameter.location == "query"}
-        required_query = {
-            parameter.name
-            for parameter in target_parameters
-            if parameter.location == "query" and parameter.required
-        }
         if any(
             parameter.required and parameter.location in {"header", "cookie"}
             for parameter in target_parameters
@@ -393,10 +466,26 @@ class SirenResponseProjectionService:
             return False
         if target.input is not None and any(delegated.required for delegated in target.input.delegated_inputs):
             return False
-        if target.input is not None and (target.input.definition or {}).get("required"):
+        return target.input is None or not (target.input.definition or {}).get("required")
+
+    def verification_supported(
+        self,
+        context: SirenResponseContext,
+        link: graph.SirenResponseLink,
+        target: graph.SirenOperation,
+    ) -> bool:
+        target_path = self.operation_path_parameters(target)
+        target_parameters = target.input.parameters if target.input is not None else ()
+        target_query = {parameter.name for parameter in target_parameters if parameter.location == "query"}
+        required_query = self.required_query_parameters(target)
+        if any(self.pointer(expression, context.result) is None for expression in link.parameters.values()):
             return False
         linked = {self.parameter_name(name) for name in link.parameters}
-        available_path = target_path.intersection(context.path_values) | target_path.intersection(linked)
+        available_path = {
+            name
+            for name, value in context.path_values.items()
+            if name in target_path and value is not None
+        } | target_path.intersection(linked)
         available_query = target_query.intersection(name for name, _ in context.query) | target_query.intersection(
             linked
         )
@@ -443,6 +532,30 @@ class SirenResponseProjectionService:
         arguments = dict(path_values)
         arguments.update(query)
         return path_values, query, arguments
+
+    def operation_path_parameters(self, operation: graph.SirenOperation) -> set[str]:
+        return {
+            segment[1:-1]
+            for segment in operation.route.path.split("/")
+            if segment.startswith("{") and segment.endswith("}")
+        }
+
+    def required_query_parameters(self, operation: graph.SirenOperation) -> set[str]:
+        parameters = operation.input.parameters if operation.input is not None else ()
+        return {
+            parameter.name
+            for parameter in parameters
+            if parameter.location == "query" and parameter.required
+        }
+
+    def verification_query(
+        self,
+        context: SirenResponseContext,
+        target: graph.SirenOperation,
+    ) -> tuple[tuple[str, JsonValue], ...]:
+        parameters = target.input.parameters if target.input is not None else ()
+        target_query = {parameter.name for parameter in parameters if parameter.location == "query"}
+        return tuple((name, value) for name, value in context.query if name in target_query)
 
     def paginated(self, response: graph.SirenResponse) -> bool:
         return any(continuation.kind == SirenContinuationKind.PAGINATION for continuation in response.continuations)
