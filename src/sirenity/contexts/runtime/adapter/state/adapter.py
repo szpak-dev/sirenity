@@ -6,10 +6,9 @@ from pydantic import JsonValue, model_validator
 
 from ....graph import SirenInput
 from ....shared import BaseState, SirenityError
-from ...document.values.document import SirenDocument
-from ...document.values.link import SirenLink
-from ...engine.engine import SirenEngine
-from ...request.values.response import SirenResponseContext
+from ...document import SirenDocument, SirenLink
+from ...engine import SirenEngine
+from ...request import SirenResponseContext
 from ..contracts.profile import SirenAdapterProfile
 from ..values.match import SirenAdapterMatch
 from ..values.request import SirenAdapterRequest

@@ -5,7 +5,7 @@ from pydantic import GetCoreSchemaHandler, GetJsonSchemaHandler
 from pydantic.json_schema import JsonSchemaValue
 from pydantic_core import CoreSchema, core_schema
 
-from ... import SirenityError
+from ...foundation import SirenityError
 
 
 class SirenMediaType(str):

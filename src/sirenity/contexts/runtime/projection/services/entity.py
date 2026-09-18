@@ -6,11 +6,9 @@ from wireup import injectable
 
 from ....graph import SirenApi, SirenResource
 from ....shared import SirenRelation, SirenScope
-from ...document.values.document import SirenDocument
-from ...document.values.embedded_representation import SirenEmbeddedRepresentation
-from ...document.values.link import SirenLink
-from ...request.values.context import SirenContext
-from ...routing.contracts.href import SirenHrefService
+from ...document import SirenDocument, SirenEmbeddedRepresentation, SirenLink
+from ...request import SirenContext
+from ...routing import SirenHrefService
 from ..contracts.action import SirenActionDocumentService
 from ..contracts.entity import SirenEntityDocumentService
 

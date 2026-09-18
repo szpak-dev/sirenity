@@ -3,9 +3,7 @@ from dataclasses import dataclass
 from wireup import injectable
 
 from ....shared import SirenityError, SirenScope
-from ...document.values.document import SirenDocument
-from ...document.values.embedded_representation import SirenEmbeddedRepresentation
-from ...document.values.link import SirenLink
+from ...document import SirenDocument, SirenEmbeddedRepresentation, SirenLink
 from ..contracts.entity import SirenEntityDocumentService
 from ..contracts.projector import SirenScopeProjector
 from ..contracts.relationship import SirenRelationshipDocumentService

@@ -6,11 +6,10 @@ from wireup import injectable
 
 from ....graph import SirenApi, SirenField, SirenOperation, SirenResource
 from ....shared import SirenityError, SirenScope
-from ...document.values import field
-from ...document.values.action import SirenAction
-from ...document.values.field_value import SirenFieldValue
-from ...request.values.context import SirenContext
-from ...routing.contracts.href import SirenHrefService
+from ...document import SirenAction, SirenFieldValue
+from ...document import SirenField as SirenDocumentField
+from ...request import SirenContext
+from ...routing import SirenHrefService
 from ..contracts.action import SirenActionDocumentService
 
 
@@ -48,7 +47,7 @@ class SirenDefaultActionDocumentService(SirenActionDocumentService):
             title=operation.title,
             type=operation.media_type,
             fields=tuple(
-                field.SirenField(
+                SirenDocumentField(
                     name=definition.name,
                     type=definition.type,
                     title=definition.title,

@@ -5,14 +5,11 @@ from pydantic import JsonValue, TypeAdapter, ValidationError
 from wireup import injectable
 
 from .... import graph
-from ....graph.model.values.continuation import SirenContinuation, SirenContinuationKind
+from ....graph.model import SirenContinuation, SirenContinuationKind
 from ....shared import SirenHttpMethod, SirenityError, SirenRepresentation, SirenScope
-from ...document.values.document import SirenDocument
-from ...document.values.link import SirenLink
-from ...request.values.context import SirenContext
-from ...request.values.relationship import SirenRelationship
-from ...request.values.response import SirenResponseContext
-from ...routing.contracts.href import SirenHrefService
+from ...document import SirenDocument, SirenLink
+from ...request import SirenContext, SirenRelationship, SirenResponseContext
+from ...routing import SirenHrefService
 from ..values.continuation import SirenProjectedContinuation
 from ..values.response import SirenProjectedResponse
 from ..values.verification import SirenProjectedVerification

@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 
 from ....shared import SirenityError, SirenScope
-from ...document.values.document import SirenDocument
+from ...document import SirenDocument
 from ..values.request import SirenProjectionRequest
 
 

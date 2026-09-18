@@ -4,13 +4,10 @@ from wireup import injectable
 
 from ....graph import SirenApi
 from ....shared import SirenityError, SirenScope
-from ...capabilities.contracts.validator import SirenCapabilityValidator
-from ...document.values.embedded_representation import SirenEmbeddedRepresentation
-from ...document.values.link import SirenLink
-from ...request.values.context import SirenContext
-from ...request.values.relationship import SirenRelationship
-from ...routing.contracts.href import SirenHrefService
-from ...routing.contracts.resolver import SirenResourceResolver
+from ...capabilities import SirenCapabilityValidator
+from ...document import SirenEmbeddedRepresentation, SirenLink
+from ...request import SirenContext, SirenRelationship
+from ...routing import SirenHrefService, SirenResourceResolver
 from ..contracts.entity import SirenEntityDocumentService
 from ..contracts.relationship import SirenRelationshipDocumentService
 

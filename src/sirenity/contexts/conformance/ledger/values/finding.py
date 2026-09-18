@@ -1,5 +1,5 @@
 from ....shared import BaseValue
-from ...specification.values.requirement import SirenRequirement
+from ...specification import SirenRequirement
 
 
 class SirenFinding(BaseValue):

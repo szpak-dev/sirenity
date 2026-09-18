@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 
 from ....graph import SirenResource
 from ....shared import SirenityError, SirenScope
-from ...request.values.context import SirenContext
+from ...request import SirenContext
 
 
 class SirenCapabilityValidator(ABC):

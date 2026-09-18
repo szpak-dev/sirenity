@@ -1,3 +1,3 @@
-from .ledger.services.conformance import SirenConformanceService
+from .ledger import SirenConformanceService
 
 __all__ = ["SirenConformanceService"]

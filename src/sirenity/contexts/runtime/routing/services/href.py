@@ -7,7 +7,7 @@ from wireup import injectable
 
 from ....graph import SirenResource
 from ....shared import SirenityError, SirenUri
-from ...request.values.context import SirenContext
+from ...request import SirenContext
 from ..contracts.href import SirenHrefService
 
 

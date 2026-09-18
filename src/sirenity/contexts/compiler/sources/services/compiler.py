@@ -18,8 +18,7 @@ from ....shared import (
     SirenMediaType,
     SirenScope,
 )
-from ...compatibility.values.diagnostics import SirenDiagnostics
-from ...compatibility.values.finding import SirenCompatibilityFinding
+from ...compatibility import SirenCompatibilityFinding, SirenDiagnostics
 from ..values.compilation_request import OpenApiCompilationRequest
 from ..values.normalized import NormalizedOpenApi
 from ..values.operation_draft import OperationDraft

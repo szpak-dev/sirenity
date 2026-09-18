@@ -3,8 +3,7 @@ from dataclasses import dataclass
 from pydantic import JsonValue
 from wireup import injectable
 
-from ...compatibility.values.compilation import SirenCompilation
-from ...compatibility.values.diagnostics import SirenDiagnostics
+from ...compatibility import SirenCompilation, SirenDiagnostics
 from ..contracts.source import SirenSource
 from ..values.compilation_request import OpenApiCompilationRequest
 from .builder import SirenBuilder

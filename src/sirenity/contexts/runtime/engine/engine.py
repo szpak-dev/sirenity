@@ -1,11 +1,8 @@
 from ...graph import SirenApi, SirenInput
 from ...shared import BaseState, SirenityError
-from ..document.values.document import SirenDocument
-from ..projection.services.projection import SirenProjectionService
-from ..projection.services.response import SirenResponseProjectionService
-from ..projection.values.response import SirenProjectedResponse
-from ..request.values.context import SirenContext
-from ..request.values.response import SirenResponseContext
+from ..document import SirenDocument
+from ..projection import SirenProjectedResponse, SirenProjectionService, SirenResponseProjectionService
+from ..request import SirenContext, SirenResponseContext
 
 
 class SirenEngine(BaseState):

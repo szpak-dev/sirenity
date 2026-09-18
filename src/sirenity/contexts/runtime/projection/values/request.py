@@ -4,7 +4,7 @@ from pydantic import JsonValue
 
 from ....graph import SirenApi, SirenResource
 from ....shared import BaseValue, SirenRelation
-from ...request.values.context import SirenContext
+from ...request import SirenContext
 
 
 class SirenProjectionRequest(BaseValue):

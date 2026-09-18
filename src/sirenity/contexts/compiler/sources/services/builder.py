@@ -5,7 +5,7 @@ from typing import Literal
 from wireup import injectable
 
 from .... import graph, shared
-from ....graph.model.values.continuation import (
+from ....graph.model import (
     SirenContinuation,
     SirenContinuationKind,
     SirenContinuationParameter,

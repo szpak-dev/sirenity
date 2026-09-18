@@ -1,9 +1,8 @@
 from abc import ABC, abstractmethod
 
 from ....graph import SirenApi
-from ...document.values.embedded_representation import SirenEmbeddedRepresentation
-from ...document.values.link import SirenLink
-from ...request.values.context import SirenContext
+from ...document import SirenEmbeddedRepresentation, SirenLink
+from ...request import SirenContext
 
 
 class SirenRelationshipDocumentService(ABC):
