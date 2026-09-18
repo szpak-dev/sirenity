@@ -320,6 +320,17 @@ class ExampleContracts:
         }
         return contract
 
+    def creation_verification(self) -> dict[str, object]:
+        contract = self.verification()
+        entity = contract["paths"]["/api/example_records/{example_record_id}"]
+        create = entity.pop("patch")
+        del create["responses"]["200"]["links"]
+        create["operationId"] = "create_example_record"
+        create["summary"] = "Create example record"
+        create["description"] = "Create one example record."
+        contract["paths"]["/api/example_records"] = {"post": create}
+        return contract
+
     def unsupported_verification(self) -> dict[str, object]:
         contract = self.verification()
         target = contract["paths"]["/api/example_records/{example_record_id}"]["get"]

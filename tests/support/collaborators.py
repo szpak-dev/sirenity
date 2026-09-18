@@ -14,6 +14,17 @@ class ExamplePolicy:
         return SirenAdapterPolicy(all_capabilities=True)
 
 
+class ExampleMutationOnlyPolicy:
+    def select(
+        self,
+        operation_id: str | None,
+        status: int,
+        request: object,
+        result: JsonValue,
+    ) -> SirenAdapterPolicy:
+        return SirenAdapterPolicy(capabilities=frozenset({"create_example_record"}))
+
+
 class ExampleInterruptedPolicy:
     def __init__(self):
         raise RuntimeError("example policy interrupted")
