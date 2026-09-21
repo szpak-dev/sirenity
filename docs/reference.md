@@ -26,6 +26,7 @@ The supported root imports below are generated from `sirenity.__all__`.
 | `SirenEmbeddedRepresentation` | !!! abstract "Usage Documentation" | — |
 | `SirenField` | !!! abstract "Usage Documentation" | — |
 | `SirenFieldValue` | !!! abstract "Usage Documentation" | — |
+| `SirenFollowUp` | Declare one safe read target for :func:`siren_follow_ups`. | — |
 | `SirenInput` | !!! abstract "Usage Documentation" | — |
 | `SirenLink` | !!! abstract "Usage Documentation" | — |
 | `SirenMcpExecution` | !!! abstract "Usage Documentation" | — |
@@ -46,5 +47,6 @@ The supported root imports below are generated from `sirenity.__all__`.
 | `siren` | Compile a complete OpenAPI 3.1 document into a reusable Siren engine. | — |
 | `siren_adapter` | Compile a framework-neutral boundary for operation-aware Siren HTTP responses. | — |
 | `siren_configuration` | Resolve one immutable configuration for every supported integration. | — |
+| `siren_follow_ups` | Declare typed read follow-ups for a Django Ninja or Ninja Extra operation. | — |
 | `siren_mcp` | Expose every compiled OpenAPI operation as a correctly described MCP tool. | — |
 | `siren_pagination` | Declare one typed paginated Django Ninja or Ninja Extra operation. | — |

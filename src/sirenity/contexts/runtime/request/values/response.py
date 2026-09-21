@@ -22,6 +22,7 @@ class SirenResponseContext(BaseValue):
     path_values: Mapping[str, JsonValue] = Field(default_factory=dict)
     query: tuple[tuple[str, JsonValue], ...] = ()
     capabilities: frozenset[str] = frozenset()
+    navigation_capabilities: frozenset[str] = frozenset()
     item_titles: tuple[str, ...] = ()
     item_capabilities: tuple[frozenset[str], ...] = ()
     relationships: tuple[SirenRelationship, ...] = ()

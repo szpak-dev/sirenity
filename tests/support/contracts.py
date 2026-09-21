@@ -344,6 +344,149 @@ class ExampleContracts:
         ]
         return contract
 
+    def follow_ups(self) -> dict[str, object]:
+        return {
+            "openapi": "3.1.1",
+            "info": {"title": "Example follow-ups API", "version": "1.0.0"},
+            "paths": {
+                "/api/example_dashboards/{example_dashboard_id}": {
+                    "parameters": [
+                        {
+                            "name": "example_dashboard_id",
+                            "in": "path",
+                            "required": True,
+                            "schema": {"type": "string"},
+                        }
+                    ],
+                    "get": {
+                        "operationId": "get_example_dashboard",
+                        "summary": "Read example dashboard",
+                        "description": "Read one example dashboard.",
+                        "responses": {
+                            "200": {
+                                "description": "Example dashboard.",
+                                "content": {
+                                    "application/json": {
+                                        "schema": {"$ref": "#/components/schemas/ExampleDashboard"}
+                                    }
+                                },
+                                "links": {
+                                    "primary_record": {
+                                        "operationId": "get_example_record",
+                                        "parameters": {
+                                            "path.example_record_id": "$response.body#/primary_record_id"
+                                        },
+                                        "x-sirenity": {"rel": "item", "scope": "entity"},
+                                    },
+                                    "secondary_record": {
+                                        "operationId": "get_example_record",
+                                        "parameters": {
+                                            "path.example_record_id": "$response.body#/secondary_record_id"
+                                        },
+                                        "x-sirenity": {"rel": "alternate", "scope": "entity"},
+                                    },
+                                },
+                            }
+                        },
+                    },
+                },
+                "/api/example_records/{example_record_id}": {
+                    "parameters": [
+                        {
+                            "name": "example_record_id",
+                            "in": "path",
+                            "required": True,
+                            "schema": {"type": "string"},
+                        }
+                    ],
+                    "get": {
+                        "operationId": "get_example_record",
+                        "summary": "Read example record",
+                        "description": "Read one example record.",
+                        "parameters": [
+                            {
+                                "name": "example_locale",
+                                "in": "query",
+                                "schema": {
+                                    "type": "string",
+                                    "title": "Example locale",
+                                    "default": "example-en",
+                                },
+                            }
+                        ],
+                        "responses": {
+                            "200": {
+                                "description": "Example record.",
+                                "content": {
+                                    "application/json": {
+                                        "schema": {"$ref": "#/components/schemas/ExampleRecord"}
+                                    }
+                                },
+                            }
+                        },
+                    },
+                },
+            },
+            "components": {
+                "schemas": {
+                    "ExampleDashboard": {
+                        "type": "object",
+                        "title": "Example dashboard",
+                        "required": [
+                            "example_dashboard_id",
+                            "primary_record_id",
+                            "secondary_record_id",
+                        ],
+                        "properties": {
+                            "example_dashboard_id": {"type": "string"},
+                            "primary_record_id": {"type": "string"},
+                            "secondary_record_id": {"type": "string"},
+                        },
+                    },
+                    "ExampleRecord": {
+                        "type": "object",
+                        "title": "Example record",
+                        "required": ["example_record_id", "example_title"],
+                        "properties": {
+                            "example_record_id": {"type": "string"},
+                            "example_title": {"type": "string"},
+                        },
+                    },
+                }
+            },
+        }
+
+    def single_follow_up(self) -> dict[str, object]:
+        contract = self.follow_ups()
+        links = contract["paths"]["/api/example_dashboards/{example_dashboard_id}"]["get"]["responses"][
+            "200"
+        ]["links"]
+        del links["secondary_record"]
+        return contract
+
+    def unsupported_follow_up(self) -> dict[str, object]:
+        contract = self.single_follow_up()
+        target = contract["paths"]["/api/example_records/{example_record_id}"]["get"]
+        target["parameters"].append(
+            {
+                "name": "example_authorization",
+                "in": "header",
+                "required": True,
+                "schema": {"type": "string"},
+            }
+        )
+        return contract
+
+    def required_query_follow_up(self) -> dict[str, object]:
+        contract = self.single_follow_up()
+        target = contract["paths"]["/api/example_records/{example_record_id}"]["get"]
+        target["parameters"][0]["required"] = True
+        source = contract["paths"]["/api/example_dashboards/{example_dashboard_id}"]["get"]
+        source["responses"]["200"]["links"]["primary_record"]["parameters"].update(
+            {"query.example_locale": "$response.body#/example_dashboard_id"}
+        )
+        return contract
+
     def cross_operation_bounded(self) -> dict[str, object]:
         contract = self.bounded()
         source = contract["paths"]["/api/example_jobs/{example_job_id}"]["get"]

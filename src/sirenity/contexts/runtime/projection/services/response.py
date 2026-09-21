@@ -11,6 +11,7 @@ from ...document import SirenDocument, SirenLink
 from ...request import SirenContext, SirenRelationship, SirenResponseContext
 from ...routing import SirenHrefService
 from ..values.continuation import SirenProjectedContinuation
+from ..values.follow_up import SirenProjectedFollowUp
 from ..values.response import SirenProjectedResponse
 from ..values.verification import SirenProjectedVerification
 from .projection import SirenProjectionService
@@ -38,6 +39,7 @@ class SirenResponseProjectionService:
             return SirenProjectedResponse(
                 document=self.empty(operation, resource, context),
                 verifications=self.project_verifications(api, context, operation, response),
+                follow_ups=self.project_follow_ups(api, context, operation, response),
             )
         if response.shape == "array":
             if context.representation not in {None, SirenRepresentation.COLLECTION}:
@@ -45,6 +47,7 @@ class SirenResponseProjectionService:
             return SirenProjectedResponse(
                 document=self.collection(api, resource, context, response),
                 verifications=self.project_verifications(api, context, operation, response),
+                follow_ups=self.project_follow_ups(api, context, operation, response),
             )
         if self.paginated(response):
             if context.representation not in {None, SirenRepresentation.COLLECTION}:
@@ -87,6 +90,7 @@ class SirenResponseProjectionService:
             document=document,
             continuations=continuations,
             verifications=self.project_verifications(api, context, operation, response),
+            follow_ups=self.project_follow_ups(api, context, operation, response),
         )
 
     def root(
@@ -350,11 +354,11 @@ class SirenResponseProjectionService:
             target = self.operation(api, link.operation)
             if (
                 target.method != SirenHttpMethod.GET
-                or not self.verification_target_supported(context, target)
-                or not self.verification_supported(context, link, target)
+                or not self.navigation_target_supported(context, target)
+                or not self.navigation_supported(context, link, target)
             ):
                 continue
-            path_values, query, arguments = self.verification_arguments(context, link, target)
+            path_values, query, arguments = self.navigation_arguments(context, link, target)
             resource = self.resource(api, target)
             request = SirenContext(
                 base_url=context.base_url,
@@ -391,6 +395,42 @@ class SirenResponseProjectionService:
                 verifications.append(verification)
         return tuple(verifications)
 
+    def project_follow_ups(
+        self,
+        api: graph.SirenApi,
+        context: SirenResponseContext,
+        source: graph.SirenOperation,
+        response: graph.SirenResponse,
+    ) -> tuple[SirenProjectedFollowUp, ...]:
+        if source.method != SirenHttpMethod.GET or not 200 <= context.status < 300:
+            return ()
+        follow_ups: list[SirenProjectedFollowUp] = []
+        for link in response.links:
+            target = self.operation(api, link.operation)
+            if (
+                target.method != SirenHttpMethod.GET
+                or not self.navigation_target_supported(context, target)
+                or not self.navigation_supported(context, link, target)
+            ):
+                continue
+            path_values, query, arguments = self.navigation_arguments(context, link, target)
+            resource = self.resource(api, target)
+            request = SirenContext(
+                base_url=context.base_url,
+                scope=target.scope,
+                resource=resource.name if resource is not None else None,
+                path_values=path_values,
+                query=query,
+            )
+            follow_up = SirenProjectedFollowUp(
+                operation_id=target.name,
+                arguments=arguments,
+                href=self.hrefs.href(target.route.path, request, resource),
+            )
+            if follow_up not in follow_ups:
+                follow_ups.append(follow_up)
+        return tuple(follow_ups)
+
     def canonical_verification_targets(
         self,
         api: graph.SirenApi,
@@ -418,7 +458,7 @@ class SirenResponseProjectionService:
         if len(targets) != 1:
             return ()
         target = targets[0]
-        if not self.verification_target_supported(context, target):
+        if not self.navigation_target_supported(context, target):
             return ()
         path_values = self.canonical_verification_path_values(context, resource, target)
         target_path = self.operation_path_parameters(target)
@@ -451,12 +491,12 @@ class SirenResponseProjectionService:
                 path_values[name] = values[0]
         return path_values
 
-    def verification_target_supported(
+    def navigation_target_supported(
         self,
         context: SirenResponseContext,
         target: graph.SirenOperation,
     ) -> bool:
-        if target.name not in context.capabilities:
+        if target.name not in context.navigation_capabilities:
             return False
         target_parameters = target.input.parameters if target.input is not None else ()
         if any(
@@ -468,7 +508,7 @@ class SirenResponseProjectionService:
             return False
         return target.input is None or not (target.input.definition or {}).get("required")
 
-    def verification_supported(
+    def navigation_supported(
         self,
         context: SirenResponseContext,
         link: graph.SirenResponseLink,
@@ -491,7 +531,7 @@ class SirenResponseProjectionService:
         )
         return target_path <= available_path and required_query <= available_query
 
-    def verification_arguments(
+    def navigation_arguments(
         self,
         context: SirenResponseContext,
         link: graph.SirenResponseLink,
@@ -523,7 +563,7 @@ class SirenResponseProjectionService:
             argument = self.parameter_name(name)
             value = self.pointer(expression, context.result)
             if value is None:
-                raise SirenityError("Siren verification values cannot be null")
+                raise SirenityError("Siren navigation values cannot be null")
             if name.startswith("path.") or argument in target_path:
                 path_values[argument] = value
             else:
@@ -637,6 +677,7 @@ class SirenResponseProjectionService:
             values = {
                 self.parameter_name(name): self.pointer(expression, result)
                 for name, expression in link.parameters.items()
+                if name.startswith("path.") or self.parameter_name(name) in required
             }
             if set(values) != set(required):
                 raise SirenityError("Siren response link parameters do not match the target route")
@@ -651,8 +692,9 @@ class SirenResponseProjectionService:
         return tuple(links)
 
     def parameter_name(self, name: str) -> str:
-        if name.startswith("path."):
-            return name[len("path.") :]
+        for prefix in ("path.", "query."):
+            if name.startswith(prefix):
+                return name[len(prefix) :]
         return name
 
     def pointer(self, expression: str, result: JsonValue) -> JsonValue:

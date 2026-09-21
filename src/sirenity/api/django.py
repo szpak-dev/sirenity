@@ -13,6 +13,7 @@ from ..contexts.runtime.adapter import SirenDjangoMiddleware
 from ..contexts.runtime.mcp import SirenMcpToolCatalogueService
 from ..wiring import application
 from .configuration import SirenConfiguration, SirenConfigurationResolver
+from .follow_up import SirenFollowUp
 
 
 class SirenHandler[**P, R](Protocol):
@@ -183,6 +184,71 @@ def siren_pagination[**P, R, S](
     )
 
 
+def siren_follow_ups[**P, R, S](
+    route: SirenRouteDecorator[P, R, S],
+    path: str = "",
+    *,
+    response: type[S],
+    operation_id: str,
+    follow_ups: Mapping[str, SirenFollowUp],
+    status: int = 200,
+    **operation: object,
+) -> SirenOperationDecorator[P, R]:
+    """Declare typed read follow-ups for a Django Ninja or Ninja Extra operation.
+
+    Pass ``api.get`` for Django Ninja or ``http_get`` for Ninja Extra. Each mapping key becomes
+    the OpenAPI response-link name, while its :class:`SirenFollowUp` supplies the target operation,
+    response-property bindings, Siren relation, and target scope. Sirenity validates the generated
+    links during normal startup compilation and exposes authorized safe reads as typed MCP
+    invocations without parsing their rendered hrefs.
+
+    ```python
+    from sirenity import SirenFollowUp, SirenScope, siren_follow_ups
+
+    @siren_follow_ups(
+        api.get,
+        "/api/dashboards/{dashboard_id}",
+        response=Dashboard,
+        operation_id="get_dashboard",
+        follow_ups={
+            "primary_record": SirenFollowUp(
+                operation_id="get_record",
+                parameters={"path.record_id": "primary_record_id"},
+                rel="primary",
+                scope=SirenScope.ENTITY,
+            ),
+        },
+        summary="Read dashboard",
+        description="Read one dashboard.",
+    )
+    def get_dashboard(request, dashboard_id: str) -> Dashboard:
+        return Dashboard(dashboard_id=dashboard_id, primary_record_id="record-1")
+    ```
+
+    Optional target arguments omitted from ``parameters`` remain absent from the typed invocation,
+    so defaults declared by the target operation continue to apply.
+    """
+
+    links = {
+        name: {
+            "operationId": follow_up.operation_id,
+            "parameters": {
+                argument: f"$response.body#/{property_name.replace('~', '~0').replace('/', '~1')}"
+                for argument, property_name in follow_up.parameters.items()
+            },
+            "x-sirenity": {"rel": follow_up.rel, "scope": follow_up.scope.value},
+        }
+        for name, follow_up in follow_ups.items()
+    }
+    return route(
+        path,
+        response={status: response},
+        operation_id=operation_id,
+        openapi_extra={"responses": {status: {"links": links}}},
+        **operation,
+    )
+
+
 @dataclass(frozen=True)
 class SirenMiddleware:
     """Install Siren through Django's standard middleware loader.
@@ -200,9 +266,12 @@ class SirenMiddleware:
     read, and update responses need no ``openapi_extra`` declaration, ``x-sirenity`` metadata, policy
     relationship, or application-maintained operation mapping.
 
-    Relationships that cannot be derived from route ownership can still use Django Ninja's native
-    ``openapi_extra`` argument. Add the standard OpenAPI Link Object beneath the generated response,
-    bind target path parameters from the response body, and declare the Siren relation and scope:
+    Use :func:`siren_follow_ups` when a successful read advertises independent safe reads. It creates
+    standard OpenAPI Link Objects from target operation identifiers and response-property bindings;
+    Sirenity validates them and exposes authorized executable targets through MCP ``follow_ups``.
+    Other relationships that cannot be derived from route ownership can still use Django Ninja's
+    native ``openapi_extra`` argument. Add the Link Object beneath the generated response, bind target
+    path parameters from the response body, and declare the Siren relation and scope:
 
     ```python
     @api.get(

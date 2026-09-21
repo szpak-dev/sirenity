@@ -53,9 +53,12 @@ expose their own ``id`` and retain ``example_group_id`` for the inherited parent
 read, and update responses need no ``openapi_extra`` declaration, ``x-sirenity`` metadata, policy
 relationship, or application-maintained operation mapping.
 
-Relationships that cannot be derived from route ownership can still use Django Ninja's native
-``openapi_extra`` argument. Add the standard OpenAPI Link Object beneath the generated response,
-bind target path parameters from the response body, and declare the Siren relation and scope:
+Use :func:`siren_follow_ups` when a successful read advertises independent safe reads. It creates
+standard OpenAPI Link Objects from target operation identifiers and response-property bindings;
+Sirenity validates them and exposes authorized executable targets through MCP ``follow_ups``.
+Other relationships that cannot be derived from route ownership can still use Django Ninja's
+native ``openapi_extra`` argument. Add the Link Object beneath the generated response, bind target
+path parameters from the response body, and declare the Siren relation and scope:
 
 ```python
 @api.get(
@@ -88,6 +91,42 @@ Django Ninja merges this declaration into its generated response without an Open
 post-processing provider. Middleware construction validates the operation target, path bindings,
 runtime expression, relation, and scope while compiling that generated document. The declared
 relationship therefore needs no application Siren policy solely to appear in the representation.
+
+## `siren_follow_ups`
+
+Declare typed read follow-ups for a Django Ninja or Ninja Extra operation.
+
+Pass ``api.get`` for Django Ninja or ``http_get`` for Ninja Extra. Each mapping key becomes
+the OpenAPI response-link name, while its :class:`SirenFollowUp` supplies the target operation,
+response-property bindings, Siren relation, and target scope. Sirenity validates the generated
+links during normal startup compilation and exposes authorized safe reads as typed MCP
+invocations without parsing their rendered hrefs.
+
+```python
+from sirenity import SirenFollowUp, SirenScope, siren_follow_ups
+
+@siren_follow_ups(
+    api.get,
+    "/api/dashboards/{dashboard_id}",
+    response=Dashboard,
+    operation_id="get_dashboard",
+    follow_ups={
+        "primary_record": SirenFollowUp(
+            operation_id="get_record",
+            parameters={"path.record_id": "primary_record_id"},
+            rel="primary",
+            scope=SirenScope.ENTITY,
+        ),
+    },
+    summary="Read dashboard",
+    description="Read one dashboard.",
+)
+def get_dashboard(request, dashboard_id: str) -> Dashboard:
+    return Dashboard(dashboard_id=dashboard_id, primary_record_id="record-1")
+```
+
+Optional target arguments omitted from ``parameters`` remain absent from the typed invocation,
+so defaults declared by the target operation continue to apply.
 
 ## `siren_pagination`
 

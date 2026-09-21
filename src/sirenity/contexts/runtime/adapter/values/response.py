@@ -13,3 +13,4 @@ class SirenAdapterResponse(BaseValue):
     headers: Mapping[str, str] = Field(default_factory=dict)
     continuations: tuple[SirenProjectedNavigation, ...] = ()
     verifications: tuple[SirenProjectedNavigation, ...] = ()
+    follow_ups: tuple[SirenProjectedNavigation, ...] = ()

@@ -127,6 +127,13 @@ class SirenMcpBridge(BaseState):
                 )
                 for verification in response.verifications
             ),
+            follow_ups=tuple(
+                SirenMcpInvocation(
+                    operation_id=follow_up.operation_id,
+                    arguments=follow_up.arguments,
+                )
+                for follow_up in response.follow_ups
+            ),
         )
 
     def invoke(self, invocation: SirenMcpInvocation) -> SirenMcpResult:
