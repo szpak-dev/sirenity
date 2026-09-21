@@ -35,7 +35,8 @@ from ..contexts.shared import SirenContractError, SirenityError, SirenScope
 from .adapter import siren_adapter
 from .audit import audit
 from .configuration import SirenConfiguration, siren_configuration
-from .django import SirenContinuation, SirenMiddleware, siren_pagination
+from .django import SirenContinuation, SirenMiddleware, siren_follow_ups, siren_pagination
+from .follow_up import SirenFollowUp
 from .mcp import siren_mcp
 from .siren import siren
 
@@ -62,6 +63,7 @@ __all__ = [
     "SirenEmbeddedRepresentation",
     "SirenField",
     "SirenFieldValue",
+    "SirenFollowUp",
     "SirenInput",
     "SirenLink",
     "SirenMcpExecution",
@@ -82,6 +84,7 @@ __all__ = [
     "siren",
     "siren_adapter",
     "siren_configuration",
+    "siren_follow_ups",
     "siren_mcp",
     "siren_pagination",
 ]

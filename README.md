@@ -214,3 +214,46 @@ if updated.verifications:
 `verifications` is an empty tuple for errors, read operations, and successful mutations without
 an authorized executable safe read. It does not use `has_more`; targets requiring unbound header,
 cookie, or body inputs are omitted.
+
+## Typed MCP read follow-ups
+
+Successful read results expose authorized executable `GET` response links through
+`result.follow_ups`. These invocations are separate from `result.continuations` and
+`result.verifications`; their operation identifiers and arguments come directly from compiled
+OpenAPI response-link metadata and runtime response properties. Optional target arguments stay
+omitted, so target-operation defaults still apply.
+
+For Django Ninja and Ninja Extra, `siren_follow_ups` generates the standard response links without
+application-owned `openapi_extra`:
+
+```python
+from sirenity import SirenFollowUp, SirenMcpInvocation, SirenScope, siren_follow_ups
+
+@siren_follow_ups(
+    api.get,
+    "/api/dashboards/{dashboard_id}",
+    response=Dashboard,
+    operation_id="get_dashboard",
+    follow_ups={
+        "primary_record": SirenFollowUp(
+            operation_id="get_record",
+            parameters={"path.record_id": "primary_record_id"},
+            rel="item",
+            scope=SirenScope.ENTITY,
+        ),
+    },
+)
+def get_dashboard(request, dashboard_id: str) -> Dashboard:
+    return Dashboard(dashboard_id=dashboard_id, primary_record_id="record-1")
+
+dashboard = example_mcp.invoke(SirenMcpInvocation(
+    operation_id="get_dashboard",
+    arguments={"dashboard_id": "dashboard-1"},
+))
+if dashboard.follow_ups:
+    record = example_mcp.invoke(dashboard.follow_ups[0])
+```
+
+`follow_ups` is empty for errors, mutations, unauthorized targets, unresolved response values, and
+targets requiring unbound header, cookie, body, path, or required query inputs. Existing Siren links
+remain in the projected document even when no typed follow-up can be executed.

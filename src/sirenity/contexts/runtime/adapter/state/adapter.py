@@ -116,6 +116,7 @@ class SirenAdapter(BaseState):
     def respond(self, request: SirenAdapterRequest) -> SirenAdapterResponse:
         continuations = ()
         verifications = ()
+        follow_ups = ()
         match = None
         if request.operation_id is None and request.method is not None and request.path is not None:
             match = self.match(request.method, request.path)
@@ -124,9 +125,19 @@ class SirenAdapter(BaseState):
         if operation_id is None:
             document = self.error(request)
         else:
-            capabilities = request.policy.capabilities
+            navigation_capabilities = request.policy.capabilities
             if request.policy.all_capabilities:
-                capabilities = self.capabilities(operation_id)
+                navigation_capabilities = frozenset(
+                    operation.name for operation in self.engine.api.operations
+                )
+            unknown = navigation_capabilities - {
+                operation.name for operation in self.engine.api.operations
+            }
+            if unknown:
+                raise SirenityError(
+                    f"Siren adapter policy declares unsupported capabilities: {sorted(unknown)}"
+                )
+            capabilities = navigation_capabilities & self.capabilities(operation_id)
             context = SirenResponseContext(
                 operation_id=operation_id,
                 status=request.status,
@@ -138,6 +149,7 @@ class SirenAdapter(BaseState):
                 path_values=path_values,
                 query=request.query,
                 capabilities=capabilities,
+                navigation_capabilities=navigation_capabilities,
                 item_titles=request.policy.item_titles,
                 item_capabilities=request.policy.item_capabilities,
                 relationships=request.policy.relationships,
@@ -149,6 +161,7 @@ class SirenAdapter(BaseState):
                 document = projected.document
                 continuations = projected.continuations
                 verifications = projected.verifications
+                follow_ups = projected.follow_ups
         headers = {
             name: value
             for name, value in request.headers.items()
@@ -198,6 +211,7 @@ class SirenAdapter(BaseState):
             headers=headers,
             continuations=continuations,
             verifications=verifications,
+            follow_ups=follow_ups,
         )
 
     def capabilities(self, operation_id: str) -> frozenset[str]:

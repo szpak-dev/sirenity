@@ -2,7 +2,7 @@ from django.http import HttpRequest
 from django.urls import path
 from ninja import NinjaAPI, Schema
 
-from sirenity.api import SirenContinuation, siren_pagination
+from sirenity.api import SirenContinuation, SirenFollowUp, SirenScope, siren_follow_ups, siren_pagination
 
 
 class ExampleJobState(Schema):
@@ -22,6 +22,12 @@ class ExampleRecordPage(Schema):
     has_more: bool
     next_example_offset: int
     example_limit: int
+
+
+class ExampleDashboard(Schema):
+    example_dashboard_id: str
+    primary_record_id: str
+    secondary_record_id: str
 
 
 api = NinjaAPI(urls_namespace="example_continuations")
@@ -81,6 +87,51 @@ def list_example_records(
         next_example_offset=2,
         example_limit=example_limit,
     )
+
+
+@siren_follow_ups(
+    api.get,
+    "/api/example_dashboards/{example_dashboard_id}",
+    response=ExampleDashboard,
+    operation_id="get_example_dashboard",
+    follow_ups={
+        "primary_record": SirenFollowUp(
+            operation_id="get_example_record",
+            parameters={"path.example_record_id": "primary_record_id"},
+            rel="item",
+            scope=SirenScope.ENTITY,
+        ),
+        "secondary_record": SirenFollowUp(
+            operation_id="get_example_record",
+            parameters={"path.example_record_id": "secondary_record_id"},
+            rel="alternate",
+            scope=SirenScope.ENTITY,
+        ),
+    },
+    summary="Read example dashboard",
+    description="Read one example dashboard.",
+)
+def get_example_dashboard(request: HttpRequest, example_dashboard_id: str) -> ExampleDashboard:
+    return ExampleDashboard(
+        example_dashboard_id=example_dashboard_id,
+        primary_record_id="example-record-1",
+        secondary_record_id="example-record-2",
+    )
+
+
+@api.get(
+    "/api/example_records/{example_record_id}",
+    response=ExampleRecord,
+    operation_id="get_example_record",
+    summary="Read example record",
+    description="Read one example record.",
+)
+def get_example_record(
+    request: HttpRequest,
+    example_record_id: str,
+    example_locale: str = "example-en",
+) -> ExampleRecord:
+    return ExampleRecord(example_record_id=example_record_id, example_title=example_locale)
 
 
 urlpatterns = [path("", api.urls)]

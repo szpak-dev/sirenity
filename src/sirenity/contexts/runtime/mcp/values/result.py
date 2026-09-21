@@ -11,3 +11,4 @@ class SirenMcpResult(BaseValue):
     is_error: bool = False
     continuations: tuple[SirenMcpInvocation, ...] = ()
     verifications: tuple[SirenMcpInvocation, ...] = ()
+    follow_ups: tuple[SirenMcpInvocation, ...] = ()

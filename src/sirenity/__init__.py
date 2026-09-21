@@ -21,6 +21,7 @@ from .api import (
     SirenEmbeddedRepresentation,
     SirenField,
     SirenFieldValue,
+    SirenFollowUp,
     SirenInput,
     SirenityError,
     SirenLink,
@@ -41,6 +42,7 @@ from .api import (
     siren,
     siren_adapter,
     siren_configuration,
+    siren_follow_ups,
     siren_mcp,
     siren_pagination,
 )
@@ -68,6 +70,7 @@ __all__ = [
     "SirenEmbeddedRepresentation",
     "SirenField",
     "SirenFieldValue",
+    "SirenFollowUp",
     "SirenInput",
     "SirenLink",
     "SirenMcpExecution",
@@ -88,6 +91,7 @@ __all__ = [
     "siren",
     "siren_adapter",
     "siren_configuration",
+    "siren_follow_ups",
     "siren_mcp",
     "siren_pagination",
 ]
