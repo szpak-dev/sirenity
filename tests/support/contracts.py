@@ -464,6 +464,20 @@ class ExampleContracts:
         del links["secondary_record"]
         return contract
 
+    def project_follow_ups(self) -> dict[str, object]:
+        contract = self.follow_ups()
+        path = contract["paths"]["/api/example_dashboards/{example_dashboard_id}"]
+        summary = deepcopy(path["get"])
+        summary["operationId"] = "get_example_dashboard_summary"
+        summary["summary"] = "Read example dashboard summary"
+        summary["description"] = "Read one example dashboard summary."
+        path["get"]["responses"]["200"].pop("links")
+        contract["paths"]["/api/example_dashboards/{example_dashboard_id}/summary"] = {
+            "parameters": deepcopy(path["parameters"]),
+            "get": summary,
+        }
+        return contract
+
     def unsupported_follow_up(self) -> dict[str, object]:
         contract = self.single_follow_up()
         target = contract["paths"]["/api/example_records/{example_record_id}"]["get"]

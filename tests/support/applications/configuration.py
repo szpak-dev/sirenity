@@ -8,6 +8,7 @@ EXAMPLE_CREATION_VERIFICATION_OPENAPI = ExampleContracts().creation_verification
 EXAMPLE_UNSUPPORTED_VERIFICATION_OPENAPI = ExampleContracts().unsupported_verification()
 EXAMPLE_VERIFICATION_OPENAPI = ExampleContracts().verification()
 EXAMPLE_FOLLOW_UPS_OPENAPI = ExampleContracts().follow_ups()
+EXAMPLE_PROJECT_FOLLOW_UPS_OPENAPI = ExampleContracts().project_follow_ups()
 EXAMPLE_SINGLE_FOLLOW_UP_OPENAPI = ExampleContracts().single_follow_up()
 EXAMPLE_UNSUPPORTED_FOLLOW_UP_OPENAPI = ExampleContracts().unsupported_follow_up()
 EXAMPLE_REQUIRED_QUERY_FOLLOW_UP_OPENAPI = ExampleContracts().required_query_follow_up()

@@ -632,20 +632,32 @@ class SirenResponseProjectionService:
                 href=self.hrefs.href(operation.route.path, request, resource, context.result),
             )
         ]
-        for relationship in self.relationships(api, response, context.result):
-            target = self.resource(api, self.operation(api, relationship.resource))
+        for link in response.links:
+            if "next" in link.rel:
+                continue
+            target = self.resource(api, self.operation(api, link.operation))
             if target is None:
                 raise SirenityError("Siren response link target requires a resource")
-            path = target.collection.path if relationship.scope == SirenScope.COLLECTION else target.entity.path
+            path = target.collection.path if link.scope == SirenScope.COLLECTION else target.entity.path
             if path is None:
                 raise SirenityError(f"Siren response link target has no entity route: {target.name}")
+            required = tuple(
+                segment[1:-1] for segment in path.split("/") if segment.startswith("{") and segment.endswith("}")
+            )
+            values = {
+                self.parameter_name(name): self.pointer(expression, context.result)
+                for name, expression in link.parameters.items()
+                if name.startswith("path.") or self.parameter_name(name) in required
+            }
+            if set(values) != set(required):
+                raise SirenityError("Siren response link parameters do not match the target route")
             links.append(
                 SirenLink(
-                    rel=relationship.rel,
+                    rel=link.rel,
                     title=target.title,
                     href=self.hrefs.href(
                         path,
-                        request.model_copy(update={"path_values": relationship.path_values}),
+                        request.model_copy(update={"path_values": values}),
                         target,
                     ),
                 )
