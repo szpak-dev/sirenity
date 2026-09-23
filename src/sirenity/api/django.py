@@ -5,6 +5,7 @@
 
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass, field
+from types import MappingProxyType
 from typing import NotRequired, Protocol, TypedDict
 
 from pydantic import JsonValue
@@ -14,6 +15,7 @@ from ..contexts.runtime.mcp import SirenMcpToolCatalogueService
 from ..wiring import application
 from .configuration import SirenConfiguration, SirenConfigurationResolver
 from .follow_up import SirenFollowUp
+from .source_input import SirenSourceInput
 
 
 class SirenHandler[**P, R](Protocol):
@@ -52,6 +54,8 @@ class SirenContinuation[**P, R, S]:
     ``has_more`` boolean and every mapped continuation property as a required non-nullable scalar.
     Sirenity compiles the generated OpenAPI Link Object and returns one official ``next`` link plus
     one typed MCP invocation only while ``has_more`` is true.
+    ``source_inputs`` explicitly retains required, non-null source path, query, or body inputs; all
+    remaining source inputs are excluded from the continuation.
 
     ```python
     from ninja import Schema
@@ -89,6 +93,7 @@ class SirenContinuation[**P, R, S]:
     summary: str
     description: str
     status: int = 200
+    source_inputs: Mapping[str, SirenSourceInput] = field(default_factory=dict)
 
     def __call__(self, handler: SirenHandler[P, R]) -> SirenHandler[P, R]:
         parameters = {
@@ -108,7 +113,24 @@ class SirenContinuation[**P, R, S]:
                             "next": {
                                 "operationId": self.operation_id,
                                 "parameters": parameters,
-                                "x-sirenity": {"continuation": "bounded"},
+                                "x-sirenity": {
+                                    "continuation": "bounded",
+                                    **(
+                                        {
+                                            "sourceInputs": {
+                                                target: (
+                                                    "$request.body#/"
+                                                    + source.name.replace("~", "~0").replace("/", "~1")
+                                                    if source.location == "body"
+                                                    else f"$request.{source.location}.{source.name}"
+                                                )
+                                                for target, source in self.source_inputs.items()
+                                            }
+                                        }
+                                        if self.source_inputs
+                                        else {}
+                                    ),
+                                },
                             }
                         }
                     }
@@ -125,6 +147,7 @@ def siren_pagination[**P, R, S](
     response: type[S],
     operation_id: str,
     continuation: Mapping[str, str],
+    source_inputs: Mapping[str, SirenSourceInput] = MappingProxyType({}),
     status: int = 200,
     **operation: object,
 ) -> SirenOperationDecorator[P, R]:
@@ -134,6 +157,8 @@ def siren_pagination[**P, R, S](
     continuation mapping produce one successful response containing a standard OpenAPI ``next``
     Link Object. The operation ID is declared once and reused as the link target. Sirenity's normal
     startup compilation validates every mapped query parameter and response property.
+    ``source_inputs`` explicitly retains required, non-null source path, query, or body inputs; all
+    remaining source inputs are excluded from the next-page invocation.
 
     ```python
     from ninja import Schema
@@ -175,6 +200,22 @@ def siren_pagination[**P, R, S](
                         "next": {
                             "operationId": operation_id,
                             "parameters": parameters,
+                            **(
+                                {
+                                    "x-sirenity": {
+                                        "sourceInputs": {
+                                            target: (
+                                                "$request.body#/" + source.name.replace("~", "~0").replace("/", "~1")
+                                                if source.location == "body"
+                                                else f"$request.{source.location}.{source.name}"
+                                            )
+                                            for target, source in source_inputs.items()
+                                        }
+                                    }
+                                }
+                                if source_inputs
+                                else {}
+                            ),
                         }
                     }
                 }
@@ -201,6 +242,8 @@ def siren_follow_ups[**P, R, S](
     response-property bindings, Siren relation, and target scope. Sirenity validates the generated
     links during normal startup compilation and exposes authorized safe reads as typed MCP
     invocations without parsing their rendered hrefs.
+    Each follow-up may explicitly retain required, non-null source path, query, or body inputs while
+    response-property bindings provide result-specific target arguments.
 
     ```python
     from sirenity import SirenFollowUp, SirenScope, siren_follow_ups
@@ -236,7 +279,24 @@ def siren_follow_ups[**P, R, S](
                 argument: f"$response.body#/{property_name.replace('~', '~0').replace('/', '~1')}"
                 for argument, property_name in follow_up.parameters.items()
             },
-            "x-sirenity": {"rel": follow_up.rel, "scope": follow_up.scope.value},
+            "x-sirenity": {
+                "rel": follow_up.rel,
+                "scope": follow_up.scope.value,
+                **(
+                    {
+                        "sourceInputs": {
+                            target: (
+                                "$request.body#/" + source.name.replace("~", "~0").replace("/", "~1")
+                                if source.location == "body"
+                                else f"$request.{source.location}.{source.name}"
+                            )
+                            for target, source in follow_up.source_inputs.items()
+                        }
+                    }
+                    if follow_up.source_inputs
+                    else {}
+                ),
+            },
         }
         for name, follow_up in follow_ups.items()
     }

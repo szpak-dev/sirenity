@@ -4,6 +4,7 @@ from pydantic import Field
 
 from ....graph.model import SirenContinuationKind
 from ....shared import BaseValue
+from .response_source_input import ResponseSourceInputDraft
 
 
 class ResponseOperationTarget(BaseValue):
@@ -20,3 +21,4 @@ class ResponseContinuationDraft(BaseValue):
     target: ResponseOperationTarget
     kind: SirenContinuationKind
     parameters: tuple[ResponseContinuationParameter, ...] = ()
+    source_inputs: tuple[ResponseSourceInputDraft, ...] = ()

@@ -94,9 +94,9 @@ class SirenMcpBridge(BaseState):
             if delegated.name not in arguments:
                 continue
             Draft202012Validator(dict(delegated.definition)).validate(arguments[delegated.name])
-        body = None
+        body: pydantic.JsonValue = {}
         if body_values:
-            body = body_values.get("body") if set(body_values) == {"body"} else body_values
+            body = body_values["body"] if set(body_values) == {"body"} else body_values
         return SirenMcpOperation(
             operation_id=operation.name,
             method=operation.method,
@@ -156,6 +156,7 @@ class SirenMcpBridge(BaseState):
                     request_url=request.request_url,
                     path_values=operation.path_values,
                     query=tuple(operation.query_values.items()),
+                    body=operation.body,
                     headers=request.headers,
                     policy=policy,
                 )

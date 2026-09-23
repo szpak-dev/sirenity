@@ -2,7 +2,14 @@ from django.http import HttpRequest
 from django.urls import path
 from ninja import NinjaAPI, Schema
 
-from sirenity.api import SirenContinuation, SirenFollowUp, SirenScope, siren_follow_ups, siren_pagination
+from sirenity.api import (
+    SirenContinuation,
+    SirenFollowUp,
+    SirenScope,
+    SirenSourceInput,
+    siren_follow_ups,
+    siren_pagination,
+)
 
 
 class ExampleJobState(Schema):
@@ -69,11 +76,18 @@ def get_example_job(
     response=ExampleRecordPage,
     operation_id="list_example_records",
     continuation={"example_offset": "next_example_offset", "example_limit": "example_limit"},
+    source_inputs={
+        "query.example_filter": SirenSourceInput(
+            location="query",
+            name="example_filter",
+        )
+    },
     summary="List example records",
     description="List one page of example records.",
 )
 def list_example_records(
     request: HttpRequest,
+    example_filter: str,
     example_offset: int = 0,
     example_limit: int = 2,
 ) -> ExampleRecordPage:
@@ -100,6 +114,12 @@ def list_example_records(
             parameters={"path.example_record_id": "primary_record_id"},
             rel="item",
             scope=SirenScope.ENTITY,
+            source_inputs={
+                "query.example_locale": SirenSourceInput(
+                    location="path",
+                    name="example_dashboard_id",
+                )
+            },
         ),
         "secondary_record": SirenFollowUp(
             operation_id="get_example_record",

@@ -61,7 +61,12 @@ class TestMcpPaginationAttacks(McpCase):
             executor=executor,
         )
 
-        result = bridge.invoke(SirenMcpInvocation(operation_id="list_example_records", arguments={}))
+        result = bridge.invoke(
+            SirenMcpInvocation(
+                operation_id="list_example_records",
+                arguments={"example_filter": "example-open"},
+            )
+        )
 
         assert result.is_error is True
         assert result.structured_content == {"detail": "Siren continuation has_more value must be boolean"}
@@ -93,7 +98,12 @@ class TestMcpPaginationAttacks(McpCase):
             executor=executor,
         )
 
-        result = bridge.invoke(SirenMcpInvocation(operation_id="list_example_records", arguments={}))
+        result = bridge.invoke(
+            SirenMcpInvocation(
+                operation_id="list_example_records",
+                arguments={"example_filter": "example-open"},
+            )
+        )
 
         assert result.is_error is True
         assert result.continuations == ()
@@ -134,7 +144,10 @@ class TestMcpPaginationAttacks(McpCase):
             ),
             executor=executor,
         )
-        invocation = SirenMcpInvocation(operation_id="list_example_records", arguments={})
+        invocation = SirenMcpInvocation(
+            operation_id="list_example_records",
+            arguments={"example_filter": "example-open"},
+        )
 
         failed = bridge.invoke(invocation)
         recovered = bridge.invoke(invocation)
@@ -186,7 +199,13 @@ class TestMcpPaginationHappyPaths(McpCase):
         first = bridge.invoke(
             SirenMcpInvocation(
                 operation_id="list_example_records",
-                arguments={"example_filter": "example-open", "example_offset": 0},
+                arguments={
+                    "example_filter": "example-open",
+                    "example_offset": 0,
+                    "example_limit": 99,
+                    "example_revision": "example-stale",
+                    "example_noise": "example-excluded",
+                },
             )
         )
         second = bridge.invoke(first.continuations[0])
@@ -229,10 +248,27 @@ class TestMcpPaginationHappyPaths(McpCase):
             executor=executor,
         )
 
-        result = bridge.invoke(SirenMcpInvocation(operation_id="list_example_records", arguments={}))
+        result = bridge.invoke(
+            SirenMcpInvocation(
+                operation_id="list_example_records",
+                arguments={"example_filter": "example-open"},
+            )
+        )
 
         assert result.structured_content["links"][-1]["rel"] == ["next"]
-        assert result.continuations[0].operation_id == "list_example_records"
+        assert result.continuations[0] == SirenMcpInvocation(
+            operation_id="list_example_records",
+            arguments={
+                "example_filter": "example-open",
+                "example_offset": 2,
+                "example_limit": 2,
+                "example_revision": "example-revision-2",
+            },
+        )
+        assert result.structured_content["links"][-1]["href"] == (
+            "https://api.example.test/siren/example_records?example_filter=example-open"
+            "&example_offset=2&example_limit=2&example_revision=example-revision-2"
+        )
 
     def test_final_page_exposes_no_typed_continuation(self) -> None:
         executor = ExampleExecutor(
@@ -260,7 +296,12 @@ class TestMcpPaginationHappyPaths(McpCase):
             executor=executor,
         )
 
-        result = bridge.invoke(SirenMcpInvocation(operation_id="list_example_records", arguments={}))
+        result = bridge.invoke(
+            SirenMcpInvocation(
+                operation_id="list_example_records",
+                arguments={"example_filter": "example-open"},
+            )
+        )
 
         assert result.is_error is False
         assert result.continuations == ()

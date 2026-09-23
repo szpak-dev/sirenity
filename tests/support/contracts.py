@@ -197,6 +197,24 @@ class ExampleContracts:
             },
         }
 
+    def explicit_pagination(self) -> dict[str, object]:
+        contract = self.pagination()
+        operation = contract["paths"]["/api/example_records"]["get"]
+        operation["parameters"][0]["required"] = True
+        operation["parameters"].append(
+            {
+                "name": "example_noise",
+                "in": "query",
+                "schema": {"type": "string", "title": "Example noise"},
+            }
+        )
+        operation["responses"]["200"]["links"]["next"]["x-sirenity"] = {
+            "sourceInputs": {
+                "query.example_filter": "$request.query.example_filter",
+            }
+        }
+        return contract
+
     def entity(self) -> dict[str, object]:
         contract = self.bounded()
         response = contract["paths"]["/api/example_jobs/{example_job_id}"]["get"]["responses"]["200"]
@@ -366,23 +384,17 @@ class ExampleContracts:
                             "200": {
                                 "description": "Example dashboard.",
                                 "content": {
-                                    "application/json": {
-                                        "schema": {"$ref": "#/components/schemas/ExampleDashboard"}
-                                    }
+                                    "application/json": {"schema": {"$ref": "#/components/schemas/ExampleDashboard"}}
                                 },
                                 "links": {
                                     "primary_record": {
                                         "operationId": "get_example_record",
-                                        "parameters": {
-                                            "path.example_record_id": "$response.body#/primary_record_id"
-                                        },
+                                        "parameters": {"path.example_record_id": "$response.body#/primary_record_id"},
                                         "x-sirenity": {"rel": "item", "scope": "entity"},
                                     },
                                     "secondary_record": {
                                         "operationId": "get_example_record",
-                                        "parameters": {
-                                            "path.example_record_id": "$response.body#/secondary_record_id"
-                                        },
+                                        "parameters": {"path.example_record_id": "$response.body#/secondary_record_id"},
                                         "x-sirenity": {"rel": "alternate", "scope": "entity"},
                                     },
                                 },
@@ -418,9 +430,7 @@ class ExampleContracts:
                             "200": {
                                 "description": "Example record.",
                                 "content": {
-                                    "application/json": {
-                                        "schema": {"$ref": "#/components/schemas/ExampleRecord"}
-                                    }
+                                    "application/json": {"schema": {"$ref": "#/components/schemas/ExampleRecord"}}
                                 },
                             }
                         },
@@ -458,9 +468,7 @@ class ExampleContracts:
 
     def single_follow_up(self) -> dict[str, object]:
         contract = self.follow_ups()
-        links = contract["paths"]["/api/example_dashboards/{example_dashboard_id}"]["get"]["responses"][
-            "200"
-        ]["links"]
+        links = contract["paths"]["/api/example_dashboards/{example_dashboard_id}"]["get"]["responses"]["200"]["links"]
         del links["secondary_record"]
         return contract
 
@@ -496,9 +504,16 @@ class ExampleContracts:
         target = contract["paths"]["/api/example_records/{example_record_id}"]["get"]
         target["parameters"][0]["required"] = True
         source = contract["paths"]["/api/example_dashboards/{example_dashboard_id}"]["get"]
-        source["responses"]["200"]["links"]["primary_record"]["parameters"].update(
-            {"query.example_locale": "$response.body#/example_dashboard_id"}
-        )
+        source["parameters"] = [
+            {
+                "name": "example_noise",
+                "in": "query",
+                "schema": {"type": "string", "title": "Example noise"},
+            }
+        ]
+        source["responses"]["200"]["links"]["primary_record"]["x-sirenity"]["sourceInputs"] = {
+            "query.example_locale": "$request.path.example_dashboard_id"
+        }
         return contract
 
     def cross_operation_bounded(self) -> dict[str, object]:

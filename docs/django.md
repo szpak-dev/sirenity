@@ -8,6 +8,8 @@ Wrap ``api.get`` or Ninja Extra's ``http_get``. The response model must expose a
 ``has_more`` boolean and every mapped continuation property as a required non-nullable scalar.
 Sirenity compiles the generated OpenAPI Link Object and returns one official ``next`` link plus
 one typed MCP invocation only while ``has_more`` is true.
+``source_inputs`` explicitly retains required, non-null source path, query, or body inputs; all
+remaining source inputs are excluded from the continuation.
 
 ```python
 from ninja import Schema
@@ -101,6 +103,8 @@ the OpenAPI response-link name, while its :class:`SirenFollowUp` supplies the ta
 response-property bindings, Siren relation, and target scope. Sirenity validates the generated
 links during normal startup compilation and exposes authorized safe reads as typed MCP
 invocations without parsing their rendered hrefs.
+Each follow-up may explicitly retain required, non-null source path, query, or body inputs while
+response-property bindings provide result-specific target arguments.
 
 ```python
 from sirenity import SirenFollowUp, SirenScope, siren_follow_ups
@@ -136,6 +140,8 @@ Pass ``api.get`` for Django Ninja or ``http_get`` for Ninja Extra. The response 
 continuation mapping produce one successful response containing a standard OpenAPI ``next``
 Link Object. The operation ID is declared once and reused as the link target. Sirenity's normal
 startup compilation validates every mapped query parameter and response property.
+``source_inputs`` explicitly retains required, non-null source path, query, or body inputs; all
+remaining source inputs are excluded from the next-page invocation.
 
 ```python
 from ninja import Schema

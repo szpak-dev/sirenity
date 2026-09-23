@@ -4,6 +4,7 @@ from typing import Literal
 from pydantic import Field
 
 from ....shared import BaseValue
+from .source_input_binding import SirenSourceInputBinding
 
 
 class SirenContinuationKind(StrEnum):
@@ -21,3 +22,4 @@ class SirenContinuation(BaseValue):
     operation: str = Field(min_length=1)
     kind: SirenContinuationKind
     parameters: tuple[SirenContinuationParameter, ...] = ()
+    source_inputs: tuple[SirenSourceInputBinding, ...] = ()

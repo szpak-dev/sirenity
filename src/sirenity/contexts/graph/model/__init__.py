@@ -11,6 +11,7 @@ from .values.response_binding import SirenResponseBinding
 from .values.response_link import SirenResponseLink
 from .values.root import SirenRoot
 from .values.route import SirenRoute
+from .values.source_input_binding import SirenSourceInputBinding
 
 __all__ = [
     "SirenApi",
@@ -28,4 +29,5 @@ __all__ = [
     "SirenResponseLink",
     "SirenRoot",
     "SirenRoute",
+    "SirenSourceInputBinding",
 ]

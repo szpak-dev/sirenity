@@ -5,11 +5,12 @@ from pydantic import JsonValue, TypeAdapter, ValidationError
 from wireup import injectable
 
 from .... import graph
-from ....graph.model import SirenContinuation, SirenContinuationKind
+from ....graph.model import SirenContinuation, SirenContinuationKind, SirenSourceInputBinding
 from ....shared import SirenHttpMethod, SirenityError, SirenRepresentation, SirenScope
 from ...document import SirenDocument, SirenLink
 from ...request import SirenContext, SirenRelationship, SirenResponseContext
 from ...routing import SirenHrefService
+from ..contracts.action import SirenActionDocumentService
 from ..values.continuation import SirenProjectedContinuation
 from ..values.follow_up import SirenProjectedFollowUp
 from ..values.response import SirenProjectedResponse
@@ -22,6 +23,7 @@ from .projection import SirenProjectionService
 class SirenResponseProjectionService:
     projection: SirenProjectionService
     hrefs: SirenHrefService
+    actions: SirenActionDocumentService
 
     def project(self, api: graph.SirenApi, context: SirenResponseContext) -> SirenDocument:
         return self.project_result(api, context).document
@@ -36,20 +38,12 @@ class SirenResponseProjectionService:
         if context.representation == SirenRepresentation.ROOT and response.shape != "object":
             raise SirenityError("Siren root response requires an OpenAPI object response")
         if response.shape == "empty":
-            return SirenProjectedResponse(
-                document=self.empty(operation, resource, context),
-                verifications=self.project_verifications(api, context, operation, response),
-                follow_ups=self.project_follow_ups(api, context, operation, response),
-            )
-        if response.shape == "array":
+            document = self.empty(operation, resource, context)
+        elif response.shape == "array":
             if context.representation not in {None, SirenRepresentation.COLLECTION}:
                 raise SirenityError("OpenAPI array response requires collection representation")
-            return SirenProjectedResponse(
-                document=self.collection(api, resource, context, response),
-                verifications=self.project_verifications(api, context, operation, response),
-                follow_ups=self.project_follow_ups(api, context, operation, response),
-            )
-        if self.paginated(response):
+            document = self.collection(api, resource, context, response)
+        elif self.paginated(response):
             if context.representation not in {None, SirenRepresentation.COLLECTION}:
                 raise SirenityError("OpenAPI paginated response requires collection representation")
             if resource is None:
@@ -74,15 +68,99 @@ class SirenResponseProjectionService:
             else:
                 raise SirenityError("OpenAPI object response cannot use collection representation")
         continuations = self.project_continuations(api, context, response)
+        follow_ups = self.project_follow_ups(api, context, operation, response)
         if continuations:
-            title = (
-                "Next page" if self.paginated(response) else self.operation(api, continuations[0].operation_id).title
+            compiled = response.continuations[0]
+            target = self.operation(api, continuations[0].operation_id)
+            if target.method == SirenHttpMethod.GET and not any(
+                binding.target_location == "body" for binding in compiled.source_inputs
+            ):
+                title = "Next page" if self.paginated(response) else target.title
+                document = document.model_copy(
+                    update={
+                        "links": (
+                            *(document.links or ()),
+                            SirenLink(rel=("next",), title=title, href=continuations[0].href),
+                        )
+                    }
+                )
+            else:
+                path_values, query, arguments = self.continuation_arguments(context, compiled, target)
+                target_resource = self.resource(api, target)
+                action_bindings = {
+                    field.name: f"$response.body#/{field.name.replace('~', '~0').replace('/', '~1')}"
+                    for field in target.fields
+                    if field.name in arguments
+                }
+                request = SirenContext(
+                    base_url=context.base_url,
+                    scope=target.scope,
+                    resource=target_resource.name if target_resource is not None else None,
+                    value=arguments,
+                    path_values=path_values,
+                    query=query,
+                    action_bindings={target.name: action_bindings},
+                )
+                document = document.model_copy(
+                    update={
+                        "actions": (
+                            *(document.actions or ()),
+                            self.actions.action(target, request, target_resource, arguments),
+                        )
+                    }
+                )
+        for link in response.links:
+            target = self.operation(api, link.operation)
+            if not link.source_inputs:
+                continue
+            if not self.navigation_target_supported(
+                context, target, link.source_inputs
+            ) or not self.navigation_supported(context, link, target):
+                continue
+            path_values, query, arguments = self.navigation_arguments(context, link, target)
+            projected = tuple(
+                follow_up
+                for follow_up in follow_ups
+                if follow_up.operation_id == target.name and follow_up.arguments == arguments
+            )
+            if not projected:
+                continue
+            target_resource = self.resource(api, target)
+            if target.method == SirenHttpMethod.GET and not any(
+                binding.target_location == "body" for binding in link.source_inputs
+            ):
+                document = document.model_copy(
+                    update={
+                        "links": (
+                            *(document.links or ()),
+                            SirenLink(
+                                rel=link.rel,
+                                title=target_resource.title if target_resource is not None else target.title,
+                                href=projected[0].href,
+                            ),
+                        )
+                    }
+                )
+                continue
+            action_bindings = {
+                field.name: f"$response.body#/{field.name.replace('~', '~0').replace('/', '~1')}"
+                for field in target.fields
+                if field.name in arguments
+            }
+            request = SirenContext(
+                base_url=context.base_url,
+                scope=target.scope,
+                resource=target_resource.name if target_resource is not None else None,
+                value=arguments,
+                path_values=path_values,
+                query=query,
+                action_bindings={target.name: action_bindings},
             )
             document = document.model_copy(
                 update={
-                    "links": (
-                        *(document.links or ()),
-                        SirenLink(rel=("next",), title=title, href=continuations[0].href),
+                    "actions": (
+                        *(document.actions or ()),
+                        self.actions.action(target, request, target_resource, arguments),
                     )
                 }
             )
@@ -90,7 +168,7 @@ class SirenResponseProjectionService:
             document=document,
             continuations=continuations,
             verifications=self.project_verifications(api, context, operation, response),
-            follow_ups=self.project_follow_ups(api, context, operation, response),
+            follow_ups=follow_ups,
         )
 
     def root(
@@ -270,6 +348,8 @@ class SirenResponseProjectionService:
                 raise SirenityError("Siren continuation has_more value must be boolean")
         continuation = response.continuations[0]
         target = self.operation(api, continuation.operation)
+        if continuation.source_inputs and target.name not in context.navigation_capabilities:
+            return ()
         target_resource = self.resource(api, target)
         path_values, query, arguments = self.continuation_arguments(context, continuation, target)
         request = SirenContext(
@@ -307,11 +387,33 @@ class SirenResponseProjectionService:
         required_query = {
             parameter.name for parameter in target_parameters if parameter.location == "query" and parameter.required
         }
-        path_values = {name: value for name, value in context.path_values.items() if name in target_path}
+        path_values = (
+            {}
+            if continuation.source_inputs
+            else {name: value for name, value in context.path_values.items() if name in target_path}
+        )
         replaced_query = {parameter.name for parameter in continuation.parameters if parameter.location == "query"}
-        query_values = [
-            (name, value) for name, value in context.query if name in target_query and name not in replaced_query
-        ]
+        query_values = (
+            []
+            if continuation.source_inputs
+            else [(name, value) for name, value in context.query if name in target_query and name not in replaced_query]
+        )
+        body_values: dict[str, JsonValue] = {}
+        source_query = dict(context.query)
+        for binding in continuation.source_inputs:
+            value = (
+                context.path_values[binding.source_name]
+                if binding.source_location == "path"
+                else source_query[binding.source_name]
+                if binding.source_location == "query"
+                else context.body[binding.source_name]
+            )
+            if binding.target_location == "path":
+                path_values[binding.target_name] = value
+            elif binding.target_location == "query":
+                query_values.append((binding.target_name, value))
+            else:
+                body_values[binding.target_name] = value
         for parameter in continuation.parameters:
             value = self.continuation_value(parameter.pointer, context.result)
             if value is None:
@@ -327,6 +429,7 @@ class SirenResponseProjectionService:
             raise SirenityError("Siren continuation is missing required target arguments")
         arguments = dict(path_values)
         arguments.update(query)
+        arguments.update(body_values)
         return path_values, query, arguments
 
     def continuation_value(self, pointer: tuple[str, ...], result: Mapping[str, JsonValue]) -> JsonValue:
@@ -351,10 +454,12 @@ class SirenResponseProjectionService:
             return ()
         verifications: list[SirenProjectedVerification] = []
         for link in response.links:
+            if link.source_inputs:
+                continue
             target = self.operation(api, link.operation)
             if (
                 target.method != SirenHttpMethod.GET
-                or not self.navigation_target_supported(context, target)
+                or not self.navigation_target_supported(context, target, link.source_inputs)
                 or not self.navigation_supported(context, link, target)
             ):
                 continue
@@ -402,14 +507,16 @@ class SirenResponseProjectionService:
         source: graph.SirenOperation,
         response: graph.SirenResponse,
     ) -> tuple[SirenProjectedFollowUp, ...]:
-        if source.method != SirenHttpMethod.GET or not 200 <= context.status < 300:
+        if not 200 <= context.status < 300:
             return ()
         follow_ups: list[SirenProjectedFollowUp] = []
         for link in response.links:
+            if source.method != SirenHttpMethod.GET and not link.source_inputs:
+                continue
             target = self.operation(api, link.operation)
             if (
-                target.method != SirenHttpMethod.GET
-                or not self.navigation_target_supported(context, target)
+                (target.method != SirenHttpMethod.GET and not link.source_inputs)
+                or not self.navigation_target_supported(context, target, link.source_inputs)
                 or not self.navigation_supported(context, link, target)
             ):
                 continue
@@ -476,9 +583,7 @@ class SirenResponseProjectionService:
     ) -> dict[str, JsonValue]:
         target_path = self.operation_path_parameters(target)
         path_values = {
-            name: value
-            for name, value in context.path_values.items()
-            if name in target_path and value is not None
+            name: value for name, value in context.path_values.items() if name in target_path and value is not None
         }
         result = context.result if isinstance(context.result, dict) else {}
         for name in target_path - path_values.keys():
@@ -495,18 +600,20 @@ class SirenResponseProjectionService:
         self,
         context: SirenResponseContext,
         target: graph.SirenOperation,
+        source_inputs: tuple[SirenSourceInputBinding, ...] = (),
     ) -> bool:
         if target.name not in context.navigation_capabilities:
             return False
         target_parameters = target.input.parameters if target.input is not None else ()
-        if any(
-            parameter.required and parameter.location in {"header", "cookie"}
-            for parameter in target_parameters
+        if any(parameter.required and parameter.location in {"header", "cookie"} for parameter in target_parameters):
+            return False
+        if (
+            not source_inputs
+            and target.input is not None
+            and any(delegated.required for delegated in target.input.delegated_inputs)
         ):
             return False
-        if target.input is not None and any(delegated.required for delegated in target.input.delegated_inputs):
-            return False
-        return target.input is None or not (target.input.definition or {}).get("required")
+        return bool(source_inputs) or target.input is None or not target.input.definition.get("required")
 
     def navigation_supported(
         self,
@@ -521,14 +628,15 @@ class SirenResponseProjectionService:
         if any(self.pointer(expression, context.result) is None for expression in link.parameters.values()):
             return False
         linked = {self.parameter_name(name) for name in link.parameters}
-        available_path = {
-            name
-            for name, value in context.path_values.items()
-            if name in target_path and value is not None
-        } | target_path.intersection(linked)
-        available_query = target_query.intersection(name for name, _ in context.query) | target_query.intersection(
-            linked
-        )
+        bound_path = {binding.target_name for binding in link.source_inputs if binding.target_location == "path"}
+        bound_query = {binding.target_name for binding in link.source_inputs if binding.target_location == "query"}
+        available_path = target_path.intersection(linked) | bound_path
+        available_query = target_query.intersection(linked) | bound_query
+        if not link.source_inputs:
+            available_path.update(
+                name for name, value in context.path_values.items() if name in target_path and value is not None
+            )
+            available_query.update(target_query.intersection(name for name, _ in context.query))
         return target_path <= available_path and required_query <= available_query
 
     def navigation_arguments(
@@ -548,17 +656,37 @@ class SirenResponseProjectionService:
         }
         target_parameters = target.input.parameters if target.input is not None else ()
         target_query = {parameter.name for parameter in target_parameters if parameter.location == "query"}
-        path_values = {name: value for name, value in context.path_values.items() if name in target_path}
+        path_values = (
+            {}
+            if link.source_inputs
+            else {name: value for name, value in context.path_values.items() if name in target_path}
+        )
         mapped_query = {
             self.parameter_name(name)
             for name in link.parameters
             if name.startswith("query.") or self.parameter_name(name) in target_query
         }
-        query_values = [
-            (name, value)
-            for name, value in context.query
-            if name in target_query and name not in mapped_query
-        ]
+        query_values = (
+            []
+            if link.source_inputs
+            else [(name, value) for name, value in context.query if name in target_query and name not in mapped_query]
+        )
+        body_values: dict[str, JsonValue] = {}
+        source_query = dict(context.query)
+        for binding in link.source_inputs:
+            value = (
+                context.path_values[binding.source_name]
+                if binding.source_location == "path"
+                else source_query[binding.source_name]
+                if binding.source_location == "query"
+                else context.body[binding.source_name]
+            )
+            if binding.target_location == "path":
+                path_values[binding.target_name] = value
+            elif binding.target_location == "query":
+                query_values.append((binding.target_name, value))
+            else:
+                body_values[binding.target_name] = value
         for name, expression in link.parameters.items():
             argument = self.parameter_name(name)
             value = self.pointer(expression, context.result)
@@ -571,6 +699,7 @@ class SirenResponseProjectionService:
         query = tuple(query_values)
         arguments = dict(path_values)
         arguments.update(query)
+        arguments.update(body_values)
         return path_values, query, arguments
 
     def operation_path_parameters(self, operation: graph.SirenOperation) -> set[str]:
@@ -582,11 +711,7 @@ class SirenResponseProjectionService:
 
     def required_query_parameters(self, operation: graph.SirenOperation) -> set[str]:
         parameters = operation.input.parameters if operation.input is not None else ()
-        return {
-            parameter.name
-            for parameter in parameters
-            if parameter.location == "query" and parameter.required
-        }
+        return {parameter.name for parameter in parameters if parameter.location == "query" and parameter.required}
 
     def verification_query(
         self,
@@ -635,7 +760,10 @@ class SirenResponseProjectionService:
         for link in response.links:
             if "next" in link.rel:
                 continue
-            target = self.resource(api, self.operation(api, link.operation))
+            if link.source_inputs:
+                continue
+            target_operation = self.operation(api, link.operation)
+            target = self.resource(api, target_operation)
             if target is None:
                 raise SirenityError("Siren response link target requires a resource")
             path = target.collection.path if link.scope == SirenScope.COLLECTION else target.entity.path
@@ -675,6 +803,8 @@ class SirenResponseProjectionService:
         links = []
         for link in response.links:
             if "next" in link.rel:
+                continue
+            if link.source_inputs:
                 continue
             target = self.operation(api, link.operation)
             resource = self.resource(api, target)

@@ -1,7 +1,7 @@
 from ..contracts import ExampleContracts
 
 EXAMPLE_BOUNDED_OPENAPI = ExampleContracts().bounded()
-EXAMPLE_PAGINATION_OPENAPI = ExampleContracts().pagination()
+EXAMPLE_PAGINATION_OPENAPI = ExampleContracts().explicit_pagination()
 EXAMPLE_ENTITY_OPENAPI = ExampleContracts().entity()
 EXAMPLE_OPERATION_OPENAPI = ExampleContracts().operation()
 EXAMPLE_CREATION_VERIFICATION_OPENAPI = ExampleContracts().creation_verification()

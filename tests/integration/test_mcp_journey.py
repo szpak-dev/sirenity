@@ -160,7 +160,12 @@ class TestMcpJourneyHappyPaths(McpCase):
             executor=executor,
         )
 
-        first = bridge.invoke(SirenMcpInvocation(operation_id="list_example_records", arguments={}))
+        first = bridge.invoke(
+            SirenMcpInvocation(
+                operation_id="list_example_records",
+                arguments={"example_filter": "example-open"},
+            )
+        )
         final = bridge.invoke(first.continuations[0])
 
         assert first.structured_content["links"][-1]["rel"] == ["next"]

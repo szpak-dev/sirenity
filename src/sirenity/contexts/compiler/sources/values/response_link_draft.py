@@ -3,6 +3,7 @@ from collections.abc import Mapping
 from pydantic import Field, model_validator
 
 from ....shared import BaseValue, SirenScope
+from .response_source_input import ResponseSourceInputDraft
 
 
 class ResponseLinkDraft(BaseValue):
@@ -11,6 +12,7 @@ class ResponseLinkDraft(BaseValue):
     parameters: Mapping[str, str] = Field(default_factory=dict)
     rel: tuple[str, ...]
     scope: SirenScope
+    source_inputs: tuple[ResponseSourceInputDraft, ...] = ()
 
     @model_validator(mode="after")
     def validate_target(self) -> "ResponseLinkDraft":

@@ -41,6 +41,7 @@ The supported root imports below are generated from `sirenity.__all__`.
 | `SirenRelationship` | !!! abstract "Usage Documentation" | — |
 | `SirenResponseContext` | !!! abstract "Usage Documentation" | — |
 | `SirenScope` | Enum where members are also (and must be) strings | — |
+| `SirenSourceInput` | Select one required, non-null source-request input for typed navigation. | — |
 | `SirenStructuredFormProfile` | Emit the versioned structured-form extension for delegated inputs. | `apply(operation_id: <class 'str'>, operation_input: sirenity.contexts.graph.model.values.input.SirenInput | None, operation_inputs: collections.abc.Mapping[str, sirenity.contexts.graph.model.values.input.SirenInput | None], document: collections.abc.Mapping[str, JsonValue], context: <class 'sirenity.contexts.runtime.request.values.response.SirenResponseContext'>) -> collections.abc.Mapping[str, JsonValue]`<br>`enrich(entity: collections.abc.Mapping[str, JsonValue], operation_inputs: collections.abc.Mapping[str, sirenity.contexts.graph.model.values.input.SirenInput | None]) -> collections.abc.Mapping[str, JsonValue]`<br>`control(delegated: <class 'sirenity.contexts.graph.model.values.delegated_input.SirenDelegatedInput'>) -> collections.abc.Mapping[str, JsonValue]` |
 | `SirenityError` | Common base class for all non-exit exceptions. | — |
 | `audit` | Inspect a valid OpenAPI document against the current official-Siren support boundary. | — |

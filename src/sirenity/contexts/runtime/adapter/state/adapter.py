@@ -127,16 +127,10 @@ class SirenAdapter(BaseState):
         else:
             navigation_capabilities = request.policy.capabilities
             if request.policy.all_capabilities:
-                navigation_capabilities = frozenset(
-                    operation.name for operation in self.engine.api.operations
-                )
-            unknown = navigation_capabilities - {
-                operation.name for operation in self.engine.api.operations
-            }
+                navigation_capabilities = frozenset(operation.name for operation in self.engine.api.operations)
+            unknown = navigation_capabilities - {operation.name for operation in self.engine.api.operations}
             if unknown:
-                raise SirenityError(
-                    f"Siren adapter policy declares unsupported capabilities: {sorted(unknown)}"
-                )
+                raise SirenityError(f"Siren adapter policy declares unsupported capabilities: {sorted(unknown)}")
             capabilities = navigation_capabilities & self.capabilities(operation_id)
             context = SirenResponseContext(
                 operation_id=operation_id,
@@ -148,6 +142,7 @@ class SirenAdapter(BaseState):
                 representation=request.policy.representation,
                 path_values=path_values,
                 query=request.query,
+                body=request.body,
                 capabilities=capabilities,
                 navigation_capabilities=navigation_capabilities,
                 item_titles=request.policy.item_titles,

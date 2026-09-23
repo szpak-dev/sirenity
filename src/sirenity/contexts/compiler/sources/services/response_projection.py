@@ -15,6 +15,7 @@ from ..values.response_continuation import (
 )
 from ..values.response_draft import ResponseDraft
 from ..values.response_link_draft import ResponseLinkDraft
+from ..values.response_source_input import ResponseSourceInputDraft
 from .components import ComponentResolver
 
 
@@ -153,6 +154,7 @@ class OpenApiResponseProjection:
                     parameters=parameters,
                     rel=values,
                     scope=link_scope,
+                    source_inputs=self.source_inputs(definition),
                 )
             )
         return tuple(links)
@@ -164,6 +166,7 @@ class OpenApiResponseProjection:
                 target=self.operation_target(name, definition),
                 kind=self.continuation_kind(name, definition),
                 parameters=self.continuation_parameters(name, definition),
+                source_inputs=self.source_inputs(definition),
             )
             for name, definition in source.items()
             if self.is_continuation(name, definition)
@@ -211,6 +214,13 @@ class OpenApiResponseProjection:
         return tuple(
             ResponseContinuationParameter(name=parameter, expression=expression)
             for parameter, expression in parameters.items()
+        )
+
+    def source_inputs(self, definition: dict[str, JsonValue]) -> tuple[ResponseSourceInputDraft, ...]:
+        extension = definition.get("x-sirenity", {})
+        return tuple(
+            ResponseSourceInputDraft(target=target, expression=expression)
+            for target, expression in extension.get("sourceInputs", {}).items()
         )
 
     def validate_continuations(

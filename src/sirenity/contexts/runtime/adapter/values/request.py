@@ -17,6 +17,7 @@ class SirenAdapterRequest(BaseValue):
     media_type: SirenMediaType | None = None
     path_values: Mapping[str, JsonValue] = Field(default_factory=dict)
     query: tuple[tuple[str, JsonValue], ...] = ()
+    body: JsonValue = Field(default_factory=dict)
     headers: Mapping[str, str] = Field(default_factory=dict)
     policy: SirenAdapterPolicy = Field(default_factory=SirenAdapterPolicy)
 

@@ -5,6 +5,41 @@ from ..support.collaborators import ExampleExecutor
 
 
 class TestMcpFollowUpAttacks(McpCase):
+    def test_boundary_unauthorized_explicit_follow_up_is_not_exposed(self) -> None:
+        executor = ExampleExecutor(
+            (
+                SirenMcpExecution(
+                    status=200,
+                    result={
+                        "example_dashboard_id": "example-dashboard-1",
+                        "primary_record_id": "example-record-1",
+                        "secondary_record_id": "example-record-2",
+                    },
+                    base_url="https://api.example.test",
+                ),
+            )
+        )
+        bridge = siren_mcp(
+            siren_configuration(
+                openapi="tests.support.applications.configuration.EXAMPLE_REQUIRED_QUERY_FOLLOW_UP_OPENAPI",
+                source_path="/api",
+                public_path="/siren",
+                policy="tests.support.follow_up_policy.ExampleDashboardOnlyPolicy",
+            ),
+            executor=executor,
+        )
+
+        result = bridge.invoke(
+            SirenMcpInvocation(
+                operation_id="get_example_dashboard",
+                arguments={"example_dashboard_id": "example-dashboard-1"},
+            )
+        )
+
+        assert result.is_error is False
+        assert result.follow_ups == ()
+        assert [link["rel"] for link in result.structured_content["links"]] == [["self"]]
+
     def test_adversarial_unauthorized_read_is_not_exposed_as_a_typed_follow_up(self) -> None:
         executor = ExampleExecutor(
             (
@@ -131,7 +166,7 @@ class TestMcpFollowUpHappyPaths(McpCase):
             ),
         )
 
-    def test_required_query_argument_is_derived_from_the_response_link(self) -> None:
+    def test_declared_source_input_combines_with_the_response_binding(self) -> None:
         executor = ExampleExecutor(
             (
                 SirenMcpExecution(
@@ -158,7 +193,10 @@ class TestMcpFollowUpHappyPaths(McpCase):
         result = bridge.invoke(
             SirenMcpInvocation(
                 operation_id="get_example_dashboard",
-                arguments={"example_dashboard_id": "example-dashboard-1"},
+                arguments={
+                    "example_dashboard_id": "example-dashboard-1",
+                    "example_noise": "example-excluded",
+                },
             )
         )
 
@@ -170,6 +208,9 @@ class TestMcpFollowUpHappyPaths(McpCase):
                     "example_locale": "example-dashboard-1",
                 },
             ),
+        )
+        assert result.structured_content["links"][-1]["href"] == (
+            "https://api.example.test/siren/example_records/example-record-1?example_locale=example-dashboard-1"
         )
 
     def test_read_exposes_multiple_follow_ups_separately_from_other_navigation(self) -> None:

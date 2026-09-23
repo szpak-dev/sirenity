@@ -39,6 +39,7 @@ from .django import SirenContinuation, SirenMiddleware, siren_follow_ups, siren_
 from .follow_up import SirenFollowUp
 from .mcp import siren_mcp
 from .siren import siren
+from .source_input import SirenSourceInput
 
 __all__ = [
     "SirenAction",
@@ -78,6 +79,7 @@ __all__ = [
     "SirenRelationship",
     "SirenResponseContext",
     "SirenScope",
+    "SirenSourceInput",
     "SirenStructuredFormProfile",
     "SirenityError",
     "audit",
