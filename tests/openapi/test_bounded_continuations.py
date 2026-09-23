@@ -126,7 +126,7 @@ class TestBoundedContinuationContractAttacks(CompilationCase):
             }
         )
 
-        with pytest.raises(SirenContractError, match="required header, cookie, or body inputs"):
+        with pytest.raises(SirenContractError, match="required header or cookie inputs"):
             siren_adapter(contract, source_path="/api", public_path="/siren")
 
     def test_interruption_rejects_null_runtime_continuation_without_partial_output(self) -> None:

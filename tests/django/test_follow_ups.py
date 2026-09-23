@@ -18,9 +18,9 @@ class TestDjangoFollowUpAttacks(DjangoCase):
 
         with override_settings(ROOT_URLCONF="tests.support.applications.django_ninja"):
             contract = deepcopy(api.get_openapi_schema())
-        link = contract["paths"]["/api/example_dashboards/{example_dashboard_id}"]["get"]["responses"][200][
-            "links"
-        ]["primary_record"]
+        link = contract["paths"]["/api/example_dashboards/{example_dashboard_id}"]["get"]["responses"][200]["links"][
+            "primary_record"
+        ]
         link["operationId"] = "get_missing_example_record"
 
         with pytest.raises(SirenContractError, match="references unknown operation"):
@@ -31,9 +31,9 @@ class TestDjangoFollowUpAttacks(DjangoCase):
 
         with override_settings(ROOT_URLCONF="tests.support.applications.django_ninja"):
             contract = deepcopy(api.get_openapi_schema())
-        link = contract["paths"]["/api/example_dashboards/{example_dashboard_id}"]["get"]["responses"][200][
-            "links"
-        ]["primary_record"]
+        link = contract["paths"]["/api/example_dashboards/{example_dashboard_id}"]["get"]["responses"][200]["links"][
+            "primary_record"
+        ]
         link["parameters"] = {"path.example_missing_id": "$response.body#/primary_record_id"}
 
         with pytest.raises(SirenContractError, match="do not match the target route"):
@@ -52,7 +52,11 @@ class TestDjangoFollowUpHappyPaths(DjangoCase):
             "primary_record": {
                 "operationId": "get_example_record",
                 "parameters": {"path.example_record_id": "$response.body#/primary_record_id"},
-                "x-sirenity": {"rel": "item", "scope": "entity"},
+                "x-sirenity": {
+                    "rel": "item",
+                    "scope": "entity",
+                    "sourceInputs": {"query.example_locale": "$request.path.example_dashboard_id"},
+                },
             },
             "secondary_record": {
                 "operationId": "get_example_record",
@@ -73,7 +77,11 @@ class TestDjangoFollowUpHappyPaths(DjangoCase):
             "primary_record": {
                 "operationId": "get_example_extra_record",
                 "parameters": {"path.example_record_id": "$response.body#/primary_record_id"},
-                "x-sirenity": {"rel": "item", "scope": "entity"},
+                "x-sirenity": {
+                    "rel": "item",
+                    "scope": "entity",
+                    "sourceInputs": {"query.example_locale": "$request.path.example_dashboard_id"},
+                },
             },
             "secondary_record": {
                 "operationId": "get_example_extra_record",

@@ -2,6 +2,7 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Literal
 
+from pydantic import JsonValue
 from wireup import injectable
 
 from .... import graph, shared
@@ -9,6 +10,7 @@ from ....graph.model import (
     SirenContinuation,
     SirenContinuationKind,
     SirenContinuationParameter,
+    SirenSourceInputBinding,
 )
 from ..values.normalized import NormalizedOpenApi
 from ..values.operation_draft import OperationDraft
@@ -16,6 +18,7 @@ from ..values.resource import Resource
 from ..values.response_continuation import ResponseContinuationDraft, ResponseOperationTarget
 from ..values.response_draft import ResponseDraft
 from ..values.response_link_draft import ResponseLinkDraft
+from ..values.response_source_input import ResponseSourceInputDraft
 
 
 @injectable
@@ -91,13 +94,15 @@ class SirenBuilder:
         for link in response.links:
             target = self.link_operation(link, operations)
             scope = link.scope
-            self.validate_link(operation, link, target, scope)
+            source_inputs = self.source_input_bindings(operation, link.source_inputs, target)
+            self.validate_link(operation, link, target, scope, source_inputs)
             declared.append(
                 graph.SirenResponseLink(
                     operation=target.name,
                     parameters=link.parameters,
                     rel=tuple(shared.SirenRelation.validate(value) for value in link.rel),
                     scope=scope,
+                    source_inputs=source_inputs,
                 )
             )
         declared_links = tuple(declared)
@@ -118,12 +123,14 @@ class SirenBuilder:
         continuations: list[SirenContinuation] = []
         for draft in response.continuations:
             target = self.continuation_operation(draft.target, operations)
-            self.validate_continuation(source, draft, target)
+            source_inputs = self.source_input_bindings(source, draft.source_inputs, target)
+            self.validate_continuation(source, draft, target, source_inputs)
             continuations.append(
                 SirenContinuation(
                     operation=target.name,
                     kind=draft.kind,
-                    parameters=self.continuation_parameters(source, draft, target),
+                    parameters=self.continuation_parameters(source, draft, target, source_inputs),
+                    source_inputs=source_inputs,
                 )
             )
         return tuple(continuations)
@@ -145,7 +152,10 @@ class SirenBuilder:
         source: OperationDraft,
         continuation: ResponseContinuationDraft,
         target: OperationDraft,
+        source_inputs: tuple[SirenSourceInputBinding, ...],
     ) -> None:
+        if target.method != shared.SirenHttpMethod.GET and not source_inputs:
+            raise shared.SirenityError("OpenAPI non-GET continuation requires explicit source inputs")
         if not continuation.parameters:
             if continuation.kind == SirenContinuationKind.PAGINATION:
                 raise shared.SirenityError(
@@ -165,6 +175,7 @@ class SirenBuilder:
         source: OperationDraft,
         continuation: ResponseContinuationDraft,
         target: OperationDraft,
+        source_inputs: tuple[SirenSourceInputBinding, ...],
     ) -> tuple[SirenContinuationParameter, ...]:
         required_path = set(self.path_parameters(target.path))
         inherited_path = set(self.path_parameters(source.path))
@@ -180,17 +191,9 @@ class SirenBuilder:
             for parameter in target_parameters
             if parameter.required and parameter.location in {"header", "cookie"}
         }
-        if target.input is not None:
-            definition = target.input.definition
-            body_required = set(definition.get("required", ()))
-            body_required.update(
-                delegated.name
-                for delegated in target.input.delegated_inputs
-                if delegated.location == "body" and delegated.required
-            )
-            unsupported_required.update(body_required)
         if unsupported_required:
-            raise shared.SirenityError("OpenAPI continuation target has required header, cookie, or body inputs")
+            raise shared.SirenityError("OpenAPI continuation target has required header or cookie inputs")
+        body_required = self.required_body_inputs(target)
         required_query = {
             parameter.name for parameter in target_parameters if parameter.required and parameter.location == "query"
         }
@@ -238,15 +241,31 @@ class SirenBuilder:
                     pointer=self.response_pointer(parameter.expression),
                 )
             )
+        source_supplied = {(binding.target_location, binding.target_name) for binding in source_inputs}
+        if supplied & source_supplied:
+            raise shared.SirenityError("OpenAPI navigation maps a target argument more than once")
+        supplied_path.update(name for location, name in source_supplied if location == "path")
+        supplied_query.update(name for location, name in source_supplied if location == "query")
+        supplied_body = {name for location, name in source_supplied if location == "body"}
+        explicit = bool(source_inputs)
         if continuation.kind == SirenContinuationKind.PAGINATION:
-            if not supplied_query or (supplied_path and supplied_path != required_path):
+            if (
+                not supplied_query
+                or (explicit and supplied_path != required_path)
+                or (not explicit and supplied_path and supplied_path != required_path)
+            ):
                 raise shared.SirenityError(
                     "OpenAPI pagination continuation must target the same collection GET operation"
                 )
-        elif not required_path.issubset(supplied_path | inherited_path):
+        elif not required_path.issubset(supplied_path if explicit else supplied_path | inherited_path):
             raise shared.SirenityError("OpenAPI bounded continuation parameters do not satisfy the target route")
-        if not required_query.issubset(supplied_query | inherited_query):
+        available_query = supplied_query if explicit else supplied_query | inherited_query
+        if not required_query.issubset(available_query):
             raise shared.SirenityError("OpenAPI continuation parameters do not satisfy required target query inputs")
+        if body_required and not explicit:
+            raise shared.SirenityError("OpenAPI continuation target has required body inputs")
+        if not body_required.issubset(supplied_body):
+            raise shared.SirenityError("OpenAPI continuation parameters do not satisfy required target body inputs")
         return tuple(compiled)
 
     def response_pointer(self, expression: str) -> tuple[str, ...]:
@@ -254,6 +273,123 @@ class SirenBuilder:
         if not expression.startswith(prefix):
             raise shared.SirenityError(f"OpenAPI continuation runtime expression is unsupported: {expression}")
         return tuple(token.replace("~1", "/").replace("~0", "~") for token in expression[len(prefix) :].split("/"))
+
+    def source_input_bindings(
+        self,
+        source: OperationDraft,
+        drafts: tuple[ResponseSourceInputDraft, ...],
+        target: OperationDraft,
+    ) -> tuple[SirenSourceInputBinding, ...]:
+        bindings: list[SirenSourceInputBinding] = []
+        targets: set[tuple[str, str]] = set()
+        for draft in drafts:
+            target_location, target_name, target_schema, _ = self.operation_argument(target, draft.target)
+            source_location, source_name = self.source_input_expression(draft.expression)
+            declared_source, declared_name, source_schema, source_required = self.operation_argument(
+                source, f"{source_location}.{source_name}"
+            )
+            if not source_required:
+                raise shared.SirenityError("OpenAPI navigation source input must be required")
+            if self.nullable_schema(source_schema) or self.nullable_schema(target_schema):
+                raise shared.SirenityError("OpenAPI navigation source and target inputs must be non-nullable")
+            if self.schema_contract(source_schema) != self.schema_contract(target_schema):
+                raise shared.SirenityError("OpenAPI navigation source and target input schemas are incompatible")
+            key = (target_location, target_name)
+            if key in targets:
+                raise shared.SirenityError(f"OpenAPI navigation maps the target argument more than once: {target_name}")
+            targets.add(key)
+            bindings.append(
+                SirenSourceInputBinding(
+                    target_name=target_name,
+                    target_location=target_location,
+                    source_name=declared_name,
+                    source_location=declared_source,
+                )
+            )
+        return tuple(bindings)
+
+    def source_input_expression(self, expression: str) -> tuple[Literal["path", "query", "body"], str]:
+        for location in ("path", "query"):
+            prefix = f"$request.{location}."
+            if expression.startswith(prefix) and expression != prefix:
+                return location, expression[len(prefix) :]
+        prefix = "$request.body#/"
+        if expression.startswith(prefix):
+            tokens = expression[len(prefix) :].split("/")
+            if len(tokens) == 1:
+                return "body", tokens[0].replace("~1", "/").replace("~0", "~")
+        raise shared.SirenityError(f"OpenAPI source-input runtime expression is unsupported: {expression}")
+
+    def operation_argument(
+        self,
+        operation: OperationDraft,
+        argument: str,
+    ) -> tuple[Literal["path", "query", "body"], str, Mapping[str, JsonValue], bool]:
+        declared_location = ""
+        name = argument
+        for location in ("path", "query", "body"):
+            prefix = f"{location}."
+            if argument.startswith(prefix):
+                declared_location = location
+                name = argument[len(prefix) :]
+                break
+        candidates: list[tuple[Literal["path", "query", "body"], str, Mapping[str, JsonValue], bool]] = []
+        input = operation.input
+        if input is not None:
+            candidates.extend(
+                (parameter.location, parameter.name, parameter.definition, parameter.required)
+                for parameter in input.parameters
+                if parameter.location in {"path", "query"} and parameter.name == name
+            )
+            properties = input.definition.get("properties", {})
+            if name in properties:
+                candidates.append(("body", name, properties[name], name in input.definition.get("required", ())))
+            candidates.extend(
+                ("body", delegated.name, delegated.definition, delegated.required)
+                for delegated in input.delegated_inputs
+                if delegated.location == "body" and delegated.name == name and name not in properties
+            )
+        if declared_location:
+            candidates = [candidate for candidate in candidates if candidate[0] == declared_location]
+        if len(candidates) != 1:
+            raise shared.SirenityError(
+                f"OpenAPI navigation argument does not match exactly one operation input: {argument}"
+            )
+        return candidates[0]
+
+    def required_body_inputs(self, operation: OperationDraft) -> set[str]:
+        if operation.input is None:
+            return set()
+        required = set(operation.input.definition.get("required", ()))
+        required.update(
+            delegated.name
+            for delegated in operation.input.delegated_inputs
+            if delegated.location == "body" and delegated.required
+        )
+        return required
+
+    def nullable_schema(self, schema: Mapping[str, JsonValue]) -> bool:
+        declared = schema.get("type")
+        return (
+            schema.get("nullable") is True
+            or declared == "null"
+            or (isinstance(declared, list) and "null" in declared)
+            or any(self.nullable_schema(branch) for keyword in ("anyOf", "oneOf") for branch in schema.get(keyword, ()))
+        )
+
+    def schema_contract(self, schema: Mapping[str, JsonValue]) -> JsonValue:
+        annotations = {"default", "deprecated", "description", "examples", "readOnly", "title", "writeOnly"}
+        return {
+            name: (
+                self.schema_contract(value)
+                if isinstance(value, dict)
+                else [self.schema_contract(item) if isinstance(item, dict) else item for item in value]
+                if isinstance(value, list)
+                else value
+            )
+            for name, value in schema.items()
+            if name not in annotations
+        }
 
     def nested_collection_links(
         self,
@@ -431,7 +567,10 @@ class SirenBuilder:
         link: ResponseLinkDraft,
         target: OperationDraft,
         scope: shared.SirenScope,
+        source_inputs: tuple[SirenSourceInputBinding, ...],
     ) -> None:
+        if target.method != shared.SirenHttpMethod.GET and not source_inputs:
+            raise shared.SirenityError("OpenAPI non-GET response link requires explicit source inputs")
         pagination = "next" in link.rel
         if pagination:
             if (
@@ -446,30 +585,62 @@ class SirenBuilder:
         required_path = {
             segment[1:-1] for segment in target.path.split("/") if segment.startswith("{") and segment.endswith("}")
         }
-        query_parameters = (
-            {parameter.name for parameter in target.input.parameters if parameter.location == "query"}
-            if target.input is not None
-            else set()
-        )
+        target_parameters = target.input.parameters if target.input is not None else ()
+        query_parameters = {parameter.name for parameter in target_parameters if parameter.location == "query"}
         supplied_path = set()
         supplied_query = set()
+        supplied: set[tuple[str, str]] = set()
         for name in link.parameters:
             if name.startswith("path."):
-                supplied_path.add(name[len("path.") :])
+                argument = name[len("path.") :]
+                supplied_path.add(argument)
+                supplied.add(("path", argument))
             elif name.startswith("query."):
-                supplied_query.add(name[len("query.") :])
+                argument = name[len("query.") :]
+                supplied_query.add(argument)
+                supplied.add(("query", argument))
             elif name in required_path:
                 supplied_path.add(name)
+                supplied.add(("path", name))
             elif name in query_parameters:
                 supplied_query.add(name)
+                supplied.add(("query", name))
             else:
                 raise shared.SirenityError(
                     f"OpenAPI response link parameter does not match the target operation: {name}"
                 )
-        if pagination and (not supplied_query or (supplied_path and supplied_path != required_path)):
+        source_supplied = {(binding.target_location, binding.target_name) for binding in source_inputs}
+        if supplied & source_supplied:
+            raise shared.SirenityError("OpenAPI navigation maps a target argument more than once")
+        supplied_path.update(name for location, name in source_supplied if location == "path")
+        supplied_query.update(name for location, name in source_supplied if location == "query")
+        supplied_body = {name for location, name in source_supplied if location == "body"}
+        if pagination and (
+            not supplied_query
+            or (source_inputs and supplied_path != required_path)
+            or (not source_inputs and supplied_path and supplied_path != required_path)
+        ):
             raise shared.SirenityError("OpenAPI next response link must continue the same collection GET operation")
         if not pagination and supplied_path != required_path:
             raise shared.SirenityError("OpenAPI response link parameters do not match the target route")
+        if source_inputs:
+            required_query = {
+                parameter.name
+                for parameter in target_parameters
+                if parameter.location == "query" and parameter.required
+            }
+            required_body = self.required_body_inputs(target)
+            unsupported = {
+                parameter.name
+                for parameter in target_parameters
+                if parameter.location in {"header", "cookie"} and parameter.required
+            }
+            if unsupported:
+                raise shared.SirenityError("OpenAPI navigation target has required header or cookie inputs")
+            if not required_query.issubset(supplied_query):
+                raise shared.SirenityError("OpenAPI navigation does not satisfy required target query inputs")
+            if not required_body.issubset(supplied_body):
+                raise shared.SirenityError("OpenAPI navigation does not satisfy required target body inputs")
         for expression in link.parameters.values():
             if not expression.startswith("$response.body#"):
                 raise shared.SirenityError(f"OpenAPI response link runtime expression is unsupported: {expression}")

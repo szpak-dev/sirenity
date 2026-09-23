@@ -21,6 +21,7 @@ class SirenResponseContext(BaseValue):
     representation: SirenRepresentation | None = None
     path_values: Mapping[str, JsonValue] = Field(default_factory=dict)
     query: tuple[tuple[str, JsonValue], ...] = ()
+    body: JsonValue = Field(default_factory=dict)
     capabilities: frozenset[str] = frozenset()
     navigation_capabilities: frozenset[str] = frozenset()
     item_titles: tuple[str, ...] = ()

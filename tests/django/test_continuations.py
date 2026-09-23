@@ -104,6 +104,7 @@ class TestDjangoContinuationHappyPaths(DjangoCase):
                     "example_offset": "$response.body#/next_example_offset",
                     "example_limit": "$response.body#/example_limit",
                 },
+                "x-sirenity": {"sourceInputs": {"query.example_filter": "$request.query.example_filter"}},
             }
         }
 
@@ -145,7 +146,7 @@ class TestDjangoContinuationHappyPaths(DjangoCase):
             },
         ):
             client = Client(HTTP_ACCEPT="application/vnd.siren+json")
-            first = client.get("/siren/example_records?example_offset=0&example_limit=2")
+            first = client.get("/siren/example_records?example_filter=example-open&example_offset=0&example_limit=2")
             next_request = urlsplit(first.json()["links"][-1]["href"])
             second = client.get(f"{next_request.path}?{next_request.query}")
 

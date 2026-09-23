@@ -73,6 +73,12 @@ class SirenDjangoMiddleware(BaseState):
         result = json.loads(content) if content else None
         selected = self.policy.select(match.operation_id, response.status_code, request, result)
         query = tuple((name, value) for name in request.GET for value in request.GET.getlist(name))
+        request_content_type = request.content_type
+        body = (
+            json.loads(request.body)
+            if request.body and (request_content_type == "application/json" or request_content_type.endswith("+json"))
+            else {}
+        )
         projected = self.adapter.respond(
             SirenAdapterRequest(
                 operation_id=match.operation_id,
@@ -85,6 +91,7 @@ class SirenDjangoMiddleware(BaseState):
                 media_type=content_type if content else None,
                 path_values=match.path_values,
                 query=query,
+                body=body,
                 headers=dict(response.items()),
                 policy=selected,
             )

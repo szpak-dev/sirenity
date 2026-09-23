@@ -65,9 +65,7 @@ class TestDjangoJourneyHappyPaths(DjangoCase):
             MIDDLEWARE=["sirenity.SirenMiddleware"],
             SIRENITY=configuration,
         ):
-            response = Client(HTTP_ACCEPT="application/vnd.siren+json").get(
-                "/siren/example_jobs/example-job-1"
-            )
+            response = Client(HTTP_ACCEPT="application/vnd.siren+json").get("/siren/example_jobs/example-job-1")
 
         assert response.status_code == 200
         assert configuration.adapter().match("GET", "/siren/example_jobs/example-job-1") is not None
@@ -108,7 +106,7 @@ class TestDjangoJourneyHappyPaths(DjangoCase):
             },
         ):
             client = Client(HTTP_ACCEPT="application/vnd.siren+json")
-            first = client.get("/siren/example_records?example_offset=0&example_limit=2")
+            first = client.get("/siren/example_records?example_filter=example-open&example_offset=0&example_limit=2")
             target = urlsplit(first.json()["links"][-1]["href"])
             final = client.get(f"{target.path}?{target.query}")
 

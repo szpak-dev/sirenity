@@ -11,6 +11,7 @@ from .model import (
     SirenResponseLink,
     SirenRoot,
     SirenRoute,
+    SirenSourceInputBinding,
 )
 
 __all__ = [
@@ -26,4 +27,5 @@ __all__ = [
     "SirenResponseLink",
     "SirenRoot",
     "SirenRoute",
+    "SirenSourceInputBinding",
 ]

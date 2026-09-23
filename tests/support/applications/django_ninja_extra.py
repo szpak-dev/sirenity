@@ -2,7 +2,7 @@ from django.urls import path
 from ninja import Schema
 from ninja_extra import NinjaExtraAPI, api_controller, http_get
 
-from sirenity.api import SirenContinuation, SirenFollowUp, SirenScope, siren_follow_ups
+from sirenity.api import SirenContinuation, SirenFollowUp, SirenScope, SirenSourceInput, siren_follow_ups
 
 
 class ExampleExtraJobState(Schema):
@@ -64,6 +64,12 @@ class ExampleExtraJobController:
                 parameters={"path.example_record_id": "primary_record_id"},
                 rel="item",
                 scope=SirenScope.ENTITY,
+                source_inputs={
+                    "query.example_locale": SirenSourceInput(
+                        location="path",
+                        name="example_dashboard_id",
+                    )
+                },
             ),
             "secondary_record": SirenFollowUp(
                 operation_id="get_example_extra_record",
