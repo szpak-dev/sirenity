@@ -16,6 +16,7 @@ example_configuration = siren_configuration(
     source_path="/api",
     public_path="/siren",
     policy="example_project.permissions.siren_policy",
+    profiles=(),
 )
 example_bridge = siren_mcp(example_configuration, executor=ExampleMcpExecutor())
 example_tools = example_bridge.tools()

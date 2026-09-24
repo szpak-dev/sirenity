@@ -7,7 +7,7 @@ from ..cases import AdapterCase
 
 class TestAdapterResponseAttacks(AdapterCase):
     def test_adversarial_unknown_successful_operation_is_rejected(self) -> None:
-        adapter = siren_adapter(self.contracts.entity(), source_path="/api", public_path="/siren")
+        adapter = siren_adapter(self.contracts.entity(), source_path="/api", public_path="/siren", profiles=())
 
         with pytest.raises(SirenityError, match="unknown operation"):
             adapter.respond(
@@ -20,7 +20,7 @@ class TestAdapterResponseAttacks(AdapterCase):
             )
 
     def test_invariant_successful_response_shape_must_match_the_contract(self) -> None:
-        adapter = siren_adapter(self.contracts.entity(), source_path="/api", public_path="/siren")
+        adapter = siren_adapter(self.contracts.entity(), source_path="/api", public_path="/siren", profiles=())
 
         with pytest.raises(SirenityError, match="object response requires a mapping result"):
             adapter.respond(
@@ -34,7 +34,7 @@ class TestAdapterResponseAttacks(AdapterCase):
             )
 
     def test_cleanup_removes_headers_bound_to_the_replaced_representation(self) -> None:
-        adapter = siren_adapter(self.contracts.entity(), source_path="/api", public_path="/siren")
+        adapter = siren_adapter(self.contracts.entity(), source_path="/api", public_path="/siren", profiles=())
 
         response = adapter.respond(
             SirenAdapterRequest(
@@ -64,7 +64,7 @@ class TestAdapterResponseAttacks(AdapterCase):
         }
 
     def test_recovery_projects_a_valid_response_after_a_shape_failure(self) -> None:
-        adapter = siren_adapter(self.contracts.entity(), source_path="/api", public_path="/siren")
+        adapter = siren_adapter(self.contracts.entity(), source_path="/api", public_path="/siren", profiles=())
 
         with pytest.raises(SirenityError):
             adapter.respond(
@@ -96,7 +96,9 @@ class TestAdapterResponseAttacks(AdapterCase):
 
 class TestAdapterResponseHappyPaths(AdapterCase):
     def test_entity_response_has_official_siren_media_type_and_self_link(self) -> None:
-        response = siren_adapter(self.contracts.entity(), source_path="/api", public_path="/siren").respond(
+        response = siren_adapter(
+            self.contracts.entity(), source_path="/api", public_path="/siren", profiles=()
+        ).respond(
             SirenAdapterRequest(
                 operation_id="get_example_job",
                 status=200,
@@ -121,7 +123,9 @@ class TestAdapterResponseHappyPaths(AdapterCase):
         ]
 
     def test_unmatched_error_preserves_mapping_result_and_request_url(self) -> None:
-        response = siren_adapter(self.contracts.entity(), source_path="/api", public_path="/siren").respond(
+        response = siren_adapter(
+            self.contracts.entity(), source_path="/api", public_path="/siren", profiles=()
+        ).respond(
             SirenAdapterRequest(
                 status=503,
                 result={"example_detail": "example unavailable"},
@@ -142,7 +146,7 @@ class TestAdapterResponseHappyPaths(AdapterCase):
         }
 
     def test_unmatched_error_preserves_list_scalar_and_empty_results(self) -> None:
-        adapter = siren_adapter(self.contracts.entity(), source_path="/api", public_path="/siren")
+        adapter = siren_adapter(self.contracts.entity(), source_path="/api", public_path="/siren", profiles=())
 
         listed = adapter.respond(
             SirenAdapterRequest(

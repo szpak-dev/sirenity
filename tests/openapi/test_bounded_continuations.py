@@ -13,7 +13,7 @@ class TestBoundedContinuationContractAttacks(CompilationCase):
         contract["components"]["schemas"]["ExampleJobState"]["required"].remove("has_more")
 
         with pytest.raises(SirenContractError, match="has_more property must be required"):
-            siren_adapter(contract, source_path="/api", public_path="/siren")
+            siren_adapter(contract, source_path="/api", public_path="/siren", profiles=())
 
     def test_adversarial_contract_rejects_nullable_has_more(self) -> None:
         contract = self.contracts.bounded()
@@ -22,21 +22,21 @@ class TestBoundedContinuationContractAttacks(CompilationCase):
         }
 
         with pytest.raises(SirenContractError, match="non-nullable boolean has_more"):
-            siren_adapter(contract, source_path="/api", public_path="/siren")
+            siren_adapter(contract, source_path="/api", public_path="/siren", profiles=())
 
     def test_adversarial_contract_rejects_non_boolean_has_more(self) -> None:
         contract = self.contracts.bounded()
         contract["components"]["schemas"]["ExampleJobState"]["properties"]["has_more"] = {"type": "integer"}
 
         with pytest.raises(SirenContractError, match="non-nullable boolean has_more"):
-            siren_adapter(contract, source_path="/api", public_path="/siren")
+            siren_adapter(contract, source_path="/api", public_path="/siren", profiles=())
 
     def test_adversarial_contract_rejects_optional_continuation_value(self) -> None:
         contract = self.contracts.bounded()
         contract["components"]["schemas"]["ExampleJobState"]["required"].remove("next_example_cursor")
 
         with pytest.raises(SirenContractError, match="properties must exist and be required"):
-            siren_adapter(contract, source_path="/api", public_path="/siren")
+            siren_adapter(contract, source_path="/api", public_path="/siren", profiles=())
 
     def test_adversarial_contract_rejects_nullable_continuation_value(self) -> None:
         contract = self.contracts.bounded()
@@ -45,7 +45,7 @@ class TestBoundedContinuationContractAttacks(CompilationCase):
         }
 
         with pytest.raises(SirenContractError, match="properties must be non-nullable scalars"):
-            siren_adapter(contract, source_path="/api", public_path="/siren")
+            siren_adapter(contract, source_path="/api", public_path="/siren", profiles=())
 
     def test_adversarial_contract_rejects_structured_continuation_value(self) -> None:
         contract = self.contracts.bounded()
@@ -55,7 +55,7 @@ class TestBoundedContinuationContractAttacks(CompilationCase):
         }
 
         with pytest.raises(SirenContractError, match="properties must be non-nullable scalars"):
-            siren_adapter(contract, source_path="/api", public_path="/siren")
+            siren_adapter(contract, source_path="/api", public_path="/siren", profiles=())
 
     def test_adversarial_contract_rejects_unknown_target(self) -> None:
         contract = self.contracts.bounded()
@@ -63,7 +63,7 @@ class TestBoundedContinuationContractAttacks(CompilationCase):
         link["operationId"] = "get_missing_example_job"
 
         with pytest.raises(SirenContractError, match="references unknown operation"):
-            siren_adapter(contract, source_path="/api", public_path="/siren")
+            siren_adapter(contract, source_path="/api", public_path="/siren", profiles=())
 
     def test_adversarial_contract_rejects_unknown_target_parameter(self) -> None:
         contract = self.contracts.bounded()
@@ -73,7 +73,7 @@ class TestBoundedContinuationContractAttacks(CompilationCase):
         parameters["example_unknown"] = "$response.body#/next_example_cursor"
 
         with pytest.raises(SirenContractError, match="does not match the target operation"):
-            siren_adapter(contract, source_path="/api", public_path="/siren")
+            siren_adapter(contract, source_path="/api", public_path="/siren", profiles=())
 
     def test_adversarial_contract_rejects_unsupported_runtime_expression(self) -> None:
         contract = self.contracts.bounded()
@@ -83,7 +83,7 @@ class TestBoundedContinuationContractAttacks(CompilationCase):
         parameters["example_cursor"] = "$request.query.example_cursor"
 
         with pytest.raises(SirenContractError, match="runtime expression is unsupported"):
-            siren_adapter(contract, source_path="/api", public_path="/siren")
+            siren_adapter(contract, source_path="/api", public_path="/siren", profiles=())
 
     def test_adversarial_contract_rejects_more_than_one_continuation(self) -> None:
         contract = self.contracts.bounded()
@@ -91,7 +91,7 @@ class TestBoundedContinuationContractAttacks(CompilationCase):
         links["example_alternate"] = deepcopy(links["next"])
 
         with pytest.raises(SirenContractError, match="at most one continuation"):
-            siren_adapter(contract, source_path="/api", public_path="/siren")
+            siren_adapter(contract, source_path="/api", public_path="/siren", profiles=())
 
     def test_invariant_rejects_non_object_continuation_responses(self) -> None:
         contract = self.contracts.bounded()
@@ -102,7 +102,7 @@ class TestBoundedContinuationContractAttacks(CompilationCase):
         }
 
         with pytest.raises(SirenContractError, match="continuation response requires object content"):
-            siren_adapter(contract, source_path="/api", public_path="/siren")
+            siren_adapter(contract, source_path="/api", public_path="/siren", profiles=())
 
     def test_invariant_rejects_an_unsatisfied_required_target_query(self) -> None:
         contract = self.contracts.cross_operation_bounded()
@@ -112,7 +112,7 @@ class TestBoundedContinuationContractAttacks(CompilationCase):
         del parameters["query.example_locale"]
 
         with pytest.raises(SirenContractError, match="required target query inputs"):
-            siren_adapter(contract, source_path="/api", public_path="/siren")
+            siren_adapter(contract, source_path="/api", public_path="/siren", profiles=())
 
     def test_invariant_rejects_a_target_with_required_header_input(self) -> None:
         contract = self.contracts.cross_operation_bounded()
@@ -127,10 +127,10 @@ class TestBoundedContinuationContractAttacks(CompilationCase):
         )
 
         with pytest.raises(SirenContractError, match="required header or cookie inputs"):
-            siren_adapter(contract, source_path="/api", public_path="/siren")
+            siren_adapter(contract, source_path="/api", public_path="/siren", profiles=())
 
     def test_interruption_rejects_null_runtime_continuation_without_partial_output(self) -> None:
-        adapter = siren_adapter(self.contracts.bounded(), source_path="/api", public_path="/siren")
+        adapter = siren_adapter(self.contracts.bounded(), source_path="/api", public_path="/siren", profiles=())
 
         with pytest.raises(SirenityError, match="continuation values cannot be null"):
             adapter.respond(
@@ -155,7 +155,7 @@ class TestBoundedContinuationContractAttacks(CompilationCase):
         attacked = deepcopy(contract)
 
         with pytest.raises(SirenContractError):
-            siren_adapter(contract, source_path="/api", public_path="/siren")
+            siren_adapter(contract, source_path="/api", public_path="/siren", profiles=())
 
         assert contract == attacked
         assert original != contract
@@ -165,15 +165,17 @@ class TestBoundedContinuationContractAttacks(CompilationCase):
         invalid["components"]["schemas"]["ExampleJobState"]["required"].remove("has_more")
 
         with pytest.raises(SirenContractError):
-            siren_adapter(invalid, source_path="/api", public_path="/siren")
+            siren_adapter(invalid, source_path="/api", public_path="/siren", profiles=())
 
-        adapter = siren_adapter(self.contracts.bounded(), source_path="/api", public_path="/siren")
+        adapter = siren_adapter(self.contracts.bounded(), source_path="/api", public_path="/siren", profiles=())
         assert adapter.match("GET", "/siren/example_jobs/example-job-1") is not None
 
 
 class TestBoundedContinuationContractHappyPaths(CompilationCase):
     def test_incomplete_non_collection_response_exposes_one_next_link_and_invocation(self) -> None:
-        response = siren_adapter(self.contracts.bounded(), source_path="/api", public_path="/siren").respond(
+        response = siren_adapter(
+            self.contracts.bounded(), source_path="/api", public_path="/siren", profiles=()
+        ).respond(
             SirenAdapterRequest(
                 operation_id="get_example_job",
                 status=200,
@@ -208,7 +210,9 @@ class TestBoundedContinuationContractHappyPaths(CompilationCase):
         }
 
     def test_final_response_omits_link_and_does_not_evaluate_missing_cursor(self) -> None:
-        response = siren_adapter(self.contracts.bounded(), source_path="/api", public_path="/siren").respond(
+        response = siren_adapter(
+            self.contracts.bounded(), source_path="/api", public_path="/siren", profiles=()
+        ).respond(
             SirenAdapterRequest(
                 operation_id="get_example_job",
                 status=200,
@@ -235,7 +239,7 @@ class TestBoundedContinuationContractHappyPaths(CompilationCase):
                 "properties": {"example_event": {"type": "string"}},
             },
         }
-        response = siren_adapter(contract, source_path="/api", public_path="/siren").respond(
+        response = siren_adapter(contract, source_path="/api", public_path="/siren", profiles=()).respond(
             SirenAdapterRequest(
                 operation_id="get_example_job",
                 status=200,
@@ -260,7 +264,7 @@ class TestBoundedContinuationContractHappyPaths(CompilationCase):
         del link["operationId"]
         link["operationRef"] = "#/paths/~1api~1example_jobs~1{example_job_id}/get"
 
-        response = siren_adapter(contract, source_path="/api", public_path="/siren").respond(
+        response = siren_adapter(contract, source_path="/api", public_path="/siren", profiles=()).respond(
             SirenAdapterRequest(
                 operation_id="get_example_job",
                 status=200,
@@ -282,6 +286,7 @@ class TestBoundedContinuationContractHappyPaths(CompilationCase):
             self.contracts.cross_operation_bounded(),
             source_path="/api",
             public_path="/siren",
+            profiles=(),
         ).respond(
             SirenAdapterRequest(
                 operation_id="get_example_job",

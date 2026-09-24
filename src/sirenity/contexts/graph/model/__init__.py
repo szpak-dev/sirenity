@@ -8,6 +8,7 @@ from .values.parameter_input import SirenParameterInput
 from .values.resource import SirenResource
 from .values.response import SirenResponse
 from .values.response_binding import SirenResponseBinding
+from .values.response_item_link import SirenResponseItemLink
 from .values.response_link import SirenResponseLink
 from .values.root import SirenRoot
 from .values.route import SirenRoute
@@ -26,6 +27,7 @@ __all__ = [
     "SirenResource",
     "SirenResponse",
     "SirenResponseBinding",
+    "SirenResponseItemLink",
     "SirenResponseLink",
     "SirenRoot",
     "SirenRoute",

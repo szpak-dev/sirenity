@@ -25,6 +25,7 @@ class TestMcpFollowUpAttacks(McpCase):
                 source_path="/api",
                 public_path="/siren",
                 policy="tests.support.follow_up_policy.ExampleDashboardOnlyPolicy",
+                profiles=(),
             ),
             executor=executor,
         )
@@ -60,6 +61,7 @@ class TestMcpFollowUpAttacks(McpCase):
                 source_path="/api",
                 public_path="/siren",
                 policy="tests.support.follow_up_policy.ExampleDashboardOnlyPolicy",
+                profiles=(),
             ),
             executor=executor,
         )
@@ -95,6 +97,7 @@ class TestMcpFollowUpAttacks(McpCase):
                 source_path="/api",
                 public_path="/siren",
                 policy="tests.support.follow_up_policy.ExampleFollowUpPolicy",
+                profiles=(),
             ),
             executor=executor,
         )
@@ -132,6 +135,7 @@ class TestMcpFollowUpHappyPaths(McpCase):
                 source_path="/api",
                 public_path="/siren",
                 policy="tests.support.collaborators.ExamplePolicy",
+                profiles=(),
             ),
             executor=executor,
         )
@@ -186,6 +190,7 @@ class TestMcpFollowUpHappyPaths(McpCase):
                 source_path="/api",
                 public_path="/siren",
                 policy="tests.support.follow_up_policy.ExampleFollowUpPolicy",
+                profiles=(),
             ),
             executor=executor,
         )
@@ -233,6 +238,7 @@ class TestMcpFollowUpHappyPaths(McpCase):
                 source_path="/api",
                 public_path="/siren",
                 policy="tests.support.follow_up_policy.ExampleFollowUpPolicy",
+                profiles=(),
             ),
             executor=executor,
         )
@@ -286,6 +292,7 @@ class TestMcpFollowUpHappyPaths(McpCase):
                 source_path="/api",
                 public_path="/siren",
                 policy="tests.support.follow_up_policy.ExampleFollowUpPolicy",
+                profiles=(),
             ),
             executor=executor,
         )

@@ -14,7 +14,12 @@ import os
 
 from sirenity.api import SirenAdapterRequest, SirenityError, siren_adapter
 
-adapter = siren_adapter(json.loads(os.environ["EXAMPLE_OPENAPI"]), source_path="/api", public_path="/siren")
+adapter = siren_adapter(
+    json.loads(os.environ["EXAMPLE_OPENAPI"]),
+    source_path="/api",
+    public_path="/siren",
+    profiles=(),
+)
 try:
     adapter.respond(SirenAdapterRequest(
         operation_id="get_example_job",
@@ -61,7 +66,12 @@ import os
 
 from sirenity.api import SirenAdapterRequest, siren_adapter
 
-adapter = siren_adapter(json.loads(os.environ["EXAMPLE_OPENAPI"]), source_path="/api", public_path="/siren")
+adapter = siren_adapter(
+    json.loads(os.environ["EXAMPLE_OPENAPI"]),
+    source_path="/api",
+    public_path="/siren",
+    profiles=(),
+)
 response = adapter.respond(SirenAdapterRequest(
     operation_id="get_example_job",
     status=200,

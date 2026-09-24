@@ -24,6 +24,7 @@ class TestMcpVerificationAttacks(McpCase):
                 source_path="/api",
                 public_path="/siren",
                 policy="tests.support.collaborators.ExampleMutationOnlyPolicy",
+                profiles=(),
             ),
             executor=executor,
         )
@@ -63,6 +64,7 @@ class TestMcpVerificationAttacks(McpCase):
                 source_path="/api",
                 public_path="/siren",
                 policy="tests.support.collaborators.ExamplePolicy",
+                profiles=(),
             ),
             executor=executor,
         )
@@ -113,6 +115,7 @@ class TestMcpVerificationHappyPaths(McpCase):
                 source_path="/api",
                 public_path="/siren",
                 policy="tests.support.collaborators.ExamplePolicy",
+                profiles=(),
             ),
             executor=executor,
         )
@@ -170,6 +173,7 @@ class TestMcpVerificationHappyPaths(McpCase):
                 source_path="/api",
                 public_path="/siren",
                 policy="tests.support.collaborators.ExamplePolicy",
+                profiles=(),
             ),
             executor=executor,
         )

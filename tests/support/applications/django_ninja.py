@@ -7,6 +7,7 @@ from ninja import NinjaAPI, Query, Schema
 from sirenity.api import (
     SirenContinuation,
     SirenFollowUp,
+    SirenItemFollowUp,
     SirenScope,
     SirenSourceInput,
     siren_follow_ups,
@@ -31,6 +32,24 @@ class ExampleRecordPage(Schema):
     has_more: bool
     next_example_offset: int
     example_limit: int
+
+
+class ExampleItemManifest(Schema):
+    item_id: str
+    expected_revision: str
+
+
+class ExampleItemPage(Schema):
+    items: list[ExampleItemManifest]
+    has_more: bool
+    next_offset: int
+    limit: int
+
+
+class ExampleItemContent(Schema):
+    item_id: str
+    expected_revision: str
+    content: str
 
 
 class ExampleDashboard(Schema):
@@ -72,8 +91,7 @@ class ExampleHandlers:
             has_more=True,
             next_example_cursor="example-cursor-2",
         )
-    
-    
+
     @staticmethod
     @siren_pagination(
         api.get,
@@ -89,6 +107,8 @@ class ExampleHandlers:
         },
         summary="List example records",
         description="List one page of example records.",
+        item_follow_ups={},
+        status=200,
     )
     def list_example_records(
         request: HttpRequest,
@@ -106,8 +126,59 @@ class ExampleHandlers:
             next_example_offset=2,
             example_limit=example_limit,
         )
-    
-    
+
+    @staticmethod
+    @siren_pagination(
+        api.get,
+        "/api/example_items",
+        response=ExampleItemPage,
+        operation_id="list_example_items",
+        continuation={"offset": "next_offset", "limit": "limit"},
+        item_follow_ups={
+            "content": SirenItemFollowUp(
+                operation_id="read_example_item_content",
+                parameters={"path.item_id": "item_id", "query.expected_revision": "expected_revision"},
+                rel="item",
+                scope=SirenScope.ENTITY,
+                item_collection="items",
+            )
+        },
+        summary="List example items",
+        description="List one page of example item manifests.",
+        source_inputs={},
+        status=200,
+    )
+    def list_example_items(
+        request: HttpRequest,
+        offset: Annotated[int, Query(0)],
+        limit: Annotated[int, Query(2)],
+    ) -> ExampleItemPage:
+        return ExampleItemPage(
+            items=([ExampleItemManifest(item_id="item-1", expected_revision="revision-1")] if offset == 0 else []),
+            has_more=offset == 0,
+            next_offset=2,
+            limit=limit,
+        )
+
+    @staticmethod
+    @api.get(
+        "/api/example_items/{item_id}",
+        response=ExampleItemContent,
+        operation_id="read_example_item_content",
+        summary="Read example item content",
+        description="Read one example item's content.",
+    )
+    def read_example_item_content(
+        request: HttpRequest,
+        item_id: str,
+        expected_revision: str,
+    ) -> ExampleItemContent:
+        return ExampleItemContent(
+            item_id=item_id,
+            expected_revision=expected_revision,
+            content="example content",
+        )
+
     @staticmethod
     @siren_follow_ups(
         api.get,
@@ -136,6 +207,7 @@ class ExampleHandlers:
         },
         summary="Read example dashboard",
         description="Read one example dashboard.",
+        status=200,
     )
     def get_example_dashboard(request: HttpRequest, example_dashboard_id: str) -> ExampleDashboard:
         return ExampleDashboard(
@@ -143,8 +215,7 @@ class ExampleHandlers:
             primary_record_id="example-record-1",
             secondary_record_id="example-record-2",
         )
-    
-    
+
     @staticmethod
     @api.get(
         "/api/example_records/{example_record_id}",
@@ -159,6 +230,6 @@ class ExampleHandlers:
         example_locale: Annotated[str, Query("example-en")],
     ) -> ExampleRecord:
         return ExampleRecord(example_record_id=example_record_id, example_title=example_locale)
-    
-    
+
+
 urlpatterns = [path("", api.urls)]

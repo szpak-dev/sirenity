@@ -5,32 +5,15 @@
 
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass, field
-from typing import NotRequired, Protocol, TypedDict
-
-from pydantic import JsonValue
+from typing import NotRequired, TypedDict
 
 from ..contexts.runtime.adapter import SirenDjangoMiddleware
 from ..contexts.runtime.mcp import SirenMcpToolCatalogueService
 from ..wiring import application
 from .configuration import SirenConfiguration, SirenConfigurationResolver
+from .follow_up import SirenOperationDecorator, SirenRouteDecorator
+from .item_follow_up import SirenItemFollowUp
 from .source_input import SirenSourceInput
-
-
-class SirenOperationDecorator[**P, R](Protocol):
-    def __call__(self, handler: Callable[P, R]) -> Callable[P, R]: ...
-
-
-class SirenRouteDecorator[**P, R, S](Protocol):
-    def __call__(
-        self,
-        path: str,
-        *,
-        response: Mapping[int, type[S]],
-        operation_id: str,
-        summary: str,
-        description: str,
-        openapi_extra: Mapping[str, JsonValue],
-    ) -> SirenOperationDecorator[P, R]: ...
 
 
 class SirenDjangoSettings(TypedDict):
@@ -142,10 +125,11 @@ def siren_pagination[**P, R, S](
     response: type[S],
     operation_id: str,
     continuation: Mapping[str, str],
-    source_inputs: Mapping[str, SirenSourceInput],
-    status: int,
     summary: str,
     description: str,
+    source_inputs: Mapping[str, SirenSourceInput],
+    item_follow_ups: Mapping[str, SirenItemFollowUp],
+    status: int,
 ) -> SirenOperationDecorator[P, R]:
     """Declare one typed paginated Django Ninja or Ninja Extra operation.
 
@@ -155,6 +139,7 @@ def siren_pagination[**P, R, S](
     startup compilation validates every mapped query parameter and response property.
     ``source_inputs`` explicitly retains required, non-null source path, query, or body inputs; all
     remaining source inputs are excluded from the next-page invocation.
+    ``item_follow_ups`` declares safe navigation relative to every item in the page collection.
 
     ```python
     from ninja import Schema
@@ -173,6 +158,9 @@ def siren_pagination[**P, R, S](
         response=ArticlePage,
         operation_id="list_articles",
         continuation={"offset": "next_offset", "limit": "limit"},
+        source_inputs={},
+        item_follow_ups={},
+        status=200,
         summary="List articles",
         description="List one page of articles.",
     )
@@ -214,7 +202,40 @@ def siren_pagination[**P, R, S](
                                 if source_inputs
                                 else {}
                             ),
-                        }
+                        },
+                        **{
+                            name: {
+                                "operationId": follow_up.operation_id,
+                                "parameters": {
+                                    argument: ("$response.body#/" + property_name.replace("~", "~0").replace("/", "~1"))
+                                    for argument, property_name in follow_up.parameters.items()
+                                },
+                                "x-sirenity": {
+                                    "rel": follow_up.rel,
+                                    "scope": follow_up.scope.value,
+                                    "itemCollection": (
+                                        "$response.body#/"
+                                        + follow_up.item_collection.replace("~", "~0").replace("/", "~1")
+                                    ),
+                                    **(
+                                        {
+                                            "sourceInputs": {
+                                                target: (
+                                                    "$request.body#/"
+                                                    + source.name.replace("~", "~0").replace("/", "~1")
+                                                    if source.location == "body"
+                                                    else f"$request.{source.location}.{source.name}"
+                                                )
+                                                for target, source in follow_up.source_inputs.items()
+                                            }
+                                        }
+                                        if follow_up.source_inputs
+                                        else {}
+                                    ),
+                                },
+                            }
+                            for name, follow_up in item_follow_ups.items()
+                        },
                     }
                 }
             }

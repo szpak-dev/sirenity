@@ -7,7 +7,7 @@ from ..cases import AdapterCase
 
 class TestFrameworkNeutralJourneyAttacks(AdapterCase):
     def test_adversarial_runtime_continuation_failure_exposes_no_partial_response(self) -> None:
-        adapter = siren_adapter(self.contracts.bounded(), source_path="/api", public_path="/siren")
+        adapter = siren_adapter(self.contracts.bounded(), source_path="/api", public_path="/siren", profiles=())
 
         with pytest.raises(SirenityError, match="has_more value must be boolean"):
             adapter.respond(
@@ -26,7 +26,7 @@ class TestFrameworkNeutralJourneyAttacks(AdapterCase):
             )
 
     def test_invariant_final_result_cannot_retain_a_previous_continuation(self) -> None:
-        adapter = siren_adapter(self.contracts.bounded(), source_path="/api", public_path="/siren")
+        adapter = siren_adapter(self.contracts.bounded(), source_path="/api", public_path="/siren", profiles=())
         first = adapter.respond(
             SirenAdapterRequest(
                 operation_id="get_example_job",
@@ -60,7 +60,7 @@ class TestFrameworkNeutralJourneyAttacks(AdapterCase):
         assert [link["rel"] for link in final.payload["links"]] == [["self"]]
 
     def test_recovery_same_adapter_projects_after_a_continuation_failure(self) -> None:
-        adapter = siren_adapter(self.contracts.bounded(), source_path="/api", public_path="/siren")
+        adapter = siren_adapter(self.contracts.bounded(), source_path="/api", public_path="/siren", profiles=())
 
         with pytest.raises(SirenityError):
             adapter.respond(
@@ -97,7 +97,7 @@ class TestFrameworkNeutralJourneyAttacks(AdapterCase):
 
 class TestFrameworkNeutralJourneyHappyPaths(AdapterCase):
     def test_bounded_operation_moves_from_incomplete_to_final_response(self) -> None:
-        adapter = siren_adapter(self.contracts.bounded(), source_path="/api", public_path="/siren")
+        adapter = siren_adapter(self.contracts.bounded(), source_path="/api", public_path="/siren", profiles=())
         first = adapter.respond(
             SirenAdapterRequest(
                 operation_id="get_example_job",
@@ -134,7 +134,7 @@ class TestFrameworkNeutralJourneyHappyPaths(AdapterCase):
         assert final.continuations == ()
 
     def test_pagination_moves_from_incomplete_to_final_page(self) -> None:
-        adapter = siren_adapter(self.contracts.pagination(), source_path="/api", public_path="/siren")
+        adapter = siren_adapter(self.contracts.pagination(), source_path="/api", public_path="/siren", profiles=())
         first = adapter.respond(
             SirenAdapterRequest(
                 operation_id="list_example_records",

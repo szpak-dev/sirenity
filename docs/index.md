@@ -5,6 +5,7 @@
 - [Framework-neutral adapter](adapter.md)
 - [Shared configuration](configuration.md)
 - [Django integration](django.md)
+- [Django follow-up integration](follow_up.md)
 - [MCP integration](mcp.md)
 - [Compatibility audit](audit.md)
 - [Current architecture](architecture.md)

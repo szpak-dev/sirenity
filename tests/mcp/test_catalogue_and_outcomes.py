@@ -19,6 +19,7 @@ class TestMcpCatalogueAndOutcomeAttacks(McpCase):
                 source_path="/api",
                 public_path="/siren",
                 policy="tests.support.collaborators.ExamplePolicy",
+                profiles=(),
             ),
             executor=ExampleExecutor(
                 (
@@ -52,6 +53,7 @@ class TestMcpCatalogueAndOutcomeAttacks(McpCase):
                 source_path="/api",
                 public_path="/siren",
                 policy="tests.support.collaborators.ExamplePolicy",
+                profiles=(),
             ),
             executor=ExampleExecutor(
                 (
@@ -72,9 +74,7 @@ class TestMcpCatalogueAndOutcomeAttacks(McpCase):
         )
 
         assert result.is_error is True
-        assert result.structured_content == {
-            "detail": "OpenAPI object response requires a mapping result"
-        }
+        assert result.structured_content == {"detail": "OpenAPI object response requires a mapping result"}
 
     def test_interrupted_executor_is_not_hidden_or_retried(self) -> None:
         executor = ExampleInterruptedExecutor(
@@ -86,6 +86,7 @@ class TestMcpCatalogueAndOutcomeAttacks(McpCase):
                 source_path="/api",
                 public_path="/siren",
                 policy="tests.support.collaborators.ExamplePolicy",
+                profiles=(),
             ),
             executor=executor,
         )
@@ -114,6 +115,7 @@ class TestMcpCatalogueAndOutcomeAttacks(McpCase):
                 source_path="/api",
                 public_path="/siren",
                 policy="tests.support.collaborators.ExamplePolicy",
+                profiles=(),
             ),
             executor=executor,
         )
@@ -137,6 +139,9 @@ class TestMcpCatalogueAndOutcomeHappyPaths(McpCase):
             siren_configuration(
                 openapi="tests.support.applications.configuration.EXAMPLE_ENTITY_OPENAPI",
                 policy="tests.support.collaborators.ExamplePolicy",
+                source_path="/",
+                public_path="/",
+                profiles=(),
             ),
             executor=ExampleExecutor(()),
         )
@@ -144,6 +149,9 @@ class TestMcpCatalogueAndOutcomeHappyPaths(McpCase):
             siren_configuration(
                 openapi="tests.support.applications.configuration.EXAMPLE_ENTITY_OPENAPI",
                 policy="tests.support.collaborators.ExamplePolicy",
+                source_path="/",
+                public_path="/",
+                profiles=(),
             ),
             executor=ExampleExecutor(()),
         )
@@ -156,6 +164,9 @@ class TestMcpCatalogueAndOutcomeHappyPaths(McpCase):
             siren_configuration(
                 openapi="tests.support.applications.configuration.EXAMPLE_ENTITY_OPENAPI",
                 policy="tests.support.collaborators.ExamplePolicy",
+                source_path="/",
+                public_path="/",
+                profiles=(),
             ),
             executor=ExampleExecutor(()),
         )
@@ -163,6 +174,9 @@ class TestMcpCatalogueAndOutcomeHappyPaths(McpCase):
             siren_configuration(
                 openapi="tests.support.applications.configuration.EXAMPLE_OPERATION_OPENAPI",
                 policy="tests.support.collaborators.ExamplePolicy",
+                source_path="/",
+                public_path="/",
+                profiles=(),
             ),
             executor=ExampleExecutor(()),
         )
@@ -174,6 +188,9 @@ class TestMcpCatalogueAndOutcomeHappyPaths(McpCase):
             siren_configuration(
                 openapi="tests.support.applications.configuration.EXAMPLE_PAGINATION_OPENAPI",
                 policy="tests.support.collaborators.ExamplePolicy",
+                source_path="/",
+                public_path="/",
+                profiles=(),
             ),
             executor=ExampleExecutor(()),
         )
@@ -203,6 +220,7 @@ class TestMcpCatalogueAndOutcomeHappyPaths(McpCase):
                 source_path="/api",
                 public_path="/siren",
                 policy="tests.support.collaborators.ExamplePolicy",
+                profiles=(),
             ),
             executor=executor,
         )

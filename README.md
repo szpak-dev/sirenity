@@ -176,6 +176,7 @@ Guides are generated from marked public modules. Run `make docs` after changing 
 - [Framework-neutral adapter](docs/adapter.md)
 - [Shared configuration](docs/configuration.md)
 - [Django integration](docs/django.md)
+- [Django follow-up integration](docs/follow_up.md)
 - [MCP integration](docs/mcp.md)
 - [Compatibility audit](docs/audit.md)
 - [Current architecture](docs/architecture.md)

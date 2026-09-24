@@ -61,7 +61,7 @@ def siren(openapi: Mapping[str, JsonValue], *, source_path: str, public_path: st
         },
     }
 
-    engine = siren(openapi)
+    engine = siren(openapi, source_path="/", public_path="/")
     document = engine.project(
         SirenContext(
             base_url="https://api.example.com",
@@ -306,8 +306,8 @@ def siren(openapi: Mapping[str, JsonValue], *, source_path: str, public_path: st
     Give the framework-generated document directly to `siren()` after routes are registered:
 
     ```python
-    engine = siren(app.openapi())  # FastAPI
-    engine = siren(api.get_openapi_schema())  # Django Ninja / Django Ninja Extra
+    engine = siren(app.openapi(), source_path="/", public_path="/")  # FastAPI
+    engine = siren(api.get_openapi_schema(), source_path="/", public_path="/")  # Django Ninja / Ninja Extra
     ```
 
     #### HTTP response contract
