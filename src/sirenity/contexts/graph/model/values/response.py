@@ -6,6 +6,7 @@ from pydantic import Field, JsonValue, model_validator
 from ....shared import BaseValue, SirenMediaType
 from .continuation import SirenContinuation
 from .response_binding import SirenResponseBinding
+from .response_item_link import SirenResponseItemLink
 from .response_link import SirenResponseLink
 
 
@@ -15,6 +16,7 @@ class SirenResponse(BaseValue):
     shape: Literal["object", "array", "empty"]
     definition: Mapping[str, JsonValue] = Field(default_factory=dict)
     links: tuple[SirenResponseLink, ...] = ()
+    item_links: tuple[SirenResponseItemLink, ...] = ()
     continuations: tuple[SirenContinuation, ...] = ()
     bindings: tuple[SirenResponseBinding, ...] = ()
 

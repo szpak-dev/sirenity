@@ -366,13 +366,30 @@ class OpenApiOperationCompiler:
                     )
                 else:
                     links.append(link)
+            item_links = []
+            for link in response.item_links:
+                reference = link.operation_ref
+                if reference:
+                    item_links.append(
+                        link.model_copy(update={"operation_ref": self.operation_reference(request, reference)})
+                    )
+                else:
+                    item_links.append(link)
             continuations = []
             for continuation in response.continuations:
                 target = continuation.target
                 if target.kind == "operation_ref":
                     target = target.model_copy(update={"value": self.operation_reference(request, target.value)})
                 continuations.append(continuation.model_copy(update={"target": target}))
-            values.append(response.model_copy(update={"links": tuple(links), "continuations": tuple(continuations)}))
+            values.append(
+                response.model_copy(
+                    update={
+                        "links": tuple(links),
+                        "item_links": tuple(item_links),
+                        "continuations": tuple(continuations),
+                    }
+                )
+            )
         return tuple(values)
 
     def operation_reference(self, request: OpenApiCompilationRequest, reference: str) -> str:

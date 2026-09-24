@@ -1,9 +1,35 @@
-from collections.abc import Mapping
+"""Django follow-up integration.
+
+<!-- docs:order=41 -->
+"""
+
+from abc import ABC, abstractmethod
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass, field
 
+from pydantic import JsonValue
+
 from ..contexts.shared import SirenScope
-from .django import SirenOperationDecorator, SirenRouteDecorator
 from .source_input import SirenSourceInput
+
+
+class SirenOperationDecorator[**P, R](ABC):
+    @abstractmethod
+    def __call__(self, handler: Callable[P, R]) -> Callable[P, R]: ...
+
+
+class SirenRouteDecorator[**P, R, S](ABC):
+    @abstractmethod
+    def __call__(
+        self,
+        path: str,
+        *,
+        response: Mapping[int, type[S]],
+        operation_id: str,
+        summary: str,
+        description: str,
+        openapi_extra: Mapping[str, JsonValue],
+    ) -> SirenOperationDecorator[P, R]: ...
 
 
 @dataclass(frozen=True)
@@ -31,9 +57,9 @@ def siren_follow_ups[**P, R, S](
     response: type[S],
     operation_id: str,
     follow_ups: Mapping[str, SirenFollowUp],
-    status: int,
     summary: str,
     description: str,
+    status: int,
 ) -> SirenOperationDecorator[P, R]:
     """Declare typed read follow-ups for a Django Ninja or Ninja Extra operation.
 
@@ -61,6 +87,7 @@ def siren_follow_ups[**P, R, S](
                 scope=SirenScope.ENTITY,
             ),
         },
+        status=200,
         summary="Read dashboard",
         description="Read one dashboard.",
     )

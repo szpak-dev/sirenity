@@ -4,7 +4,15 @@ from django.urls import path
 from ninja import Query, Schema
 from ninja_extra import NinjaExtraAPI, api_controller, http_get
 
-from sirenity.api import SirenContinuation, SirenFollowUp, SirenScope, SirenSourceInput, siren_follow_ups
+from sirenity.api import (
+    SirenContinuation,
+    SirenFollowUp,
+    SirenItemFollowUp,
+    SirenScope,
+    SirenSourceInput,
+    siren_follow_ups,
+    siren_pagination,
+)
 
 
 class ExampleExtraJobState(Schema):
@@ -23,6 +31,24 @@ class ExampleExtraDashboard(Schema):
 class ExampleExtraRecord(Schema):
     example_record_id: str
     example_title: str
+
+
+class ExampleExtraItemManifest(Schema):
+    item_id: str
+    expected_revision: str
+
+
+class ExampleExtraItemPage(Schema):
+    items: list[ExampleExtraItemManifest]
+    has_more: bool
+    next_offset: int
+    limit: int
+
+
+class ExampleExtraItemContent(Schema):
+    item_id: str
+    expected_revision: str
+    content: str
 
 
 @api_controller("")
@@ -55,6 +81,56 @@ class ExampleExtraJobController:
             next_example_cursor="example-cursor-2",
         )
 
+    @siren_pagination(
+        http_get,
+        "/api/example_items",
+        response=ExampleExtraItemPage,
+        operation_id="list_example_items",
+        continuation={"offset": "next_offset", "limit": "limit"},
+        item_follow_ups={
+            "content": SirenItemFollowUp(
+                operation_id="read_example_item_content",
+                parameters={"path.item_id": "item_id", "query.expected_revision": "expected_revision"},
+                rel="item",
+                scope=SirenScope.ENTITY,
+                item_collection="items",
+            )
+        },
+        summary="List example items",
+        description="List one page of example item manifests.",
+        source_inputs={},
+        status=200,
+    )
+    def list_example_items(
+        self,
+        offset: Annotated[int, Query(0)],
+        limit: Annotated[int, Query(2)],
+    ) -> ExampleExtraItemPage:
+        return ExampleExtraItemPage(
+            items=([ExampleExtraItemManifest(item_id="item-1", expected_revision="revision-1")] if offset == 0 else []),
+            has_more=offset == 0,
+            next_offset=2,
+            limit=limit,
+        )
+
+    @http_get(
+        "/api/example_items/{item_id}",
+        response=ExampleExtraItemContent,
+        operation_id="read_example_item_content",
+        summary="Read example item content",
+        description="Read one example item's content.",
+    )
+    def read_example_item_content(
+        self,
+        item_id: str,
+        expected_revision: str,
+    ) -> ExampleExtraItemContent:
+        return ExampleExtraItemContent(
+            item_id=item_id,
+            expected_revision=expected_revision,
+            content="example content",
+        )
+
     @siren_follow_ups(
         http_get,
         "/api/example_extra_dashboards/{example_dashboard_id}",
@@ -82,6 +158,7 @@ class ExampleExtraJobController:
         },
         summary="Read example extra dashboard",
         description="Read one example Ninja Extra dashboard.",
+        status=200,
     )
     def get_example_dashboard(self, example_dashboard_id: str) -> ExampleExtraDashboard:
         return ExampleExtraDashboard(

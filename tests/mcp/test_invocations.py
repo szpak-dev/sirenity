@@ -21,6 +21,7 @@ class TestMcpInvocationAttacks(McpCase):
                 source_path="/api",
                 public_path="/siren",
                 policy="tests.support.collaborators.ExamplePolicy",
+                profiles=(),
             ),
             executor=executor,
         )
@@ -38,6 +39,7 @@ class TestMcpInvocationAttacks(McpCase):
                 source_path="/api",
                 public_path="/siren",
                 policy="tests.support.collaborators.ExamplePolicy",
+                profiles=(),
             ),
             executor=executor,
         )
@@ -59,6 +61,7 @@ class TestMcpInvocationAttacks(McpCase):
                 source_path="/api",
                 public_path="/siren",
                 policy="tests.support.collaborators.ExamplePolicy",
+                profiles=(),
             ),
             executor=ExampleExecutor((SirenMcpExecution(status=200, result={}, base_url="https://api.example.test"),)),
         )
@@ -85,6 +88,7 @@ class TestMcpInvocationAttacks(McpCase):
                 source_path="/api",
                 public_path="/siren",
                 policy="tests.support.collaborators.ExamplePolicy",
+                profiles=(),
             ),
             executor=executor,
         )
@@ -112,6 +116,7 @@ class TestMcpInvocationAttacks(McpCase):
                 source_path="/api",
                 public_path="/siren",
                 policy="tests.support.collaborators.ExamplePolicy",
+                profiles=(),
             ),
             executor=executor,
         )
@@ -140,6 +145,7 @@ class TestMcpInvocationAttacks(McpCase):
                 source_path="/api",
                 public_path="/siren",
                 policy="tests.support.collaborators.ExamplePolicy",
+                profiles=(),
             ),
             executor=executor,
         )
@@ -182,6 +188,7 @@ class TestMcpInvocationHappyPaths(McpCase):
                 source_path="/api",
                 public_path="/siren",
                 policy="tests.support.collaborators.ExamplePolicy",
+                profiles=(),
             ),
             executor=executor,
         )
@@ -221,6 +228,7 @@ class TestMcpInvocationHappyPaths(McpCase):
                 source_path="/api",
                 public_path="/siren",
                 policy="tests.support.collaborators.ExamplePolicy",
+                profiles=(),
             ),
             executor=ExampleExecutor((SirenMcpExecution(status=200, result={}, base_url="https://api.example.test"),)),
         )
@@ -256,6 +264,7 @@ class TestMcpInvocationHappyPaths(McpCase):
                 source_path="/api",
                 public_path="/siren",
                 policy="tests.support.collaborators.ExamplePolicy",
+                profiles=(),
             ),
             executor=executor,
         )

@@ -39,6 +39,8 @@ def siren_adapter(
 
     adapter = siren_adapter(
         api.get_openapi_schema(),
+        source_path="/",
+        public_path="/",
         profiles=(SirenStructuredFormProfile(),),
     )
     ```
@@ -46,7 +48,12 @@ def siren_adapter(
     ```python
     from sirenity import SirenAdapterPolicy, SirenAdapterRequest, siren_adapter
 
-    adapter = siren_adapter(api.get_openapi_schema(), source_path="/api", public_path="/siren")
+    adapter = siren_adapter(
+        api.get_openapi_schema(),
+        source_path="/api",
+        public_path="/siren",
+        profiles=(),
+    )
     response = adapter.respond(SirenAdapterRequest(
         operation_id="get_article",
         status=200,
@@ -109,6 +116,7 @@ def siren_adapter(
         api.get_openapi_schema(),
         source_path="/api",
         public_path="/api",
+        profiles=(),
     )
 
     class Capabilities:

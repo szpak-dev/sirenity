@@ -72,6 +72,7 @@ class SirenBuilder:
                             definition=response.definition,
                             bindings=self.response_bindings(response, fields),
                             links=self.response_links(operation, response, operations, resources),
+                            item_links=self.response_item_links(operation, response, operations),
                             continuations=self.response_continuations(operation, response, operations),
                             **(
                                 {"media_type": response.media_type}
@@ -117,6 +118,59 @@ class SirenBuilder:
             if (link.operation, link.scope) not in declared_targets
         )
         return (*declared_links, *derived)
+
+    def response_item_links(
+        self,
+        source: OperationDraft,
+        response: ResponseDraft,
+        operations: Mapping[str, OperationDraft],
+    ) -> tuple[graph.SirenResponseItemLink, ...]:
+        compiled = []
+        for link in response.item_links:
+            target = self.link_operation(link, operations)
+            source_inputs = self.source_input_bindings(source, link.source_inputs, target)
+            if target.method != shared.SirenHttpMethod.GET:
+                raise shared.SirenityError("OpenAPI item follow-up target must be a safe GET operation")
+            if any(binding.target_location == "body" for binding in source_inputs):
+                raise shared.SirenityError("OpenAPI item follow-up target accepts path and query inputs only")
+            required_query = {
+                parameter.name
+                for parameter in target.input.parameters
+                if parameter.location == "query" and parameter.required
+            }
+            query_names = {
+                parameter.name for parameter in target.input.parameters if parameter.location == "query"
+            }
+            mapped_query = {
+                name[len("query.") :] if name.startswith("query.") else name
+                for name in link.parameters
+                if name.startswith("query.")
+                or name in query_names
+            }
+            bound_query = {
+                binding.target_name for binding in source_inputs if binding.target_location == "query"
+            }
+            if required_query - mapped_query - bound_query:
+                raise shared.SirenityError("OpenAPI item follow-up does not satisfy required target query inputs")
+            if any(
+                parameter.required and parameter.location in {"header", "cookie"}
+                for parameter in target.input.parameters
+            ):
+                raise shared.SirenityError("OpenAPI item follow-up target has required header or cookie inputs")
+            if self.required_body_inputs(target):
+                raise shared.SirenityError("OpenAPI item follow-up target accepts path and query inputs only")
+            self.validate_link(source, link, target, link.scope, source_inputs)
+            compiled.append(
+                graph.SirenResponseItemLink(
+                    operation=target.name,
+                    parameters=link.parameters,
+                    rel=tuple(shared.SirenRelation.validate(value) for value in link.rel),
+                    scope=link.scope,
+                    source_inputs=source_inputs,
+                    item_collection=self.response_pointer(link.item_collection),
+                )
+            )
+        return tuple(compiled)
 
     def response_continuations(
         self,

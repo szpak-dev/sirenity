@@ -14,6 +14,7 @@ from ..values.response_continuation import (
     ResponseOperationTarget,
 )
 from ..values.response_draft import ResponseDraft
+from ..values.response_item_link_draft import ResponseItemLinkDraft
 from ..values.response_link_draft import ResponseLinkDraft
 from ..values.response_source_input import ResponseSourceInputDraft
 from .components import ComponentResolver
@@ -49,16 +50,20 @@ class OpenApiResponseProjection:
         for status, value in responses.items():
             response = self.components.response(request, value)
             links = self.links(response)
+            item_links = self.item_links(response)
             continuations = self.continuations(response)
             content = response.get("content", {})
             if not content:
                 if continuations:
                     raise SirenityError("OpenAPI continuation response requires object content")
+                if item_links:
+                    raise SirenityError("OpenAPI item follow-up response requires object content")
                 projected.append(
                     ResponseDraft(
                         status=status,
                         shape="empty",
                         links=links,
+                        item_links=item_links,
                         continuations=continuations,
                         bindings=self.bindings(response),
                     )
@@ -71,6 +76,8 @@ class OpenApiResponseProjection:
                 if shape == "array":
                     if continuations:
                         raise SirenityError("OpenAPI continuation response requires object content")
+                    if item_links:
+                        raise SirenityError("OpenAPI item follow-up response requires object content")
                     items = definition["items"]
                     item_definition = self.components.schema(request, items)
                     if item_definition.get("type") != "object":
@@ -88,8 +95,19 @@ class OpenApiResponseProjection:
                             f"OpenAPI response schema requires a non-empty title: {status} {media_name}"
                         )
                     self.validate_continuations(request, definition, continuations)
-                    if any(continuation.kind == SirenContinuationKind.PAGINATION for continuation in continuations):
+                    self.validate_item_links(request, definition, item_links)
+                    pagination = any(
+                        continuation.kind == SirenContinuationKind.PAGINATION for continuation in continuations
+                    )
+                    if item_links and not pagination:
+                        raise SirenityError("OpenAPI item follow-ups require a paginated response")
+                    if pagination:
                         items = self.page_items(request, definition)
+                        if any(
+                            self.item_property(link.item_collection, "collection") != items
+                            for link in item_links
+                        ):
+                            raise SirenityError("OpenAPI item follow-up must select the paginated item collection")
                         properties = definition["properties"]
                         collection = self.components.schema(request, properties[items])
                         item_schema = collection["items"]
@@ -115,6 +133,7 @@ class OpenApiResponseProjection:
                         shape=shape,
                         definition=definition,
                         links=links,
+                        item_links=item_links,
                         continuations=continuations,
                         bindings=self.bindings(response),
                     )
@@ -125,7 +144,7 @@ class OpenApiResponseProjection:
         source = response.get("links", {})
         links = []
         for name, definition in source.items():
-            if self.is_continuation(name, definition):
+            if self.is_continuation(name, definition) or self.is_item_link(definition):
                 continue
             operation_id = definition.get("operationId")
             operation_ref = definition.get("operationRef")
@@ -158,6 +177,43 @@ class OpenApiResponseProjection:
                 )
             )
         return tuple(links)
+
+    def item_links(self, response: dict[str, JsonValue]) -> tuple[ResponseItemLinkDraft, ...]:
+        links = []
+        for name, definition in response.get("links", {}).items():
+            if not self.is_item_link(definition):
+                continue
+            operation_id = definition.get("operationId")
+            operation_ref = definition.get("operationRef")
+            if (operation_id is None) == (operation_ref is None):
+                raise SirenityError(f"OpenAPI response link {name!r} requires one operation target")
+            if operation_id is not None and not operation_id:
+                raise SirenityError(f"OpenAPI response link {name!r} operationId is invalid")
+            if operation_ref is not None and not operation_ref:
+                raise SirenityError(f"OpenAPI response link {name!r} operationRef is invalid")
+            extension = definition["x-sirenity"]
+            relation = extension["rel"]
+            if not relation:
+                raise SirenityError(f"OpenAPI response link {name!r} x-sirenity.rel is invalid")
+            scope = SirenScope(extension["scope"])
+            if scope == SirenScope.ROOT:
+                raise SirenityError(f"OpenAPI response link {name!r} cannot target root scope")
+            links.append(
+                ResponseItemLinkDraft(
+                    parameters=definition.get("parameters", {}),
+                    rel=(relation,),
+                    scope=scope,
+                    source_inputs=self.source_inputs(definition),
+                    item_collection=extension["itemCollection"],
+                    **({"operation_id": operation_id} if operation_id is not None else {}),
+                    **({"operation_ref": operation_ref} if operation_ref is not None else {}),
+                )
+            )
+        return tuple(links)
+
+    def is_item_link(self, definition: dict[str, JsonValue]) -> bool:
+        extension = definition.get("x-sirenity")
+        return extension is not None and "itemCollection" in extension
 
     def continuations(self, response: dict[str, JsonValue]) -> tuple[ResponseContinuationDraft, ...]:
         source = response.get("links", {})
@@ -249,6 +305,45 @@ class OpenApiResponseProjection:
             )
         for parameter in continuations[0].parameters:
             self.continuation(request, definition, parameter.expression)
+
+    def validate_item_links(
+        self,
+        request: OpenApiCompilationRequest,
+        definition: dict[str, JsonValue],
+        item_links: tuple[ResponseItemLinkDraft, ...],
+    ) -> None:
+        properties = definition["properties"]
+        required = definition.get("required", ())
+        for link in item_links:
+            collection_name = self.item_property(link.item_collection, "collection")
+            if collection_name not in properties or collection_name not in required:
+                raise SirenityError("OpenAPI item follow-up collection must exist and be required")
+            collection = self.components.schema(request, properties[collection_name])
+            if collection.get("type") != "array" or collection.get("nullable") is True:
+                raise SirenityError("OpenAPI item follow-up collection must be a non-nullable array")
+            item = self.components.schema(request, collection["items"])
+            if item.get("type") != "object":
+                raise SirenityError("OpenAPI item follow-up collection items must be objects")
+            item_properties = item.get("properties", {})
+            item_required = item.get("required", ())
+            for expression in link.parameters.values():
+                property_name = self.item_property(expression, "parameter")
+                if property_name not in item_properties or property_name not in item_required:
+                    raise SirenityError("OpenAPI item follow-up properties must exist and be required")
+                value = self.components.schema(request, item_properties[property_name])
+                if value.get("type") not in {"string", "integer", "number", "boolean"} or value.get(
+                    "nullable"
+                ) is True:
+                    raise SirenityError("OpenAPI item follow-up properties must be non-nullable scalars")
+
+    def item_property(self, expression: str, source: str) -> str:
+        prefix = "$response.body#/"
+        if not expression.startswith(prefix):
+            raise SirenityError(f"OpenAPI item follow-up {source} expression is unsupported")
+        encoded = expression[len(prefix) :]
+        if not encoded or "/" in encoded or re.search(r"~(?:[^01]|$)", encoded):
+            raise SirenityError(f"OpenAPI item follow-up {source} expression is invalid")
+        return encoded.replace("~1", "/").replace("~0", "~")
 
     def page_items(self, request: OpenApiCompilationRequest, definition: dict[str, JsonValue]) -> str:
         properties = definition["properties"]

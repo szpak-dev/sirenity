@@ -25,10 +25,14 @@ class TestAdapterPolicyAndProfileAttacks(AdapterCase):
             siren_adapter(
                 self.contracts.operation(),
                 profiles=(SirenStructuredFormProfile(), SirenStructuredFormProfile()),
+                source_path="/",
+                public_path="/",
             )
 
     def test_cleanup_default_projection_contains_no_opt_in_extension(self) -> None:
-        response = siren_adapter(self.contracts.operation(), source_path="/api", public_path="/siren").respond(
+        response = siren_adapter(
+            self.contracts.operation(), source_path="/api", public_path="/siren", profiles=()
+        ).respond(
             SirenAdapterRequest(
                 operation_id="update_example_record",
                 status=200,
@@ -46,9 +50,13 @@ class TestAdapterPolicyAndProfileAttacks(AdapterCase):
             siren_adapter(
                 self.contracts.operation(),
                 profiles=(SirenStructuredFormProfile(), SirenStructuredFormProfile()),
+                source_path="/",
+                public_path="/",
             )
 
-        adapter = siren_adapter(self.contracts.operation(), profiles=(SirenStructuredFormProfile(),))
+        adapter = siren_adapter(
+            self.contracts.operation(), profiles=(SirenStructuredFormProfile(),), source_path="/", public_path="/"
+        )
         assert adapter.match("PATCH", "/api/example_records/example-record-1") is not None
 
 
@@ -64,7 +72,7 @@ class TestAdapterPolicyAndProfileHappyPaths(AdapterCase):
         assert policy == SirenAdapterPolicy(all_capabilities=True)
 
     def test_explicit_capabilities_control_projected_actions(self) -> None:
-        adapter = siren_adapter(self.contracts.entity(), source_path="/api", public_path="/siren")
+        adapter = siren_adapter(self.contracts.entity(), source_path="/api", public_path="/siren", profiles=())
         request = {
             "operation_id": "get_example_job",
             "status": 200,
@@ -116,8 +124,10 @@ class TestAdapterPolicyAndProfileHappyPaths(AdapterCase):
         profiled = siren_adapter(
             self.contracts.operation(),
             profiles=(SirenStructuredFormProfile(),),
+            source_path="/",
+            public_path="/",
         )
-        plain = siren_adapter(self.contracts.operation())
+        plain = siren_adapter(self.contracts.operation(), source_path="/", public_path="/", profiles=())
         request = SirenAdapterRequest(
             operation_id="update_example_record",
             status=200,

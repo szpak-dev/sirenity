@@ -24,7 +24,7 @@ class TestDjangoNinjaExtraJourneyAttacks(DjangoCase):
         ]
 
         with pytest.raises(SirenContractError, match="does not match the target operation"):
-            siren_adapter(contract, source_path="/api", public_path="/siren")
+            siren_adapter(contract, source_path="/api", public_path="/siren", profiles=())
 
 
 class TestDjangoNinjaExtraJourneyHappyPaths(DjangoCase):
@@ -33,7 +33,7 @@ class TestDjangoNinjaExtraJourneyHappyPaths(DjangoCase):
 
         with override_settings(ROOT_URLCONF="tests.support.applications.django_ninja_extra"):
             contract = api.get_openapi_schema()
-        adapter = siren_adapter(contract, source_path="/api", public_path="/siren")
+        adapter = siren_adapter(contract, source_path="/api", public_path="/siren", profiles=())
 
         response = adapter.respond(
             SirenAdapterRequest(

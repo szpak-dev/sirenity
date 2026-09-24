@@ -215,6 +215,130 @@ class ExampleContracts:
         }
         return contract
 
+    def item_follow_ups(self) -> dict[str, object]:
+        return {
+            "openapi": "3.1.1",
+            "info": {"title": "Example items API", "version": "1.0.0"},
+            "paths": {
+                "/api/example_items": {
+                    "get": {
+                        "operationId": "list_example_items",
+                        "summary": "List example items",
+                        "description": "List one page of example item manifests.",
+                        "parameters": [
+                            {
+                                "name": "offset",
+                                "in": "query",
+                                "schema": {"type": "integer", "title": "Offset", "default": 0},
+                            },
+                            {
+                                "name": "limit",
+                                "in": "query",
+                                "schema": {"type": "integer", "title": "Limit", "default": 2},
+                            },
+                        ],
+                        "responses": {
+                            "200": {
+                                "description": "Example item page.",
+                                "content": {
+                                    "application/json": {"schema": {"$ref": "#/components/schemas/ExampleItemPage"}}
+                                },
+                                "links": {
+                                    "next": {
+                                        "operationId": "list_example_items",
+                                        "parameters": {
+                                            "offset": "$response.body#/next_offset",
+                                            "limit": "$response.body#/limit",
+                                        },
+                                    },
+                                    "content": {
+                                        "operationId": "read_example_item_content",
+                                        "parameters": {
+                                            "path.item_id": "$response.body#/item_id",
+                                            "query.expected_revision": "$response.body#/expected_revision",
+                                        },
+                                        "x-sirenity": {
+                                            "rel": "item",
+                                            "scope": "entity",
+                                            "itemCollection": "$response.body#/items",
+                                        },
+                                    },
+                                },
+                            }
+                        },
+                    }
+                },
+                "/api/example_items/{item_id}": {
+                    "parameters": [
+                        {
+                            "name": "item_id",
+                            "in": "path",
+                            "required": True,
+                            "schema": {"type": "string"},
+                        }
+                    ],
+                    "get": {
+                        "operationId": "read_example_item_content",
+                        "summary": "Read example item content",
+                        "description": "Read one example item's content.",
+                        "parameters": [
+                            {
+                                "name": "expected_revision",
+                                "in": "query",
+                                "required": True,
+                                "schema": {"type": "string", "title": "Expected revision"},
+                            }
+                        ],
+                        "responses": {
+                            "200": {
+                                "description": "Example item content.",
+                                "content": {
+                                    "application/json": {"schema": {"$ref": "#/components/schemas/ExampleItemContent"}}
+                                },
+                            }
+                        },
+                    },
+                },
+            },
+            "components": {
+                "schemas": {
+                    "ExampleItemManifest": {
+                        "type": "object",
+                        "title": "Example item manifest",
+                        "required": ["item_id", "expected_revision"],
+                        "properties": {
+                            "item_id": {"type": "string"},
+                            "expected_revision": {"type": "string"},
+                        },
+                    },
+                    "ExampleItemPage": {
+                        "type": "object",
+                        "title": "Example item page",
+                        "required": ["items", "has_more", "next_offset", "limit"],
+                        "properties": {
+                            "items": {
+                                "type": "array",
+                                "items": {"$ref": "#/components/schemas/ExampleItemManifest"},
+                            },
+                            "has_more": {"type": "boolean"},
+                            "next_offset": {"type": "integer"},
+                            "limit": {"type": "integer"},
+                        },
+                    },
+                    "ExampleItemContent": {
+                        "type": "object",
+                        "title": "Example item content",
+                        "required": ["item_id", "expected_revision", "content"],
+                        "properties": {
+                            "item_id": {"type": "string"},
+                            "expected_revision": {"type": "string"},
+                            "content": {"type": "string"},
+                        },
+                    },
+                }
+            },
+        }
+
     def entity(self) -> dict[str, object]:
         contract = self.bounded()
         response = contract["paths"]["/api/example_jobs/{example_job_id}"]["get"]["responses"]["200"]

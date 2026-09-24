@@ -13,7 +13,7 @@ class TestPaginationContractAttacks(CompilationCase):
         del contract["paths"]["/api/example_records"]["get"]["parameters"][0]["required"]
 
         with pytest.raises(SirenContractError, match="source input must be required"):
-            siren_adapter(contract, source_path="/api", public_path="/siren")
+            siren_adapter(contract, source_path="/api", public_path="/siren", profiles=())
 
     def test_invariant_rejects_incompatible_source_and_target_schemas(self) -> None:
         contract = self.contracts.explicit_pagination()
@@ -22,14 +22,14 @@ class TestPaginationContractAttacks(CompilationCase):
         link["x-sirenity"]["sourceInputs"] = {"query.example_offset": "$request.query.example_filter"}
 
         with pytest.raises(SirenContractError, match="schemas are incompatible"):
-            siren_adapter(contract, source_path="/api", public_path="/siren")
+            siren_adapter(contract, source_path="/api", public_path="/siren", profiles=())
 
     def test_adversarial_contract_rejects_missing_required_has_more(self) -> None:
         contract = self.contracts.pagination()
         contract["components"]["schemas"]["ExampleRecordPage"]["required"].remove("has_more")
 
         with pytest.raises(SirenContractError, match="has_more property must be required"):
-            siren_adapter(contract, source_path="/api", public_path="/siren")
+            siren_adapter(contract, source_path="/api", public_path="/siren", profiles=())
 
     def test_adversarial_contract_rejects_nullable_has_more(self) -> None:
         contract = self.contracts.pagination()
@@ -38,7 +38,7 @@ class TestPaginationContractAttacks(CompilationCase):
         }
 
         with pytest.raises(SirenContractError, match="non-nullable boolean has_more"):
-            siren_adapter(contract, source_path="/api", public_path="/siren")
+            siren_adapter(contract, source_path="/api", public_path="/siren", profiles=())
 
     def test_adversarial_contract_rejects_an_ambiguous_item_collection(self) -> None:
         contract = self.contracts.pagination()
@@ -50,21 +50,21 @@ class TestPaginationContractAttacks(CompilationCase):
         page["required"].append("example_duplicates")
 
         with pytest.raises(SirenContractError, match="exactly one array-of-object property"):
-            siren_adapter(contract, source_path="/api", public_path="/siren")
+            siren_adapter(contract, source_path="/api", public_path="/siren", profiles=())
 
     def test_adversarial_contract_rejects_an_optional_item_collection(self) -> None:
         contract = self.contracts.pagination()
         contract["components"]["schemas"]["ExampleRecordPage"]["required"].remove("example_items")
 
         with pytest.raises(SirenContractError, match="items property must be required"):
-            siren_adapter(contract, source_path="/api", public_path="/siren")
+            siren_adapter(contract, source_path="/api", public_path="/siren", profiles=())
 
     def test_adversarial_contract_rejects_an_optional_continuation_value(self) -> None:
         contract = self.contracts.pagination()
         contract["components"]["schemas"]["ExampleRecordPage"]["required"].remove("next_example_offset")
 
         with pytest.raises(SirenContractError, match="properties must exist and be required"):
-            siren_adapter(contract, source_path="/api", public_path="/siren")
+            siren_adapter(contract, source_path="/api", public_path="/siren", profiles=())
 
     def test_adversarial_contract_rejects_a_nullable_continuation_value(self) -> None:
         contract = self.contracts.pagination()
@@ -73,7 +73,7 @@ class TestPaginationContractAttacks(CompilationCase):
         }
 
         with pytest.raises(SirenContractError, match="properties must be non-nullable scalars"):
-            siren_adapter(contract, source_path="/api", public_path="/siren")
+            siren_adapter(contract, source_path="/api", public_path="/siren", profiles=())
 
     def test_adversarial_contract_rejects_a_different_target_operation(self) -> None:
         contract = self.contracts.pagination()
@@ -82,20 +82,20 @@ class TestPaginationContractAttacks(CompilationCase):
         )
 
         with pytest.raises(SirenContractError, match="same collection GET operation"):
-            siren_adapter(contract, source_path="/api", public_path="/siren")
+            siren_adapter(contract, source_path="/api", public_path="/siren", profiles=())
 
     def test_invariant_rejects_pagination_without_a_query_continuation(self) -> None:
         contract = self.contracts.pagination()
         contract["paths"]["/api/example_records"]["get"]["responses"]["200"]["links"]["next"]["parameters"] = {}
 
         with pytest.raises(SirenContractError, match="same collection GET operation"):
-            siren_adapter(contract, source_path="/api", public_path="/siren")
+            siren_adapter(contract, source_path="/api", public_path="/siren", profiles=())
 
     def test_cleanup_leaves_the_contract_unchanged_after_compilation(self) -> None:
         contract = self.contracts.pagination()
         original = deepcopy(contract)
 
-        siren_adapter(contract, source_path="/api", public_path="/siren")
+        siren_adapter(contract, source_path="/api", public_path="/siren", profiles=())
 
         assert contract == original
 
@@ -104,9 +104,9 @@ class TestPaginationContractAttacks(CompilationCase):
         invalid["components"]["schemas"]["ExampleRecordPage"]["required"].remove("has_more")
 
         with pytest.raises(SirenContractError):
-            siren_adapter(invalid, source_path="/api", public_path="/siren")
+            siren_adapter(invalid, source_path="/api", public_path="/siren", profiles=())
 
-        valid = siren_adapter(self.contracts.pagination(), source_path="/api", public_path="/siren")
+        valid = siren_adapter(self.contracts.pagination(), source_path="/api", public_path="/siren", profiles=())
         assert valid.match("GET", "/siren/example_records") is not None
 
 
@@ -116,6 +116,7 @@ class TestPaginationContractHappyPaths(CompilationCase):
             self.contracts.explicit_pagination(),
             source_path="/api",
             public_path="/siren",
+            profiles=(),
         ).respond(
             SirenAdapterRequest(
                 operation_id="list_example_records",
@@ -151,7 +152,9 @@ class TestPaginationContractHappyPaths(CompilationCase):
         )
 
     def test_incomplete_page_retains_the_existing_public_payload_contract(self) -> None:
-        response = siren_adapter(self.contracts.pagination(), source_path="/api", public_path="/siren").respond(
+        response = siren_adapter(
+            self.contracts.pagination(), source_path="/api", public_path="/siren", profiles=()
+        ).respond(
             SirenAdapterRequest(
                 operation_id="list_example_records",
                 status=200,
@@ -196,7 +199,9 @@ class TestPaginationContractHappyPaths(CompilationCase):
         assert len(response.continuations) == 1
 
     def test_final_page_exposes_no_continuation(self) -> None:
-        response = siren_adapter(self.contracts.pagination(), source_path="/api", public_path="/siren").respond(
+        response = siren_adapter(
+            self.contracts.pagination(), source_path="/api", public_path="/siren", profiles=()
+        ).respond(
             SirenAdapterRequest(
                 operation_id="list_example_records",
                 status=200,
@@ -215,7 +220,9 @@ class TestPaginationContractHappyPaths(CompilationCase):
         assert response.continuations == ()
 
     def test_declared_continuation_values_replace_stale_query_values(self) -> None:
-        response = siren_adapter(self.contracts.pagination(), source_path="/api", public_path="/siren").respond(
+        response = siren_adapter(
+            self.contracts.pagination(), source_path="/api", public_path="/siren", profiles=()
+        ).respond(
             SirenAdapterRequest(
                 operation_id="list_example_records",
                 status=200,

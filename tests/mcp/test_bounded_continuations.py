@@ -23,6 +23,7 @@ class TestMcpBoundedContinuationAttacks(McpCase):
                 source_path="/api",
                 public_path="/siren",
                 policy="tests.support.collaborators.ExamplePolicy",
+                profiles=(),
             ),
             executor=executor,
         )
@@ -54,6 +55,7 @@ class TestMcpBoundedContinuationAttacks(McpCase):
                 source_path="/api",
                 public_path="/siren",
                 policy="tests.support.collaborators.ExamplePolicy",
+                profiles=(),
             ),
             executor=executor,
         )
@@ -88,6 +90,7 @@ class TestMcpBoundedContinuationAttacks(McpCase):
                 source_path="/api",
                 public_path="/siren",
                 policy="tests.support.collaborators.ExamplePolicy",
+                profiles=(),
             ),
             executor=executor,
         )
@@ -119,6 +122,7 @@ class TestMcpBoundedContinuationAttacks(McpCase):
                 source_path="/api",
                 public_path="/siren",
                 policy="tests.support.collaborators.ExamplePolicy",
+                profiles=(),
             ),
             executor=executor,
         )
@@ -155,6 +159,7 @@ class TestMcpBoundedContinuationAttacks(McpCase):
                 source_path="/api",
                 public_path="/siren",
                 policy="tests.support.collaborators.ExamplePolicy",
+                profiles=(),
             ),
             executor=executor,
         )
@@ -201,6 +206,7 @@ class TestMcpBoundedContinuationHappyPaths(McpCase):
                 source_path="/api",
                 public_path="/siren",
                 policy="tests.support.collaborators.ExamplePolicy",
+                profiles=(),
             ),
             executor=executor,
         )
@@ -261,6 +267,7 @@ class TestMcpBoundedContinuationHappyPaths(McpCase):
                 source_path="/api",
                 public_path="/siren",
                 policy="tests.support.collaborators.ExamplePolicy",
+                profiles=(),
             ),
             executor=executor,
         )
@@ -312,6 +319,7 @@ class TestMcpBoundedContinuationHappyPaths(McpCase):
                 source_path="/api",
                 public_path="/siren",
                 policy="tests.support.collaborators.ExamplePolicy",
+                profiles=(),
             ),
             executor=executor,
         )
@@ -351,6 +359,7 @@ class TestMcpBoundedContinuationHappyPaths(McpCase):
                 source_path="/api",
                 public_path="/siren",
                 policy="tests.support.collaborators.ExamplePolicy",
+                profiles=(),
             ),
             executor=executor,
         )

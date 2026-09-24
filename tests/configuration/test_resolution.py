@@ -14,6 +14,9 @@ class TestConfigurationResolutionAttacks(ConfiguredCase):
             siren_configuration(
                 openapi="tests.support.applications.configuration.EXAMPLE_MISSING_OPENAPI",
                 policy="tests.support.collaborators.ExamplePolicy",
+                source_path="/",
+                public_path="/",
+                profiles=(),
             )
 
     def test_adversarial_missing_policy_is_rejected(self) -> None:
@@ -21,6 +24,9 @@ class TestConfigurationResolutionAttacks(ConfiguredCase):
             siren_configuration(
                 openapi="tests.support.applications.configuration.EXAMPLE_ENTITY_OPENAPI",
                 policy="tests.support.collaborators.ExampleMissingPolicy",
+                source_path="/",
+                public_path="/",
+                profiles=(),
             )
 
     def test_invariant_invalid_contract_never_produces_a_partial_configuration(self) -> None:
@@ -28,6 +34,9 @@ class TestConfigurationResolutionAttacks(ConfiguredCase):
             siren_configuration(
                 openapi="tests.support.applications.configuration.EXAMPLE_INVALID_OPENAPI",
                 policy="tests.support.collaborators.ExamplePolicy",
+                source_path="/",
+                public_path="/",
+                profiles=(),
             )
 
     def test_interruption_from_caller_policy_is_not_hidden(self) -> None:
@@ -35,6 +44,9 @@ class TestConfigurationResolutionAttacks(ConfiguredCase):
             siren_configuration(
                 openapi="tests.support.applications.configuration.EXAMPLE_ENTITY_OPENAPI",
                 policy="tests.support.collaborators.ExampleInterruptedPolicy",
+                source_path="/",
+                public_path="/",
+                profiles=(),
             )
 
     def test_cleanup_does_not_mutate_the_imported_openapi_mapping(self) -> None:
@@ -45,6 +57,7 @@ class TestConfigurationResolutionAttacks(ConfiguredCase):
             source_path="/api",
             public_path="/siren",
             policy="tests.support.collaborators.ExamplePolicy",
+            profiles=(),
         )
 
         assert original == EXAMPLE_BOUNDED_OPENAPI
@@ -54,6 +67,9 @@ class TestConfigurationResolutionAttacks(ConfiguredCase):
             siren_configuration(
                 openapi="tests.support.applications.configuration.EXAMPLE_ENTITY_OPENAPI",
                 policy="tests.support.collaborators.ExampleInterruptedPolicy",
+                source_path="/",
+                public_path="/",
+                profiles=(),
             )
 
         recovered = siren_configuration(
@@ -61,6 +77,7 @@ class TestConfigurationResolutionAttacks(ConfiguredCase):
             source_path="/api",
             public_path="/siren",
             policy="tests.support.collaborators.ExamplePolicy",
+            profiles=(),
         )
         assert recovered.adapter().match("GET", "/siren/example_jobs/example-job-1") is not None
 
@@ -72,6 +89,7 @@ class TestConfigurationResolutionHappyPaths(ConfiguredCase):
             source_path="/api",
             public_path="/siren",
             policy="tests.support.collaborators.ExamplePolicy",
+            profiles=(),
         )
 
         assert configuration.adapter().match("GET", "/siren/example_jobs/example-job-1") is not None
@@ -83,6 +101,7 @@ class TestConfigurationResolutionHappyPaths(ConfiguredCase):
             source_path="/api",
             public_path="/siren",
             policy="tests.support.collaborators.ExamplePolicy",
+            profiles=(),
         )
 
         assert configuration.adapter() is configuration.adapter()
@@ -94,12 +113,14 @@ class TestConfigurationResolutionHappyPaths(ConfiguredCase):
             source_path="/api",
             public_path="/siren",
             policy="tests.support.collaborators.ExamplePolicy",
+            profiles=(),
         )
         second = siren_configuration(
             openapi="tests.support.applications.configuration.EXAMPLE_ENTITY_OPENAPI",
             source_path="/api",
             public_path="/siren",
             policy="tests.support.collaborators.ExamplePolicy",
+            profiles=(),
         )
 
         assert first is not second

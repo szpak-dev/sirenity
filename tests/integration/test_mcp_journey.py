@@ -25,6 +25,7 @@ class TestMcpJourneyAttacks(McpCase):
                 source_path="/api",
                 public_path="/siren",
                 policy="tests.support.collaborators.ExamplePolicy",
+                profiles=(),
             ),
             executor=executor,
         )
@@ -56,6 +57,7 @@ class TestMcpJourneyAttacks(McpCase):
                 source_path="/api",
                 public_path="/siren",
                 policy="tests.support.collaborators.ExamplePolicy",
+                profiles=(),
             ),
             executor=executor,
         )
@@ -102,6 +104,7 @@ class TestMcpJourneyHappyPaths(McpCase):
                 source_path="/api",
                 public_path="/siren",
                 policy="tests.support.collaborators.ExamplePolicy",
+                profiles=(),
             ),
             executor=executor,
         )
@@ -156,6 +159,7 @@ class TestMcpJourneyHappyPaths(McpCase):
                 source_path="/api",
                 public_path="/siren",
                 policy="tests.support.collaborators.ExamplePolicy",
+                profiles=(),
             ),
             executor=executor,
         )
