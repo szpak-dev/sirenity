@@ -4,7 +4,7 @@ from wireup import injectable
 
 from ....graph import SirenApi, SirenResource
 from ....shared import SirenityError
-from ...request import SirenContext
+from ... import SirenContext
 from ..contracts.resolver import SirenResourceResolver
 
 
@@ -12,7 +12,7 @@ from ..contracts.resolver import SirenResourceResolver
 @dataclass(frozen=True)
 class SirenDefaultResourceResolver(SirenResourceResolver):
     def resolve(self, api: SirenApi, context: SirenContext) -> SirenResource:
-        if context.resource is None:
+        if not context.resource:
             raise SirenityError(f"Siren {context.scope} context requires a resource")
         candidates = [resource for resource in api.resources if resource.name == context.resource]
         if not candidates:

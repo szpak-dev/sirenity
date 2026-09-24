@@ -10,7 +10,7 @@ class SirenMcpOperation(BaseValue):
     method: str
     dispatch_path: str
     path_values: Mapping[str, JsonValue] = Field(default_factory=dict)
-    body: JsonValue = None
+    body: JsonValue
     query_values: Mapping[str, JsonValue] = Field(default_factory=dict)
     header_values: Mapping[str, JsonValue] = Field(default_factory=dict)
     cookie_values: Mapping[str, JsonValue] = Field(default_factory=dict)

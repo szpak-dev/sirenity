@@ -7,13 +7,13 @@ from wireup import injectable
 
 from ....graph import SirenApi
 from ....shared import SirenContractError, SirenityError
-from ...compatibility import (
+from ... import (
     SirenCompatibilityFinding,
     SirenCompatibilityReport,
     SirenCompilation,
     SirenDiagnostics,
+    SirenSource,
 )
-from ...sources import SirenSource
 from ..contracts.assembler import SirenApiAssembler
 
 
@@ -23,7 +23,7 @@ class SirenApiService:
     sources: Sequence[SirenSource]
     assembler: SirenApiAssembler
 
-    def build(self, schema: dict[str, JsonValue], source_path: str = "/", public_path: str = "/") -> SirenApi:
+    def build(self, schema: dict[str, JsonValue], source_path: str, public_path: str) -> SirenApi:
         compilation = self.compile(schema, source_path, public_path)
         match compilation:
             case SirenDiagnostics(findings=findings):

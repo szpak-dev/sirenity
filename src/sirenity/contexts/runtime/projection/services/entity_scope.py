@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from wireup import injectable
 
 from ....shared import SirenityError, SirenScope
-from ...document import SirenDocument, SirenEmbeddedRepresentation, SirenLink
+from ... import SirenDocument, SirenEmbeddedRepresentation, SirenLink
 from ..contracts.entity import SirenEntityDocumentService
 from ..contracts.projector import SirenScopeProjector
 from ..contracts.relationship import SirenRelationshipDocumentService
@@ -20,7 +20,7 @@ class SirenEntityScopeProjector(SirenScopeProjector):
         return scope == SirenScope.ENTITY
 
     def project(self, request: SirenProjectionRequest) -> SirenDocument:
-        if request.resource is None:
+        if not request.resource:
             raise SirenityError("Siren entity projection requires a resource")
         document = self.entities.entity(request.api, request.resource, request.value, request.context, request.rel)
         relationships = self.relationships.relationships(request.api, request.context)
@@ -36,7 +36,7 @@ class SirenEntityScopeProjector(SirenScopeProjector):
             case SirenDocument():
                 return document.model_copy(
                     update={
-                        "entities": tuple(embedded) or None,
+                        "entities": tuple(embedded),
                         "links": (*(document.links or ()), *links),
                     }
                 )

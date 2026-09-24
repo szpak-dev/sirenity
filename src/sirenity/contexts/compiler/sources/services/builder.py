@@ -45,7 +45,7 @@ class SirenBuilder:
                     title=self.resource_title(resource, operations),
                     identifier=resource.identifier,
                     collection=graph.SirenRoute(path=resource.collection_path),
-                    entity=graph.SirenRoute(path=resource.entity_path) if resource.entity_path else None,
+                    entity=graph.SirenRoute(path=resource.entity_path),
                     collection_operations=resource_operations.get(
                         (resource.reference, shared.SirenScope.COLLECTION), ()
                     ),
@@ -164,7 +164,7 @@ class SirenBuilder:
             raise shared.SirenityError("OpenAPI bounded continuation parameters are invalid")
         if continuation.kind == SirenContinuationKind.PAGINATION and (
             source.name != target.name
-            or target.resource is None
+            or not target.resource
             or target.method != shared.SirenHttpMethod.GET
             or target.scope != shared.SirenScope.COLLECTION
         ):
@@ -179,11 +179,11 @@ class SirenBuilder:
     ) -> tuple[SirenContinuationParameter, ...]:
         required_path = set(self.path_parameters(target.path))
         inherited_path = set(self.path_parameters(source.path))
-        target_parameters = target.input.parameters if target.input is not None else ()
+        target_parameters = target.input.parameters
         query_parameters = {parameter.name for parameter in target_parameters if parameter.location == "query"}
         inherited_query = (
             {parameter.name for parameter in source.input.parameters if parameter.location == "query"}
-            if source.input is not None
+            if source.input.present
             else set()
         )
         unsupported_required = {
@@ -358,7 +358,7 @@ class SirenBuilder:
         return candidates[0]
 
     def required_body_inputs(self, operation: OperationDraft) -> set[str]:
-        if operation.input is None:
+        if not operation.input.present:
             return set()
         required = set(operation.input.definition.get("required", ()))
         required.update(
@@ -399,7 +399,7 @@ class SirenBuilder:
         resources: Mapping[str, Resource],
     ) -> tuple[graph.SirenResponseLink, ...]:
         if (
-            operation.resource is None
+            not operation.resource
             or operation.method
             not in {
                 shared.SirenHttpMethod.GET,
@@ -409,11 +409,11 @@ class SirenBuilder:
             }
             or not response.status.startswith("2")
             or response.shape != "object"
-            or response.definition is None
+            or not response.definition
         ):
             return ()
         resource = resources[operation.resource]
-        if resource.entity_path is None or operation.path not in {
+        if not resource.entity_path or operation.path not in {
             resource.collection_path,
             resource.entity_path,
         }:
@@ -498,11 +498,11 @@ class SirenBuilder:
             if operation.resource != resource.reference:
                 continue
             exact_collection = operation.path == resource.collection_path
-            exact_entity = resource.entity_path is not None and operation.path == resource.entity_path
+            exact_entity = bool(resource.entity_path) and operation.path == resource.entity_path
             if not exact_collection and not exact_entity:
                 continue
             for response in operation.responses:
-                if not response.status.startswith("2") or response.definition is None:
+                if not response.status.startswith("2") or not response.definition:
                     continue
                 definition = response.definition
                 priority = 0
@@ -531,7 +531,7 @@ class SirenBuilder:
         )
 
     def link_operation(self, link: ResponseLinkDraft, operations: Mapping[str, OperationDraft]) -> OperationDraft:
-        if link.operation_id is not None:
+        if link.operation_id:
             operation = operations.get(link.operation_id)
             if operation is None:
                 raise shared.SirenityError(f"OpenAPI response link references unknown operation: {link.operation_id}")
@@ -575,17 +575,17 @@ class SirenBuilder:
         if pagination:
             if (
                 source.name != target.name
-                or target.resource is None
+                or not target.resource
                 or target.method != shared.SirenHttpMethod.GET
                 or target.scope != shared.SirenScope.COLLECTION
             ):
                 raise shared.SirenityError("OpenAPI next response link must continue the same collection GET operation")
-        elif target.resource is None or target.scope != scope:
+        elif not target.resource or target.scope != scope:
             raise shared.SirenityError("OpenAPI response link target does not match declared Siren scope")
         required_path = {
             segment[1:-1] for segment in target.path.split("/") if segment.startswith("{") and segment.endswith("}")
         }
-        target_parameters = target.input.parameters if target.input is not None else ()
+        target_parameters = target.input.parameters
         query_parameters = {parameter.name for parameter in target_parameters if parameter.location == "query"}
         supplied_path = set()
         supplied_query = set()
@@ -664,7 +664,7 @@ class SirenBuilder:
             if operation.name in index:
                 raise shared.SirenityError(f"Siren operation already exists: {operation.name}")
             if operation.scope == shared.SirenScope.ROOT:
-                if operation.resource is not None:
+                if operation.resource:
                     raise shared.SirenityError(f"Siren root operation {operation.name!r} cannot reference a resource")
             else:
                 resource = resources.get(operation.resource)
@@ -678,7 +678,7 @@ class SirenBuilder:
 
     def validate_operation_path(self, operation: OperationDraft, resource: Resource) -> None:
         if operation.scope == shared.SirenScope.ENTITY:
-            if resource.entity_path is None:
+            if not resource.entity_path:
                 raise shared.SirenityError(f"Siren resource {resource.name!r} has no entity path")
             valid = operation.path == resource.entity_path or operation.path.startswith(f"{resource.entity_path}/")
         else:
@@ -700,6 +700,6 @@ class SirenBuilder:
     ) -> dict[tuple[str, shared.SirenScope], tuple[str, ...]]:
         index: dict[tuple[str, shared.SirenScope], list[str]] = {}
         for operation in operations.values():
-            if operation.resource is not None:
+            if operation.resource:
                 index.setdefault((operation.resource, operation.scope), []).append(operation.name)
         return {key: tuple(names) for key, names in index.items()}

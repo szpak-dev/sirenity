@@ -5,8 +5,7 @@ from pydantic import JsonValue
 from wireup import injectable
 
 from ....shared import SirenityError
-from ...implementation import SirenCapability
-from ...specification import SirenRequirement
+from ... import SirenCapability, SirenRequirement
 from ..contracts.matcher import SirenRequirementMatcher
 from ..values.finding import SirenFinding
 from ..values.report import SirenConformanceReport

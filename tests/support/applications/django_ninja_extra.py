@@ -37,7 +37,7 @@ class ExampleExtraJobController:
     def get_example_job(
         self,
         example_job_id: str,
-        example_cursor: str = "example-cursor-1",
+        example_cursor: str,
     ) -> ExampleExtraJobState:
         if example_cursor == "example-cursor-2":
             return ExampleExtraJobState(
@@ -98,7 +98,7 @@ class ExampleExtraJobController:
     def get_example_record(
         self,
         example_record_id: str,
-        example_locale: str = "example-en",
+        example_locale: str,
     ) -> ExampleExtraRecord:
         return ExampleExtraRecord(example_record_id=example_record_id, example_title=example_locale)
 

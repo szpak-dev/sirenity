@@ -1,8 +1,7 @@
 from abc import ABC, abstractmethod
 
 from ....shared import SirenityError
-from ...implementation import SirenCapability
-from ...specification import SirenRequirement
+from ... import SirenCapability, SirenRequirement
 from ..values.report import SirenConformanceReport
 
 

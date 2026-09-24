@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 
 from pydantic import JsonValue
 
-from ...compatibility import SirenCompilation, SirenDiagnostics
+from ... import SirenCompilation, SirenDiagnostics
 
 
 class SirenSource(ABC):

@@ -6,7 +6,7 @@ from pydantic import JsonValue
 from wireup import injectable
 
 from ....graph import SirenDelegatedInput, SirenInput
-from ...request import SirenResponseContext
+from ... import SirenResponseContext
 
 
 @injectable

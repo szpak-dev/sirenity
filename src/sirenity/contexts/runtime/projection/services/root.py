@@ -3,8 +3,7 @@ from dataclasses import dataclass
 from wireup import injectable
 
 from ....shared import SirenHttpMethod, SirenRelation, SirenScope
-from ...document import SirenDocument, SirenLink
-from ...routing import SirenHrefService
+from ... import SirenDocument, SirenHrefService, SirenLink
 from ..contracts.action import SirenActionDocumentService
 from ..contracts.projector import SirenScopeProjector
 from ..values.request import SirenProjectionRequest
@@ -21,21 +20,21 @@ class SirenRootScopeProjector(SirenScopeProjector):
 
     def project(self, request: SirenProjectionRequest) -> SirenDocument:
         operations = {operation.name: operation for operation in request.api.operations}
-        title = request.context.title or request.api.root.title or None
+        title = request.context.title or request.api.root.title
         properties = dict(request.context.value)
         if request.api.root.version:
             properties["version"] = request.api.root.version
         links = [
             SirenLink(
                 rel=("self",),
-                href=self.hrefs.href(request.api.root.route.path, request.context, None),
+                href=self.hrefs.href(request.api.root.route.path, request.context, "", {}, True),
                 title=title,
             )
         ]
         links.extend(
             SirenLink(
                 rel=(SirenRelation.validate("collection"),),
-                href=self.hrefs.href(resource.collection.path, request.context, resource, include_query=False),
+                href=self.hrefs.href(resource.collection.path, request.context, resource, {}, False),
                 title=resource.title,
             )
             for resource in request.api.resources
@@ -50,14 +49,14 @@ class SirenRootScopeProjector(SirenScopeProjector):
             )
         )
         actions = [
-            self.actions.action(operations[name], request.context, None, {}, include_query=False)
+            self.actions.action(operations[name], request.context, "", {}, False)
             for name in request.api.root.operations
             if name in request.context.capabilities
         ]
         return SirenDocument(
             class_=("api", "entry-point"),
             title=title,
-            properties=properties or None,
+            properties=properties,
             links=tuple(links),
-            actions=tuple(actions) or None,
+            actions=tuple(actions),
         )

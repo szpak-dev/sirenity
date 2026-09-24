@@ -1,15 +1,13 @@
 from collections.abc import Mapping
 from dataclasses import dataclass
+from typing import Literal
 
 from pydantic import JsonValue
 from wireup import injectable
 
 from ....graph import SirenApi, SirenField, SirenOperation, SirenResource
 from ....shared import SirenityError, SirenScope
-from ...document import SirenAction, SirenFieldValue
-from ...document import SirenField as SirenDocumentField
-from ...request import SirenContext
-from ...routing import SirenHrefService
+from ... import SirenAction, SirenContext, SirenDocumentField, SirenFieldValue, SirenHrefService
 from ..contracts.action import SirenActionDocumentService
 
 
@@ -29,16 +27,18 @@ class SirenDefaultActionDocumentService(SirenActionDocumentService):
         names = resource.collection_operations if scope == SirenScope.COLLECTION else resource.entity_operations
         operations = {operation.name: operation for operation in api.operations}
         return [
-            self.action(operations[name], context, resource, value) for name in names if name in context.capabilities
+            self.action(operations[name], context, resource, value, True)
+            for name in names
+            if name in context.capabilities
         ]
 
     def action(
         self,
         operation: SirenOperation,
         context: SirenContext,
-        resource: SirenResource | None,
+        resource: SirenResource | Literal[""],
         value: Mapping[str, JsonValue],
-        include_query: bool = True,
+        include_query: bool,
     ) -> SirenAction:
         return SirenAction(
             name=operation.name,
@@ -64,8 +64,7 @@ class SirenDefaultActionDocumentService(SirenActionDocumentService):
                     ),
                 )
                 for definition in operation.fields
-            )
-            or None,
+            ),
         )
 
     def value(

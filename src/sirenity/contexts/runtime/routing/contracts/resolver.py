@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 
 from ....graph import SirenApi, SirenResource
 from ....shared import SirenityError
-from ...request import SirenContext
+from ... import SirenContext
 
 
 class SirenResourceResolver(ABC):

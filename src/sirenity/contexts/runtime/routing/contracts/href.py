@@ -1,11 +1,12 @@
 from abc import ABC, abstractmethod
 from collections.abc import Mapping
+from typing import Literal
 
 from pydantic import JsonValue
 
 from ....graph import SirenResource
 from ....shared import SirenityError, SirenUri
-from ...request import SirenContext
+from ... import SirenContext
 
 
 class SirenHrefService(ABC):
@@ -14,8 +15,8 @@ class SirenHrefService(ABC):
         self,
         path: str,
         context: SirenContext,
-        resource: SirenResource | None,
-        value: Mapping[str, JsonValue] | None = None,
-        include_query: bool = True,
+        resource: SirenResource | Literal[""],
+        value: Mapping[str, JsonValue],
+        include_query: bool,
     ) -> SirenUri:
         raise SirenityError

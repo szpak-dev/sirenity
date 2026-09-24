@@ -8,6 +8,6 @@ class Resource(BaseValue):
     name: str
     resource_class: str
     collection_path: str
-    entity_path: str | None
+    entity_path: str = ""
     identifier: str
     path_bindings: Mapping[str, tuple[str, ...]]

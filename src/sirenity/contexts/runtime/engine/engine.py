@@ -22,7 +22,7 @@ class SirenEngine(BaseState):
     def has_response(self, context: SirenResponseContext) -> bool:
         return self.response_projection.has_response(self.api, context)
 
-    def project_error(self, context: SirenResponseContext, request_url: str | None = None) -> SirenDocument:
+    def project_error(self, context: SirenResponseContext, request_url: str) -> SirenDocument:
         return self.response_projection.project_error(self.api, context, request_url)
 
     def operation_input(self, operation_id: str) -> SirenInput | None:

@@ -54,11 +54,11 @@ class ExampleInterruptedExecutor:
 
 class ExampleRecordingPolicy:
     def __init__(self):
-        self.calls: list[tuple[str | None, int, object, JsonValue]] = []
+        self.calls: list[tuple[str, int, object, JsonValue]] = []
 
     def select(
         self,
-        operation_id: str | None,
+        operation_id: str,
         status: int,
         request: object,
         result: JsonValue,

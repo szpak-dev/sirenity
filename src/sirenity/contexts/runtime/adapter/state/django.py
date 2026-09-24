@@ -88,7 +88,7 @@ class SirenDjangoMiddleware(BaseState):
                 result=result,
                 base_url=request.build_absolute_uri("/").rstrip("/"),
                 request_url=request.build_absolute_uri(),
-                media_type=content_type if content else None,
+                media_type=content_type if content else "",
                 path_values=match.path_values,
                 query=query,
                 body=body,

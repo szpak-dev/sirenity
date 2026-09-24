@@ -9,7 +9,7 @@ class SirenRelationship(BaseValue):
     rel: tuple[SirenRelation, ...] = Field(min_length=1)
     resource: str
     scope: SirenScope
-    title: str | None = None
+    title: str = ""
     value: Mapping[str, JsonValue] = Field(default_factory=dict)
     path_values: Mapping[str, JsonValue] = Field(default_factory=dict)
     capabilities: frozenset[str] = frozenset()

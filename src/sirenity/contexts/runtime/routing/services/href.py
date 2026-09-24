@@ -1,5 +1,6 @@
 from collections.abc import Mapping
 from dataclasses import dataclass
+from typing import Literal
 from urllib.parse import quote
 
 from pydantic import JsonValue
@@ -7,7 +8,7 @@ from wireup import injectable
 
 from ....graph import SirenResource
 from ....shared import SirenityError, SirenUri
-from ...request import SirenContext
+from ... import SirenContext
 from ..contracts.href import SirenHrefService
 
 
@@ -18,9 +19,9 @@ class SirenDefaultHrefService(SirenHrefService):
         self,
         path: str,
         context: SirenContext,
-        resource: SirenResource | None,
-        value: Mapping[str, JsonValue] | None = None,
-        include_query: bool = True,
+        resource: SirenResource | Literal[""],
+        value: Mapping[str, JsonValue],
+        include_query: bool,
     ) -> SirenUri:
         properties = dict(context.value)
         properties.update(value or {})
@@ -30,7 +31,7 @@ class SirenDefaultHrefService(SirenHrefService):
         ):
             path_value = context.path_values.get(parameter)
             if path_value is None:
-                candidates = (parameter,) if resource is None else resource.path_bindings[parameter]
+                candidates = (parameter,) if not resource else resource.path_bindings[parameter]
                 available = tuple(
                     properties[name] for name in candidates if name in properties and properties[name] is not None
                 )

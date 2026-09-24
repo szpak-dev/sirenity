@@ -3,7 +3,7 @@ from collections.abc import Mapping
 from pydantic import Field, JsonValue
 
 from ....shared import BaseValue
-from ...projection import SirenProjectedNavigation
+from ... import SirenProjectedNavigation
 
 
 class SirenAdapterResponse(BaseValue):

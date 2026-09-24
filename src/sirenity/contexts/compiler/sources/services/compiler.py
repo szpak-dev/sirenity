@@ -18,7 +18,7 @@ from ....shared import (
     SirenMediaType,
     SirenScope,
 )
-from ...compatibility import SirenCompatibilityFinding, SirenDiagnostics
+from ... import SirenCompatibilityFinding, SirenDiagnostics
 from ..values.compilation_request import OpenApiCompilationRequest
 from ..values.normalized import NormalizedOpenApi
 from ..values.operation_draft import OperationDraft
@@ -57,7 +57,7 @@ class OpenApiOperationCompiler:
                 )
         single_object_paths = self.responses.single_object_paths(request)
         for path, path_item in request.paths.items():
-            location = self.location("paths", path)
+            location = self.location(("paths", path))
             if "$ref" in path_item:
                 self.add(
                     findings,
@@ -129,7 +129,7 @@ class OpenApiOperationCompiler:
         if operation_method not in self.methods:
             return
         finding_count = len(findings)
-        location = self.location("paths", path, method_name)
+        location = self.location(("paths", path, method_name))
         name = operation.get("operationId")
         if not name:
             self.add(
@@ -142,7 +142,7 @@ class OpenApiOperationCompiler:
         elif name in operation_ids:
             self.add(
                 findings,
-                self.location_from(location, "operationId"),
+                self.location_from(location, ("operationId",)),
                 "operation-id",
                 f"OpenAPI operationId is duplicated: {name}",
                 "Use a unique operationId for every Siren action.",
@@ -153,7 +153,7 @@ class OpenApiOperationCompiler:
         if not title:
             self.add(
                 findings,
-                self.location_from(location, "summary"),
+                self.location_from(location, ("summary",)),
                 "operation-summary",
                 f"OpenAPI operation requires a non-empty summary: {method.upper()} {path}",
                 "Provide a non-empty summary for the Siren action title.",
@@ -162,7 +162,7 @@ class OpenApiOperationCompiler:
         if not description:
             self.add(
                 findings,
-                self.location_from(location, "description"),
+                self.location_from(location, ("description",)),
                 "operation-description",
                 f"OpenAPI operation requires a non-empty description: {method.upper()} {path}",
                 "Provide a non-empty description for the caller-facing operation contract.",
@@ -176,7 +176,7 @@ class OpenApiOperationCompiler:
         resource, scope = ownership or (None, SirenScope.ROOT)
         operations.append(
             OperationDraft(
-                resource=resource.reference if resource else None,
+                resource=resource.reference if resource else "",
                 scope=scope,
                 name=name,
                 method=operation_method,
@@ -204,7 +204,7 @@ class OpenApiOperationCompiler:
     def unsupported_method(self, findings: list[SirenCompatibilityFinding], path: str, method: str) -> None:
         self.add(
             findings,
-            self.location("paths", path, method.lower()),
+            self.location(("paths", path, method.lower())),
             "http-method",
             f"OpenAPI operation method is unsupported: {method.upper()} {path}",
             "Use an official Siren action method: GET, POST, PUT, PATCH, or DELETE.",
@@ -227,10 +227,10 @@ class OpenApiOperationCompiler:
             )
         )
 
-    def location(self, *tokens: str) -> str:
+    def location(self, tokens: tuple[str, ...]) -> str:
         return "#" + "".join("/" + self.escape(token) for token in tokens)
 
-    def location_from(self, location: str, *tokens: str) -> str:
+    def location_from(self, location: str, tokens: tuple[str, ...]) -> str:
         return location + "".join("/" + self.escape(token) for token in tokens)
 
     def escape(self, token: str) -> str:
@@ -256,7 +256,7 @@ class OpenApiOperationCompiler:
         normalized_parameters: list[SirenParameterInput] = []
         names: set[str] = set()
         for (name, location), parameter in parameter_index.items():
-            definition = self.components.schema_tree(request, parameter["schema"])
+            definition = self.components.schema_tree(request, parameter["schema"], ())
             if name in names:
                 raise SirenityError(f"OpenAPI parameters cannot share a name across locations: {name}")
             names.add(name)
@@ -299,7 +299,7 @@ class OpenApiOperationCompiler:
         media = content.get(media_name, {}) if media_name else {}
         media_type = SirenMediaType.validate(media_name) if media_name else None
         schema = media.get("schema", {})
-        definition = self.components.schema_tree(request, schema) if content else {}
+        definition = self.components.schema_tree(request, schema, ()) if content else {}
         if content and media_name != "application/json":
             delegated.append(
                 SirenDelegatedInput(

@@ -9,4 +9,6 @@ from .entity import SirenEntity
 
 class SirenEmbeddedRepresentation(SirenEntity):
     rel: tuple[SirenRelation, ...] = Field(min_length=1)
-    entities: tuple[SirenEmbeddedLink | SirenEmbeddedRepresentation, ...] | None = None
+    entities: tuple[SirenEmbeddedLink | SirenEmbeddedRepresentation, ...] = Field(
+        default=(), exclude_if=lambda value: not value
+    )
