@@ -11,7 +11,7 @@ class SirenDelegatedInput(BaseValue):
     location: Literal["query", "header", "cookie", "body"]
     kind: Literal["array", "object", "json"]
     required: bool = False
-    media_type: SirenMediaType | Literal[""] = ""
+    media_type: Literal[""] | SirenMediaType = ""
     style: str = ""
     explode: bool = False
     allow_reserved: bool = False

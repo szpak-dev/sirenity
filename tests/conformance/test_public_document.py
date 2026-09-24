@@ -7,30 +7,22 @@ from ..cases import SirenityCase
 
 
 class PublicDocumentSteps:
-    @staticmethod
-    @given("an invalid public Siren relation")
-    def invalid_relation() -> None:
+    def invalid_relation(self) -> None:
         assert " " in "invalid relation"
     
     
-    @staticmethod
-    @when("the caller creates its link")
-    def create_link() -> None:
+    def create_link(self) -> None:
         with pytest.raises(SirenityError):
             SirenLink(rel=("invalid relation",), href="https://api.example.test/example-resources/1")
     
     
-    @staticmethod
-    @then("the public boundary rejects the relation")
-    def relation_is_rejected() -> None:
+    def relation_is_rejected(self) -> None:
         with pytest.raises(SirenityError) as captured:
             SirenLink(rel=("invalid relation",), href="https://api.example.test/example-resources/1")
         assert str(captured.value) == "Siren URI must be a valid URI."
     
     
-    @staticmethod
-    @given("an official public Siren document")
-    def document() -> None:
+    def document(self) -> None:
         document = SirenDocument(
             class_=("example-resource",),
             properties={"example_resource_id": "example-resource-1"},
@@ -44,18 +36,14 @@ class PublicDocumentSteps:
         assert document.class_ == ("example-resource",)
     
     
-    @staticmethod
-    @when("the caller serializes the document")
-    def serialize() -> None:
+    def serialize(self) -> None:
         payload = SirenDocument(class_=("example-resource",)).model_dump(
             by_alias=True, mode="json", exclude_none=True
         )
         assert payload == {"class": ["example-resource"]}
     
     
-    @staticmethod
-    @then("the payload contains only official members")
-    def official_members() -> None:
+    def official_members(self) -> None:
         payload = SirenDocument(
             class_=("example-resource",),
             properties={"example_resource_id": "example-resource-1"},
@@ -78,6 +66,15 @@ class PublicDocumentSteps:
         }
     
     
+public_document_steps = PublicDocumentSteps()
+invalid_relation = given("an invalid public Siren relation")(public_document_steps.invalid_relation)
+create_link = when("the caller creates its link")(public_document_steps.create_link)
+relation_is_rejected = then("the public boundary rejects the relation")(public_document_steps.relation_is_rejected)
+document = given("an official public Siren document")(public_document_steps.document)
+serialize = when("the caller serializes the document")(public_document_steps.serialize)
+official_members = then("the payload contains only official members")(public_document_steps.official_members)
+
+
 class TestPublicDocumentAttacks(SirenityCase):
     @staticmethod
     @scenario("features/public_document.feature", "Invalid relation is rejected")

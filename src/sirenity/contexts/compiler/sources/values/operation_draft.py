@@ -16,7 +16,7 @@ class OperationDraft(BaseValue):
     source_path: str
     title: str
     description: str
-    media_type: SirenMediaType | Literal[""] = ""
+    media_type: Literal[""] | SirenMediaType = ""
     fields: tuple[SirenField, ...] = ()
     input: SirenInput = Field(default_factory=SirenInput)
     responses: tuple[ResponseDraft, ...] = ()

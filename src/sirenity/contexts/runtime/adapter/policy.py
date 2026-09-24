@@ -8,7 +8,7 @@ from ..request import SirenRelationship
 
 class SirenAdapterPolicy(BaseValue):
     title: str = ""
-    representation: SirenRepresentation | Literal[""] = ""
+    representation: Literal[""] | SirenRepresentation = ""
     capabilities: frozenset[str] = frozenset()
     all_capabilities: bool = False
     item_titles: tuple[str, ...] = ()

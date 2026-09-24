@@ -10,4 +10,4 @@ class SirenLink(BaseValue):
     title: str = Field(default="", exclude_if=lambda value: not value)
     rel: tuple[SirenRelation, ...] = Field(min_length=1)
     href: SirenUri
-    type: SirenMediaType | Literal[""] = Field(default="", exclude_if=lambda value: not value)
+    type: Literal[""] | SirenMediaType = Field(default="", exclude_if=lambda value: not value)

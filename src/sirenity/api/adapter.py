@@ -14,9 +14,9 @@ from .siren import siren
 def siren_adapter(
     openapi: Mapping[str, JsonValue],
     *,
-    source_path: str = "/",
-    public_path: str = "/",
-    profiles: tuple[SirenAdapterProfile, ...] = (),
+    source_path: str,
+    public_path: str,
+    profiles: tuple[SirenAdapterProfile, ...],
 ) -> SirenAdapter:
     """Compile a framework-neutral boundary for operation-aware Siren HTTP responses.
 

@@ -13,7 +13,7 @@ class SirenAction(BaseValue):
     method: SirenActionMethod = SirenActionMethod.default()
     href: SirenUri
     title: str = Field(default="", exclude_if=lambda value: not value)
-    type: SirenMediaType | Literal[""] = Field(
+    type: Literal[""] | SirenMediaType = Field(
         default="", exclude_if=lambda value: not value, json_schema_extra={"default": default_media_type}
     )
     fields: tuple[SirenField, ...] = Field(default=(), exclude_if=lambda value: not value)

@@ -11,7 +11,7 @@ from .response_link_draft import ResponseLinkDraft
 
 class ResponseDraft(BaseValue):
     status: str
-    media_type: SirenMediaType | Literal[""] = ""
+    media_type: Literal[""] | SirenMediaType = ""
     shape: Literal["object", "array", "empty"]
     definition: Mapping[str, JsonValue] = Field(default_factory=dict)
     links: tuple[ResponseLinkDraft, ...] = ()

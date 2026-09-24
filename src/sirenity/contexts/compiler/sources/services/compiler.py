@@ -184,10 +184,10 @@ class OpenApiOperationCompiler:
                 source_path=path,
                 title=title,
                 description=description,
-                media_type=media_type,
                 fields=fields,
-                input=input,
                 responses=responses,
+                **({"media_type": media_type} if media_type is not None else {}),
+                **({"input": input} if input is not None else {}),
             )
         )
         if ownership is None:
@@ -343,11 +343,11 @@ class OpenApiOperationCompiler:
         if not fields and not delegated and not normalized_parameters and not content:
             return (), None
         return tuple(fields), SirenInput(
-            media_type=media_type,
             definition=definition,
             official_fields=tuple(field.name for field in fields),
             parameters=tuple(normalized_parameters),
             delegated_inputs=tuple(delegated),
+            **({"media_type": media_type} if media_type is not None else {}),
         )
 
     def response_links(

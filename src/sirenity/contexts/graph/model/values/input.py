@@ -9,7 +9,7 @@ from .parameter_input import SirenParameterInput
 
 
 class SirenInput(BaseValue):
-    media_type: SirenMediaType | Literal[""] = ""
+    media_type: Literal[""] | SirenMediaType = ""
     definition: Mapping[str, JsonValue] = Field(default_factory=dict)
     official_fields: tuple[str, ...] = ()
     parameters: tuple[SirenParameterInput, ...] = ()

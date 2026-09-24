@@ -47,7 +47,13 @@ class OpenApiFieldProjection:
             raise SirenityError(f"OpenAPI field schema requires a non-empty title: {name}")
         if values and default is not None and default not in values:
             raise SirenityError(f"OpenAPI field schema is unsupported: {name}")
-        return SirenField(name=name, type=field_type, values=values, title=title, default=default)
+        return SirenField(
+            name=name,
+            type=field_type,
+            values=values,
+            title=title,
+            **({"default": default} if default is not None else {}),
+        )
 
     def definition(
         self, request: OpenApiCompilationRequest, name: str, schema: dict[str, JsonValue]

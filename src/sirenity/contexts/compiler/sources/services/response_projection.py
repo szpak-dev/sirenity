@@ -149,12 +149,12 @@ class OpenApiResponseProjection:
                     raise SirenityError(f"OpenAPI response link {name!r} cannot target root scope")
             links.append(
                 ResponseLinkDraft(
-                    operation_id=operation_id,
-                    operation_ref=operation_ref,
                     parameters=parameters,
                     rel=values,
                     scope=link_scope,
                     source_inputs=self.source_inputs(definition),
+                    **({"operation_id": operation_id} if operation_id is not None else {}),
+                    **({"operation_ref": operation_ref} if operation_ref is not None else {}),
                 )
             )
         return tuple(links)

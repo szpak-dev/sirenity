@@ -18,8 +18,8 @@ class SirenResponseContext(BaseValue):
     result: JsonValue
     base_url: str
     title: str = ""
-    media_type: SirenMediaType | Literal[""] = ""
-    representation: SirenRepresentation | Literal[""] = ""
+    media_type: Literal[""] | SirenMediaType = ""
+    representation: Literal[""] | SirenRepresentation = ""
     path_values: Mapping[str, JsonValue] = Field(default_factory=dict)
     query: tuple[tuple[str, JsonValue], ...] = ()
     body: JsonValue = Field(default_factory=dict)
