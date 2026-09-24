@@ -1,5 +1,5 @@
 from ....shared import BaseValue
-from ...document import SirenDocument
+from ... import SirenDocument
 from .continuation import SirenProjectedContinuation
 from .follow_up import SirenProjectedFollowUp
 from .verification import SirenProjectedVerification

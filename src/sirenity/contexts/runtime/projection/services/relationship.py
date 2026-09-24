@@ -4,10 +4,15 @@ from wireup import injectable
 
 from ....graph import SirenApi
 from ....shared import SirenityError, SirenScope
-from ...capabilities import SirenCapabilityValidator
-from ...document import SirenEmbeddedRepresentation, SirenLink
-from ...request import SirenContext, SirenRelationship
-from ...routing import SirenHrefService, SirenResourceResolver
+from ... import (
+    SirenCapabilityValidator,
+    SirenContext,
+    SirenEmbeddedRepresentation,
+    SirenHrefService,
+    SirenLink,
+    SirenRelationship,
+    SirenResourceResolver,
+)
 from ..contracts.entity import SirenEntityDocumentService
 from ..contracts.relationship import SirenRelationshipDocumentService
 
@@ -47,16 +52,16 @@ class SirenDefaultRelationshipDocumentService(SirenRelationshipDocumentService):
         self.capabilities.validate(resource, related_context, relationship.scope)
         path = (
             resource.collection.path
-            if relationship.scope == SirenScope.COLLECTION or resource.entity is None
+            if relationship.scope == SirenScope.COLLECTION or not resource.entity.path
             else resource.entity.path
         )
         if not relationship.embedded:
             return SirenLink(
                 rel=relationship.rel,
-                href=self.hrefs.href(path, related_context, resource),
+                href=self.hrefs.href(path, related_context, resource, {}, True),
                 title=relationship.title or resource.title,
             )
-        if resource.entity is None:
+        if not resource.entity.path:
             raise SirenityError(f"Siren embedded relationship requires an entity resource: {resource.name}")
         document = self.entities.entity(api, resource, relationship.value, related_context, relationship.rel)
         match document:

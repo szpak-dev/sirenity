@@ -92,10 +92,10 @@ class SirenConfigurationResolver:
 def siren_configuration(
     openapi: str,
     *,
-    source_path: str = "/",
-    public_path: str = "/",
+    source_path: str,
+    public_path: str,
     policy: str,
-    profiles: tuple[str, ...] = (),
+    profiles: tuple[str, ...],
 ) -> SirenConfiguration:
     """Resolve one immutable configuration for every supported integration.
 

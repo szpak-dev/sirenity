@@ -1,7 +1,7 @@
 from collections.abc import Mapping
 from typing import Literal
 
-from pydantic import JsonValue, model_validator
+from pydantic import Field, JsonValue, model_validator
 
 from ....shared import BaseValue, SirenMediaType
 
@@ -11,21 +11,21 @@ class SirenDelegatedInput(BaseValue):
     location: Literal["query", "header", "cookie", "body"]
     kind: Literal["array", "object", "json"]
     required: bool = False
-    media_type: SirenMediaType | None = None
-    style: str | None = None
-    explode: bool | None = None
+    media_type: SirenMediaType = Field(default_factory=SirenMediaType.default)
+    style: str = ""
+    explode: bool = False
     allow_reserved: bool = False
     definition: Mapping[str, JsonValue]
 
     @model_validator(mode="after")
     def validate_transport_metadata(self) -> "SirenDelegatedInput":
         if self.location == "body":
-            if self.media_type is None:
+            if not self.supplies("media_type"):
                 raise ValueError("Siren body input requires a media type")
-            if self.style is not None or self.explode is not None:
+            if self.style or self.explode:
                 raise ValueError("Siren body input cannot define parameter serialization")
-        elif self.media_type is not None:
+        elif self.supplies("media_type"):
             raise ValueError("Siren parameter input cannot define a media type")
-        elif self.style is None or self.explode is None:
+        elif not self.style:
             raise ValueError("Siren parameter input requires serialization metadata")
         return self

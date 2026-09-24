@@ -8,13 +8,13 @@ from ..policy import SirenAdapterPolicy
 
 class SirenAdapterRequest(BaseValue):
     status: int
-    result: JsonValue = None
+    result: JsonValue
     base_url: str
-    operation_id: str | None = None
-    method: str | None = None
-    path: str | None = None
-    request_url: str | None = None
-    media_type: SirenMediaType | None = None
+    operation_id: str = ""
+    method: str = ""
+    path: str = ""
+    request_url: str = ""
+    media_type: SirenMediaType = Field(default_factory=SirenMediaType.default)
     path_values: Mapping[str, JsonValue] = Field(default_factory=dict)
     query: tuple[tuple[str, JsonValue], ...] = ()
     body: JsonValue = Field(default_factory=dict)
@@ -25,8 +25,8 @@ class SirenAdapterRequest(BaseValue):
     def validate_request(self) -> "SirenAdapterRequest":
         if not 100 <= self.status <= 599:
             raise SirenityError("Siren adapter status must be between 100 and 599")
-        if self.operation_id is None and ((self.method is None) != (self.path is None)):
+        if not self.operation_id and (bool(self.method) != bool(self.path)):
             raise SirenityError("Siren adapter route resolution requires both method and path")
-        if self.operation_id is None and self.path is None and self.status < 400:
+        if not self.operation_id and not self.path and self.status < 400:
             raise SirenityError("A successful Siren adapter response requires an operation")
         return self

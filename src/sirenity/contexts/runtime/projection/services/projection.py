@@ -5,12 +5,10 @@ from wireup import injectable
 
 from ....graph import SirenApi, SirenResource
 from ....shared import SirenityError, SirenScope
-from ...capabilities import SirenCapabilityValidator
-from ...document import SirenDocument
-from ...request import SirenContext
-from ...routing import SirenResourceResolver
+from ... import SirenCapabilityValidator, SirenContext, SirenDocument, SirenResourceResolver
 from ..contracts.projector import SirenScopeProjector
 from ..values.request import SirenProjectionRequest
+from ..values.resource import SirenProjectionResource
 
 
 @injectable
@@ -26,7 +24,7 @@ class SirenProjectionService:
 
     def project_resource(self, api: SirenApi, context: SirenContext, resource: SirenResource | None) -> SirenDocument:
         if resource is not None:
-            self.capabilities.validate(resource, context)
+            self.capabilities.validate(resource, context, None)
         candidates = [projector for projector in self.projectors if projector.supports(context.scope)]
         if len(candidates) != 1:
             raise SirenityError(f"Siren scope {context.scope!r} requires exactly one projector")
@@ -34,7 +32,7 @@ class SirenProjectionService:
             SirenProjectionRequest(
                 api=api,
                 context=context,
-                resource=resource,
+                resource=SirenProjectionResource(values=(resource,) if resource is not None else ()),
                 value=context.value,
             )
         )

@@ -16,7 +16,7 @@ from ..contexts.shared import SirenContractError, SirenityError
 from ..wiring import application
 
 
-def siren(openapi: Mapping[str, JsonValue], *, source_path: str = "/", public_path: str = "/") -> SirenEngine:
+def siren(openapi: Mapping[str, JsonValue], *, source_path: str, public_path: str) -> SirenEngine:
     """Compile a complete OpenAPI 3.1 document into a reusable Siren engine.
 
     Call this once during application startup, then call `engine.project(context)` for each

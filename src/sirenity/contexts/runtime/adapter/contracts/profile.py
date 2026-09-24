@@ -4,7 +4,7 @@ from typing import Protocol, runtime_checkable
 from pydantic import JsonValue
 
 from ....graph import SirenInput
-from ...request import SirenResponseContext
+from ... import SirenResponseContext
 
 
 @runtime_checkable

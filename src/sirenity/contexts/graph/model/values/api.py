@@ -35,7 +35,7 @@ class SirenApi(BaseValue):
             {
                 operation.resource
                 for operation in self.operations
-                if operation.resource is not None and operation.resource not in resource_references_set
+                if operation.resource and operation.resource not in resource_references_set
             }
         )
         if unknown_resources:
@@ -44,9 +44,9 @@ class SirenApi(BaseValue):
         unowned = []
         for operation in self.operations:
             if operation.scope == SirenScope.ROOT:
-                if operation.resource is not None or operation.name not in self.root.operations:
+                if operation.resource or operation.name not in self.root.operations:
                     unowned.append(operation.name)
-            elif operation.resource is None or operation.name not in (
+            elif not operation.resource or operation.name not in (
                 resources[operation.resource].collection_operations
                 if operation.scope == SirenScope.COLLECTION
                 else resources[operation.resource].entity_operations

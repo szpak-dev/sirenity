@@ -5,8 +5,7 @@ from pydantic import JsonValue
 
 from ....graph import SirenApi, SirenResource
 from ....shared import SirenityError, SirenRelation
-from ...document import SirenDocument, SirenEmbeddedRepresentation
-from ...request import SirenContext
+from ... import SirenContext, SirenDocument, SirenEmbeddedRepresentation
 
 
 class SirenEntityDocumentService(ABC):

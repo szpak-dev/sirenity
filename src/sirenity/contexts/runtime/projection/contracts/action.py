@@ -5,8 +5,7 @@ from pydantic import JsonValue
 
 from ....graph import SirenApi, SirenOperation, SirenResource
 from ....shared import SirenityError, SirenScope
-from ...document import SirenAction
-from ...request import SirenContext
+from ... import SirenAction, SirenContext
 
 
 class SirenActionDocumentService(ABC):
@@ -28,6 +27,6 @@ class SirenActionDocumentService(ABC):
         context: SirenContext,
         resource: SirenResource | None,
         value: Mapping[str, JsonValue],
-        include_query: bool = True,
+        include_query: bool,
     ) -> SirenAction:
         raise SirenityError

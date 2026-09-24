@@ -12,21 +12,21 @@ from ..values.compilation_request import OpenApiCompilationRequest
 @dataclass(frozen=True)
 class ComponentResolver:
     def parameter(self, request: OpenApiCompilationRequest, definition: dict[str, JsonValue]) -> dict[str, JsonValue]:
-        return self.resolve(request, definition, "parameters")
+        return self.resolve(request, definition, "parameters", ())
 
     def request_body(
         self, request: OpenApiCompilationRequest, definition: dict[str, JsonValue]
     ) -> dict[str, JsonValue]:
-        return self.resolve(request, definition, "requestBodies")
+        return self.resolve(request, definition, "requestBodies", ())
 
     def response(self, request: OpenApiCompilationRequest, definition: dict[str, JsonValue]) -> dict[str, JsonValue]:
-        return self.resolve(request, definition, "responses")
+        return self.resolve(request, definition, "responses", ())
 
     def schema(self, request: OpenApiCompilationRequest, definition: dict[str, JsonValue]) -> dict[str, JsonValue]:
-        return self.resolve(request, definition, "schemas")
+        return self.resolve(request, definition, "schemas", ())
 
     def schema_tree(
-        self, request: OpenApiCompilationRequest, definition: JsonValue, trail: tuple[str, ...] = ()
+        self, request: OpenApiCompilationRequest, definition: JsonValue, trail: tuple[str, ...]
     ) -> JsonValue:
         match definition:
             case list() as values:
@@ -47,7 +47,7 @@ class ComponentResolver:
         request: OpenApiCompilationRequest,
         definition: dict[str, JsonValue],
         kind: str,
-        trail: tuple[str, ...] = (),
+        trail: tuple[str, ...],
     ) -> dict[str, JsonValue]:
         result = deepcopy(definition)
         reference = result.pop("$ref", None)

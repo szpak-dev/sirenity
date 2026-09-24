@@ -7,9 +7,7 @@ from wireup import injectable
 from .... import graph
 from ....graph.model import SirenContinuation, SirenContinuationKind, SirenSourceInputBinding
 from ....shared import SirenHttpMethod, SirenityError, SirenRepresentation, SirenScope
-from ...document import SirenDocument, SirenLink
-from ...request import SirenContext, SirenRelationship, SirenResponseContext
-from ...routing import SirenHrefService
+from ... import SirenContext, SirenDocument, SirenHrefService, SirenLink, SirenRelationship, SirenResponseContext
 from ..contracts.action import SirenActionDocumentService
 from ..values.continuation import SirenProjectedContinuation
 from ..values.follow_up import SirenProjectedFollowUp
@@ -34,34 +32,34 @@ class SirenResponseProjectionService:
         resource = self.resource(api, operation)
         self.validate_result(response, context.result)
         if context.status >= 400:
-            return SirenProjectedResponse(document=self.error(operation, resource, context))
+            return SirenProjectedResponse(document=self.error(operation, resource, context, ""))
         if context.representation == SirenRepresentation.ROOT and response.shape != "object":
             raise SirenityError("Siren root response requires an OpenAPI object response")
         if response.shape == "empty":
             document = self.empty(operation, resource, context)
         elif response.shape == "array":
-            if context.representation not in {None, SirenRepresentation.COLLECTION}:
+            if context.representation not in {SirenRepresentation.AUTO, SirenRepresentation.COLLECTION}:
                 raise SirenityError("OpenAPI array response requires collection representation")
             document = self.collection(api, resource, context, response)
         elif self.paginated(response):
-            if context.representation not in {None, SirenRepresentation.COLLECTION}:
+            if context.representation not in {SirenRepresentation.AUTO, SirenRepresentation.COLLECTION}:
                 raise SirenityError("OpenAPI paginated response requires collection representation")
             if resource is None:
                 raise SirenityError("OpenAPI paginated response requires a collection resource")
             document = self.page(api, resource, context, response)
         else:
-            representation = context.representation
-            if representation is None and operation.scope == SirenScope.ROOT and operation.route == api.root.route:
+            representation = None if context.representation == SirenRepresentation.AUTO else context.representation
+            if not representation and operation.scope == SirenScope.ROOT and operation.route == api.root.route:
                 representation = SirenRepresentation.ROOT
             if representation == SirenRepresentation.ROOT:
                 document = self.root(api, operation, context)
             elif (
-                representation is None
+                not representation
                 and resource is not None
                 and operation.route in {resource.collection, resource.entity}
             ):
                 document = self.entity(api, resource, context, response)
-            elif representation is None or representation == SirenRepresentation.COMMAND:
+            elif not representation or representation == SirenRepresentation.COMMAND:
                 document = self.command(api, operation, resource, context, response)
             elif representation == SirenRepresentation.ENTITY:
                 document = self.entity(api, resource, context, response)
@@ -95,7 +93,7 @@ class SirenResponseProjectionService:
                 request = SirenContext(
                     base_url=context.base_url,
                     scope=target.scope,
-                    resource=target_resource.name if target_resource is not None else None,
+                    resource=target_resource.name if target_resource is not None else "",
                     value=arguments,
                     path_values=path_values,
                     query=query,
@@ -150,7 +148,7 @@ class SirenResponseProjectionService:
             request = SirenContext(
                 base_url=context.base_url,
                 scope=target.scope,
-                resource=target_resource.name if target_resource is not None else None,
+                resource=target_resource.name if target_resource is not None else "",
                 value=arguments,
                 path_values=path_values,
                 query=query,
@@ -195,7 +193,7 @@ class SirenResponseProjectionService:
 
     def response(self, operation: graph.SirenOperation, context: SirenResponseContext) -> graph.SirenResponse:
         candidates = list(self.candidates(operation, context))
-        if context.media_type is None and len(candidates) > 1:
+        if not context.supplies("media_type") and len(candidates) > 1:
             json_candidates = [response for response in candidates if response.media_type == "application/json"]
             candidates = json_candidates if len(json_candidates) == 1 else candidates
         if len(candidates) != 1:
@@ -221,19 +219,19 @@ class SirenResponseProjectionService:
         ]
         defaults = [response for response in operation.responses if response.status == "default"]
         candidates = exact or ranged or defaults
-        if context.media_type is not None:
+        if context.supplies("media_type"):
             candidates = [response for response in candidates if response.media_type == context.media_type]
         return tuple(candidates)
 
     def project_error(
-        self, api: graph.SirenApi, context: SirenResponseContext, request_url: str | None = None
+        self, api: graph.SirenApi, context: SirenResponseContext, request_url: str
     ) -> SirenDocument:
         operation = self.operation(api, context.operation_id)
         resource = self.resource(api, operation)
         return self.error(operation, resource, context, request_url)
 
     def resource(self, api: graph.SirenApi, operation: graph.SirenOperation) -> graph.SirenResource | None:
-        if operation.resource is None:
+        if not operation.resource:
             return None
         matches = [resource for resource in api.resources if resource.reference == operation.resource]
         if len(matches) != 1:
@@ -355,7 +353,7 @@ class SirenResponseProjectionService:
         request = SirenContext(
             base_url=context.base_url,
             scope=target.scope,
-            resource=target_resource.name if target_resource is not None else None,
+            resource=target_resource.name if target_resource is not None else "",
             path_values=path_values,
             query=query,
         )
@@ -363,7 +361,7 @@ class SirenResponseProjectionService:
             SirenProjectedContinuation(
                 operation_id=target.name,
                 arguments=arguments,
-                href=self.hrefs.href(target.route.path, request, target_resource),
+                href=self.hrefs.href(target.route.path, request, target_resource or "", {}, True),
             ),
         )
 
@@ -382,7 +380,7 @@ class SirenResponseProjectionService:
             for segment in target.route.path.split("/")
             if segment.startswith("{") and segment.endswith("}")
         }
-        target_parameters = target.input.parameters if target.input is not None else ()
+        target_parameters = target.input.parameters
         target_query = {parameter.name for parameter in target_parameters if parameter.location == "query"}
         required_query = {
             parameter.name for parameter in target_parameters if parameter.location == "query" and parameter.required
@@ -468,14 +466,14 @@ class SirenResponseProjectionService:
             request = SirenContext(
                 base_url=context.base_url,
                 scope=target.scope,
-                resource=resource.name if resource is not None else None,
+                resource=resource.name if resource is not None else "",
                 path_values=path_values,
                 query=query,
             )
             verification = SirenProjectedVerification(
                 operation_id=target.name,
                 arguments=arguments,
-                href=self.hrefs.href(target.route.path, request, resource),
+                href=self.hrefs.href(target.route.path, request, resource or "", {}, True),
             )
             if verification not in verifications:
                 verifications.append(verification)
@@ -494,7 +492,7 @@ class SirenResponseProjectionService:
             verification = SirenProjectedVerification(
                 operation_id=target.name,
                 arguments=arguments,
-                href=self.hrefs.href(target.route.path, request, resource),
+                href=self.hrefs.href(target.route.path, request, resource, {}, True),
             )
             if verification not in verifications:
                 verifications.append(verification)
@@ -525,14 +523,14 @@ class SirenResponseProjectionService:
             request = SirenContext(
                 base_url=context.base_url,
                 scope=target.scope,
-                resource=resource.name if resource is not None else None,
+                resource=resource.name if resource is not None else "",
                 path_values=path_values,
                 query=query,
             )
             follow_up = SirenProjectedFollowUp(
                 operation_id=target.name,
                 arguments=arguments,
-                href=self.hrefs.href(target.route.path, request, resource),
+                href=self.hrefs.href(target.route.path, request, resource or "", {}, True),
             )
             if follow_up not in follow_ups:
                 follow_ups.append(follow_up)
@@ -547,10 +545,10 @@ class SirenResponseProjectionService:
     ) -> tuple[tuple[graph.SirenOperation, graph.SirenResource], ...]:
         if source.method not in {SirenHttpMethod.PATCH, SirenHttpMethod.POST, SirenHttpMethod.PUT}:
             return ()
-        if response.shape != "object" or source.resource is None:
+        if response.shape != "object" or not source.resource:
             return ()
         resource = self.resource(api, source)
-        if resource is None or resource.entity is None:
+        if resource is None or not resource.entity.path:
             return ()
         if source.route not in {resource.collection, resource.entity}:
             return ()
@@ -565,7 +563,7 @@ class SirenResponseProjectionService:
         if len(targets) != 1:
             return ()
         target = targets[0]
-        if not self.navigation_target_supported(context, target):
+        if not self.navigation_target_supported(context, target, ()):
             return ()
         path_values = self.canonical_verification_path_values(context, resource, target)
         target_path = self.operation_path_parameters(target)
@@ -600,20 +598,20 @@ class SirenResponseProjectionService:
         self,
         context: SirenResponseContext,
         target: graph.SirenOperation,
-        source_inputs: tuple[SirenSourceInputBinding, ...] = (),
+        source_inputs: tuple[SirenSourceInputBinding, ...],
     ) -> bool:
         if target.name not in context.navigation_capabilities:
             return False
-        target_parameters = target.input.parameters if target.input is not None else ()
+        target_parameters = target.input.parameters
         if any(parameter.required and parameter.location in {"header", "cookie"} for parameter in target_parameters):
             return False
         if (
             not source_inputs
-            and target.input is not None
+            and target.input.present
             and any(delegated.required for delegated in target.input.delegated_inputs)
         ):
             return False
-        return bool(source_inputs) or target.input is None or not target.input.definition.get("required")
+        return bool(source_inputs) or not target.input.present or not target.input.definition.get("required")
 
     def navigation_supported(
         self,
@@ -622,7 +620,7 @@ class SirenResponseProjectionService:
         target: graph.SirenOperation,
     ) -> bool:
         target_path = self.operation_path_parameters(target)
-        target_parameters = target.input.parameters if target.input is not None else ()
+        target_parameters = target.input.parameters
         target_query = {parameter.name for parameter in target_parameters if parameter.location == "query"}
         required_query = self.required_query_parameters(target)
         if any(self.pointer(expression, context.result) is None for expression in link.parameters.values()):
@@ -654,7 +652,7 @@ class SirenResponseProjectionService:
             for segment in target.route.path.split("/")
             if segment.startswith("{") and segment.endswith("}")
         }
-        target_parameters = target.input.parameters if target.input is not None else ()
+        target_parameters = target.input.parameters
         target_query = {parameter.name for parameter in target_parameters if parameter.location == "query"}
         path_values = (
             {}
@@ -710,7 +708,7 @@ class SirenResponseProjectionService:
         }
 
     def required_query_parameters(self, operation: graph.SirenOperation) -> set[str]:
-        parameters = operation.input.parameters if operation.input is not None else ()
+        parameters = operation.input.parameters
         return {parameter.name for parameter in parameters if parameter.location == "query" and parameter.required}
 
     def verification_query(
@@ -718,7 +716,7 @@ class SirenResponseProjectionService:
         context: SirenResponseContext,
         target: graph.SirenOperation,
     ) -> tuple[tuple[str, JsonValue], ...]:
-        parameters = target.input.parameters if target.input is not None else ()
+        parameters = target.input.parameters
         target_query = {parameter.name for parameter in parameters if parameter.location == "query"}
         return tuple((name, value) for name, value in context.query if name in target_query)
 
@@ -754,7 +752,7 @@ class SirenResponseProjectionService:
             SirenLink(
                 rel=("self",),
                 title=context.title or operation.title,
-                href=self.hrefs.href(operation.route.path, request, resource, context.result),
+                href=self.hrefs.href(operation.route.path, request, resource or "", context.result, True),
             )
         ]
         for link in response.links:
@@ -787,6 +785,8 @@ class SirenResponseProjectionService:
                         path,
                         request.model_copy(update={"path_values": values}),
                         target,
+                        {},
+                        True,
                     ),
                 )
             )
@@ -874,7 +874,7 @@ class SirenResponseProjectionService:
                 SirenLink(
                     rel=("self",),
                     title=context.title or operation.title,
-                    href=self.hrefs.href(operation.route.path, request, resource),
+                    href=self.hrefs.href(operation.route.path, request, resource or "", {}, True),
                 ),
             ),
         )
@@ -884,7 +884,7 @@ class SirenResponseProjectionService:
         operation: graph.SirenOperation,
         resource: graph.SirenResource | None,
         context: SirenResponseContext,
-        request_url: str | None = None,
+        request_url: str,
     ) -> SirenDocument:
         request = SirenContext(
             base_url=context.base_url,
@@ -908,7 +908,7 @@ class SirenResponseProjectionService:
                 SirenLink(
                     rel=("self",),
                     title=context.title or operation.title,
-                    href=request_url or self.hrefs.href(operation.route.path, request, resource),
+                    href=request_url or self.hrefs.href(operation.route.path, request, resource or "", {}, True),
                 ),
             ),
         )

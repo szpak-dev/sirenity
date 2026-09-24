@@ -58,9 +58,9 @@ class RouteCatalog:
                     name=name,
                     resource_class=name.replace("_", "-"),
                     collection_path=collection_path,
-                    entity_path=entity_path,
                     identifier="id",
                     path_bindings=self.path_bindings(collection_path, entity_path, "id"),
+                    **({"entity_path": entity_path} if entity_path is not None else {}),
                 )
             elif entity_path is not None:
                 candidates[collection_path] = Resource(

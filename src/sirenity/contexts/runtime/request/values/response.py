@@ -14,11 +14,11 @@ from .relationship import SirenRelationship
 class SirenResponseContext(BaseValue):
     operation_id: str
     status: int
-    result: JsonValue = None
+    result: JsonValue
     base_url: str
-    title: str | None = None
-    media_type: SirenMediaType | None = None
-    representation: SirenRepresentation | None = None
+    title: str = ""
+    media_type: SirenMediaType = Field(default_factory=SirenMediaType.default)
+    representation: SirenRepresentation = SirenRepresentation.AUTO
     path_values: Mapping[str, JsonValue] = Field(default_factory=dict)
     query: tuple[tuple[str, JsonValue], ...] = ()
     body: JsonValue = Field(default_factory=dict)

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from pydantic import model_validator
+from pydantic import Field, model_validator
 
 from ....shared import SirenityError
 from .embedded_link import SirenEmbeddedLink
@@ -9,7 +9,9 @@ from .entity import SirenEntity
 
 
 class SirenDocument(SirenEntity):
-    entities: tuple[SirenEmbeddedLink | SirenEmbeddedRepresentation, ...] | None = None
+    entities: tuple[SirenEmbeddedLink | SirenEmbeddedRepresentation, ...] = Field(
+        default=(), exclude_if=lambda value: not value
+    )
 
     @model_validator(mode="after")
     def validate_action_names(self) -> SirenDocument:

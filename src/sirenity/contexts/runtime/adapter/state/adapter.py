@@ -6,9 +6,7 @@ from pydantic import JsonValue, model_validator
 
 from ....graph import SirenInput
 from ....shared import BaseState, SirenityError
-from ...document import SirenDocument, SirenLink
-from ...engine import SirenEngine
-from ...request import SirenResponseContext
+from ... import SirenDocument, SirenEngine, SirenLink, SirenResponseContext
 from ..contracts.profile import SirenAdapterProfile
 from ..values.match import SirenAdapterMatch
 from ..values.request import SirenAdapterRequest
@@ -118,7 +116,7 @@ class SirenAdapter(BaseState):
         verifications = ()
         follow_ups = ()
         match = None
-        if request.operation_id is None and request.method is not None and request.path is not None:
+        if not request.operation_id and request.method and request.path:
             match = self.match(request.method, request.path)
         operation_id = request.operation_id or (match.operation_id if match is not None else None)
         path_values = dict(match.path_values if match is not None else {}) | dict(request.path_values)
@@ -138,7 +136,6 @@ class SirenAdapter(BaseState):
                 result=request.result,
                 base_url=request.base_url,
                 title=request.policy.title,
-                media_type=request.media_type,
                 representation=request.policy.representation,
                 path_values=path_values,
                 query=request.query,
@@ -148,6 +145,7 @@ class SirenAdapter(BaseState):
                 item_titles=request.policy.item_titles,
                 item_capabilities=request.policy.item_capabilities,
                 relationships=request.policy.relationships,
+                **({"media_type": request.media_type} if request.supplies("media_type") else {}),
             )
             if request.status >= 400 and not self.engine.has_response(context):
                 document = self.engine.project_error(context, request.request_url)
@@ -214,7 +212,7 @@ class SirenAdapter(BaseState):
         if len(operations) != 1:
             raise SirenityError(f"Siren response references unknown operation: {operation_id}")
         operation = operations[0]
-        if operation.resource is None:
+        if not operation.resource:
             return frozenset(self.engine.api.root.operations)
         resources = [resource for resource in self.engine.api.resources if resource.reference == operation.resource]
         if len(resources) != 1:
@@ -234,11 +232,11 @@ class SirenAdapter(BaseState):
             case result if result is not None:
                 properties["result"] = result
         links = ()
-        if request.request_url is not None:
+        if request.request_url:
             links = (SirenLink(rel=("self",), title=request.policy.title, href=request.request_url),)
         return SirenDocument(
             class_=("error",),
             title=request.policy.title,
             properties=properties,
-            links=links or None,
+            links=links,
         )

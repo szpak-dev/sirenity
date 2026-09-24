@@ -4,7 +4,7 @@ from jsonschema import FormatChecker
 from pydantic import GetCoreSchemaHandler, GetJsonSchemaHandler
 from pydantic_core import CoreSchema, core_schema
 
-from ...foundation import SirenityError
+from ... import SirenityError
 
 
 class SirenUri(str):

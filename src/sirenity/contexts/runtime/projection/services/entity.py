@@ -6,9 +6,7 @@ from wireup import injectable
 
 from ....graph import SirenApi, SirenResource
 from ....shared import SirenRelation, SirenScope
-from ...document import SirenDocument, SirenEmbeddedRepresentation, SirenLink
-from ...request import SirenContext
-from ...routing import SirenHrefService
+from ... import SirenContext, SirenDocument, SirenEmbeddedRepresentation, SirenHrefService, SirenLink
 from ..contracts.action import SirenActionDocumentService
 from ..contracts.entity import SirenEntityDocumentService
 
@@ -32,13 +30,17 @@ class SirenDefaultEntityDocumentService(SirenEntityDocumentService):
             "class_": (resource.resource_class,),
             "title": title,
             "properties": value,
-            "actions": tuple(self.actions.actions(api, resource, SirenScope.ENTITY, context, value)) or None,
+            "actions": tuple(self.actions.actions(api, resource, SirenScope.ENTITY, context, value)),
             "links": (
                 SirenLink(
                     rel=("self",),
                     title=title,
                     href=self.hrefs.href(
-                        resource.entity.path if resource.entity else resource.collection.path, context, resource, value
+                        resource.entity.path if resource.entity.path else resource.collection.path,
+                        context,
+                        resource,
+                        value,
+                        True,
                     ),
                 ),
             ),

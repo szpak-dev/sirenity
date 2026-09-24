@@ -1,3 +1,5 @@
+from pydantic import Field
+
 from ....shared import BaseValue, SirenHttpMethod, SirenMediaType, SirenScope
 from .field import SirenField
 from .input import SirenInput
@@ -7,14 +9,14 @@ from .route import SirenRoute
 
 class SirenOperation(BaseValue):
     name: str
-    resource: str | None = None
+    resource: str = ""
     scope: SirenScope
     method: SirenHttpMethod
     route: SirenRoute
     source_path: str
     title: str
     description: str
-    media_type: SirenMediaType | None = None
+    media_type: SirenMediaType = Field(default_factory=SirenMediaType.default)
     fields: tuple[SirenField, ...] = ()
-    input: SirenInput | None = None
+    input: SirenInput = Field(default_factory=SirenInput)
     responses: tuple[SirenResponse, ...] = ()

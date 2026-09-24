@@ -1,10 +1,12 @@
+from pydantic import Field
+
 from ....graph import SirenField, SirenInput
 from ....shared import BaseValue, SirenHttpMethod, SirenMediaType, SirenScope
 from .response_draft import ResponseDraft
 
 
 class OperationDraft(BaseValue):
-    resource: str | None
+    resource: str = ""
     scope: SirenScope
     name: str
     method: SirenHttpMethod
@@ -12,7 +14,7 @@ class OperationDraft(BaseValue):
     source_path: str
     title: str
     description: str
-    media_type: SirenMediaType | None
+    media_type: SirenMediaType = Field(default_factory=SirenMediaType.default)
     fields: tuple[SirenField, ...] = ()
-    input: SirenInput | None = None
+    input: SirenInput = Field(default_factory=SirenInput)
     responses: tuple[ResponseDraft, ...] = ()

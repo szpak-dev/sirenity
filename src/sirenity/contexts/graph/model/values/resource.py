@@ -1,5 +1,7 @@
 from collections.abc import Mapping
 
+from pydantic import Field
+
 from ....shared import BaseValue
 from .route import SirenRoute
 
@@ -9,9 +11,9 @@ class SirenResource(BaseValue):
     name: str
     resource_class: str
     path_bindings: Mapping[str, tuple[str, ...]]
-    title: str | None = None
+    title: str = ""
     identifier: str = "id"
     collection: SirenRoute
-    entity: SirenRoute | None = None
+    entity: SirenRoute = Field(default_factory=lambda: SirenRoute(path=""))
     collection_operations: tuple[str, ...] = ()
     entity_operations: tuple[str, ...] = ()

@@ -5,8 +5,8 @@ from ..request import SirenRelationship
 
 
 class SirenAdapterPolicy(BaseValue):
-    title: str | None = None
-    representation: SirenRepresentation | None = None
+    title: str = ""
+    representation: SirenRepresentation = SirenRepresentation.AUTO
     capabilities: frozenset[str] = frozenset()
     all_capabilities: bool = False
     item_titles: tuple[str, ...] = ()

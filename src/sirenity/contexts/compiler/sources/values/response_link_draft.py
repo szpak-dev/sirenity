@@ -7,8 +7,8 @@ from .response_source_input import ResponseSourceInputDraft
 
 
 class ResponseLinkDraft(BaseValue):
-    operation_id: str | None = None
-    operation_ref: str | None = None
+    operation_id: str = ""
+    operation_ref: str = ""
     parameters: Mapping[str, str] = Field(default_factory=dict)
     rel: tuple[str, ...]
     scope: SirenScope
@@ -16,6 +16,6 @@ class ResponseLinkDraft(BaseValue):
 
     @model_validator(mode="after")
     def validate_target(self) -> "ResponseLinkDraft":
-        if (self.operation_id is None) == (self.operation_ref is None):
+        if bool(self.operation_id) == bool(self.operation_ref):
             raise ValueError("A response link requires exactly one operation target")
         return self

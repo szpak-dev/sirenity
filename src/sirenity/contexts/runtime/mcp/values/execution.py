@@ -7,7 +7,7 @@ from ....shared import BaseValue
 
 class SirenMcpExecution(BaseValue):
     status: int
-    result: JsonValue = None
+    result: JsonValue
     base_url: str
-    request_url: str | None = None
+    request_url: str = ""
     headers: Mapping[str, str] = Field(default_factory=dict)

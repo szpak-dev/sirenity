@@ -11,7 +11,7 @@ class SirenRequirement(BaseValue):
     schema_: Mapping[str, JsonValue] = Field(alias="schema", serialization_alias="schema")
     required: bool
     document: Mapping[str, JsonValue]
-    enum_value: str | int | float | bool | None = None
+    enum_value: str | int | float | bool = ""
 
     @property
     def schema(self) -> Mapping[str, JsonValue]:
@@ -19,6 +19,6 @@ class SirenRequirement(BaseValue):
 
     @property
     def label(self) -> str:
-        if self.enum_value is None:
+        if not self.supplies("enum_value"):
             return f"{self.definition}.{self.member}"
         return f"{self.definition}.{self.member}.{self.enum_value}"
