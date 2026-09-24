@@ -136,7 +136,6 @@ class SirenAdapter(BaseState):
                 result=request.result,
                 base_url=request.base_url,
                 title=request.policy.title,
-                media_type=request.media_type,
                 representation=request.policy.representation,
                 path_values=path_values,
                 query=request.query,
@@ -146,6 +145,7 @@ class SirenAdapter(BaseState):
                 item_titles=request.policy.item_titles,
                 item_capabilities=request.policy.item_capabilities,
                 relationships=request.policy.relationships,
+                **({"media_type": request.media_type} if request.supplies("media_type") else {}),
             )
             if request.status >= 400 and not self.engine.has_response(context):
                 document = self.engine.project_error(context, request.request_url)

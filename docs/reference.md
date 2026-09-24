@@ -27,7 +27,7 @@ The supported root imports below are generated from `sirenity.__all__`.
 | `SirenField` | !!! abstract "Usage Documentation" | — |
 | `SirenFieldValue` | !!! abstract "Usage Documentation" | — |
 | `SirenFollowUp` | Declare one safe read target for :func:`siren_follow_ups`. | — |
-| `SirenInput` | !!! abstract "Usage Documentation" | — |
+| `SirenInput` | !!! abstract "Usage Documentation" | `present: <class 'bool'>` |
 | `SirenLink` | !!! abstract "Usage Documentation" | — |
 | `SirenMcpExecution` | !!! abstract "Usage Documentation" | — |
 | `SirenMcpExecutor` | Base class for protocol classes. | `execute(operation: <class 'sirenity.contexts.runtime.mcp.values.operation.SirenMcpOperation'>) -> <class 'sirenity.contexts.runtime.mcp.values.execution.SirenMcpExecution'>` |

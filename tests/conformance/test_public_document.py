@@ -7,22 +7,30 @@ from ..cases import SirenityCase
 
 
 class PublicDocumentSteps:
-    def invalid_relation(self) -> None:
+    @staticmethod
+    @given("an invalid public Siren relation", stacklevel=2)
+    def invalid_relation() -> None:
         assert " " in "invalid relation"
     
     
-    def create_link(self) -> None:
+    @staticmethod
+    @when("the caller creates its link", stacklevel=2)
+    def create_link() -> None:
         with pytest.raises(SirenityError):
             SirenLink(rel=("invalid relation",), href="https://api.example.test/example-resources/1")
     
     
-    def relation_is_rejected(self) -> None:
+    @staticmethod
+    @then("the public boundary rejects the relation", stacklevel=2)
+    def relation_is_rejected() -> None:
         with pytest.raises(SirenityError) as captured:
             SirenLink(rel=("invalid relation",), href="https://api.example.test/example-resources/1")
         assert str(captured.value) == "Siren URI must be a valid URI."
     
     
-    def document(self) -> None:
+    @staticmethod
+    @given("an official public Siren document", stacklevel=2)
+    def document() -> None:
         document = SirenDocument(
             class_=("example-resource",),
             properties={"example_resource_id": "example-resource-1"},
@@ -36,14 +44,18 @@ class PublicDocumentSteps:
         assert document.class_ == ("example-resource",)
     
     
-    def serialize(self) -> None:
+    @staticmethod
+    @when("the caller serializes the document", stacklevel=2)
+    def serialize() -> None:
         payload = SirenDocument(class_=("example-resource",)).model_dump(
             by_alias=True, mode="json", exclude_none=True
         )
         assert payload == {"class": ["example-resource"]}
     
     
-    def official_members(self) -> None:
+    @staticmethod
+    @then("the payload contains only official members", stacklevel=2)
+    def official_members() -> None:
         payload = SirenDocument(
             class_=("example-resource",),
             properties={"example_resource_id": "example-resource-1"},
@@ -66,15 +78,6 @@ class PublicDocumentSteps:
         }
     
     
-public_document_steps = PublicDocumentSteps()
-invalid_relation = given("an invalid public Siren relation")(public_document_steps.invalid_relation)
-create_link = when("the caller creates its link")(public_document_steps.create_link)
-relation_is_rejected = then("the public boundary rejects the relation")(public_document_steps.relation_is_rejected)
-document = given("an official public Siren document")(public_document_steps.document)
-serialize = when("the caller serializes the document")(public_document_steps.serialize)
-official_members = then("the payload contains only official members")(public_document_steps.official_members)
-
-
 class TestPublicDocumentAttacks(SirenityCase):
     @staticmethod
     @scenario("features/public_document.feature", "Invalid relation is rejected")

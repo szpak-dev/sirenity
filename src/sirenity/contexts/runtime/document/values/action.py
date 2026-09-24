@@ -1,6 +1,6 @@
-from typing import ClassVar, Literal
+from typing import ClassVar
 
-from pydantic import Field, model_validator
+from pydantic import Field, SerializerFunctionWrapHandler, model_serializer, model_validator
 
 from ....shared import BaseValue, SirenActionMethod, SirenityError, SirenMediaType, SirenUri
 from .field import SirenField
@@ -13,16 +13,17 @@ class SirenAction(BaseValue):
     method: SirenActionMethod = SirenActionMethod.default()
     href: SirenUri
     title: str = Field(default="", exclude_if=lambda value: not value)
-    type: Literal[""] | SirenMediaType = Field(
-        default="", exclude_if=lambda value: not value, json_schema_extra={"default": default_media_type}
+    type: SirenMediaType = Field(
+        default_factory=SirenMediaType.default, json_schema_extra={"default": default_media_type}
     )
     fields: tuple[SirenField, ...] = Field(default=(), exclude_if=lambda value: not value)
 
-    @model_validator(mode="after")
-    def apply_default_media_type(self) -> "SirenAction":
-        if self.fields and not self.type:
-            object.__setattr__(self, "type", self.default_media_type)
-        return self
+    @model_serializer(mode="wrap")
+    def _serialize(self, handler: SerializerFunctionWrapHandler):
+        payload: dict[str, object] = handler(self)
+        if not self.fields and not self.supplies("type"):
+            payload.pop("type", None)
+        return payload
 
     @model_validator(mode="after")
     def validate_field_names(self) -> "SirenAction":

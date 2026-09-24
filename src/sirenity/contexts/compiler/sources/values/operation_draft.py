@@ -1,5 +1,3 @@
-from typing import Literal
-
 from pydantic import Field
 
 from ....graph import SirenField, SirenInput
@@ -16,7 +14,7 @@ class OperationDraft(BaseValue):
     source_path: str
     title: str
     description: str
-    media_type: Literal[""] | SirenMediaType = ""
+    media_type: SirenMediaType = Field(default_factory=SirenMediaType.default)
     fields: tuple[SirenField, ...] = ()
     input: SirenInput = Field(default_factory=SirenInput)
     responses: tuple[ResponseDraft, ...] = ()

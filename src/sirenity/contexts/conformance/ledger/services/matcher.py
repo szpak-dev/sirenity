@@ -35,7 +35,7 @@ class SirenDefaultRequirementMatcher(SirenRequirementMatcher):
         if requirement.required and requirement.member not in required:
             return SirenFinding(requirement=requirement, implemented=False, evidence="required member is optional")
         implemented = self.matches(requirement.schema, actual, requirement.document, capability.schema)
-        if requirement.enum_value is not None:
+        if requirement.supplies("enum_value"):
             implemented = implemented and requirement.enum_value in self.enum(actual, capability.schema)
         return SirenFinding(requirement=requirement, implemented=implemented, evidence="serialized public contract")
 

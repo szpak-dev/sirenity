@@ -27,7 +27,7 @@ class SirenRootScopeProjector(SirenScopeProjector):
         links = [
             SirenLink(
                 rel=("self",),
-                href=self.hrefs.href(request.api.root.route.path, request.context, "", {}, True),
+                href=self.hrefs.href(request.api.root.route.path, request.context, None, {}, True),
                 title=title,
             )
         ]
@@ -49,7 +49,7 @@ class SirenRootScopeProjector(SirenScopeProjector):
             )
         )
         actions = [
-            self.actions.action(operations[name], request.context, "", {}, False)
+            self.actions.action(operations[name], request.context, None, {}, False)
             for name in request.api.root.operations
             if name in request.context.capabilities
         ]

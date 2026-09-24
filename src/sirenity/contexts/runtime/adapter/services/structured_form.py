@@ -78,7 +78,7 @@ class SirenStructuredFormProfile:
             "control": control_type,
             "schema": definition,
         }
-        if delegated.media_type is not None:
+        if delegated.supplies("media_type"):
             control["mediaType"] = delegated.media_type
         if delegated.location != "body":
             control["serialization"] = {

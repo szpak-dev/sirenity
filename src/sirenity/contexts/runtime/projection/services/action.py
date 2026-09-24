@@ -1,6 +1,5 @@
 from collections.abc import Mapping
 from dataclasses import dataclass
-from typing import Literal
 
 from pydantic import JsonValue
 from wireup import injectable
@@ -36,7 +35,7 @@ class SirenDefaultActionDocumentService(SirenActionDocumentService):
         self,
         operation: SirenOperation,
         context: SirenContext,
-        resource: SirenResource | Literal[""],
+        resource: SirenResource | None,
         value: Mapping[str, JsonValue],
         include_query: bool,
     ) -> SirenAction:
@@ -45,7 +44,6 @@ class SirenDefaultActionDocumentService(SirenActionDocumentService):
             href=self.hrefs.href(operation.route.path, context, resource, value, include_query),
             method=operation.method,
             title=operation.title,
-            type=operation.media_type,
             fields=tuple(
                 SirenDocumentField(
                     name=definition.name,
@@ -65,6 +63,7 @@ class SirenDefaultActionDocumentService(SirenActionDocumentService):
                 )
                 for definition in operation.fields
             ),
+            **({"type": operation.media_type} if operation.supplies("media_type") else {}),
         )
 
     def value(

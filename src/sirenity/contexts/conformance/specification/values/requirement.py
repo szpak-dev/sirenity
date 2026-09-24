@@ -19,6 +19,6 @@ class SirenRequirement(BaseValue):
 
     @property
     def label(self) -> str:
-        if self.enum_value == "":
+        if not self.supplies("enum_value"):
             return f"{self.definition}.{self.member}"
         return f"{self.definition}.{self.member}.{self.enum_value}"

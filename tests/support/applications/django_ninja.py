@@ -1,6 +1,8 @@
+from typing import Annotated
+
 from django.http import HttpRequest
 from django.urls import path
-from ninja import NinjaAPI, Schema
+from ninja import NinjaAPI, Query, Schema
 
 from sirenity.api import (
     SirenContinuation,
@@ -54,8 +56,8 @@ class ExampleHandlers:
     def get_example_job(
         request: HttpRequest,
         example_job_id: str,
-        example_cursor: str,
-        example_filter: str,
+        example_cursor: Annotated[str, Query("example-cursor-1")],
+        example_filter: Annotated[str, Query("example-open")],
     ) -> ExampleJobState:
         if example_cursor == "example-cursor-2":
             return ExampleJobState(
@@ -91,8 +93,8 @@ class ExampleHandlers:
     def list_example_records(
         request: HttpRequest,
         example_filter: str,
-        example_offset: int,
-        example_limit: int,
+        example_offset: Annotated[int, Query(0)],
+        example_limit: Annotated[int, Query(2)],
     ) -> ExampleRecordPage:
         return ExampleRecordPage(
             example_items=(
@@ -154,7 +156,7 @@ class ExampleHandlers:
     def get_example_record(
         request: HttpRequest,
         example_record_id: str,
-        example_locale: str,
+        example_locale: Annotated[str, Query("example-en")],
     ) -> ExampleRecord:
         return ExampleRecord(example_record_id=example_record_id, example_title=example_locale)
     

@@ -1,5 +1,3 @@
-from typing import Literal
-
 from pydantic import model_validator
 
 from ...shared import BaseValue, SirenityError, SirenRepresentation
@@ -8,7 +6,7 @@ from ..request import SirenRelationship
 
 class SirenAdapterPolicy(BaseValue):
     title: str = ""
-    representation: Literal[""] | SirenRepresentation = ""
+    representation: SirenRepresentation = SirenRepresentation.AUTO
     capabilities: frozenset[str] = frozenset()
     all_capabilities: bool = False
     item_titles: tuple[str, ...] = ()

@@ -20,9 +20,10 @@ class SirenEntityScopeProjector(SirenScopeProjector):
         return scope == SirenScope.ENTITY
 
     def project(self, request: SirenProjectionRequest) -> SirenDocument:
-        if not request.resource:
+        resource = request.resource.get()
+        if resource is None:
             raise SirenityError("Siren entity projection requires a resource")
-        document = self.entities.entity(request.api, request.resource, request.value, request.context, request.rel)
+        document = self.entities.entity(request.api, resource, request.value, request.context, request.rel)
         relationships = self.relationships.relationships(request.api, request.context)
         embedded = []
         links = []

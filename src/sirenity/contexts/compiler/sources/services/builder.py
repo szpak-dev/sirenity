@@ -63,21 +63,25 @@ class SirenBuilder:
                     source_path=operation.source_path,
                     title=operation.title,
                     description=operation.description,
-                    media_type=operation.media_type,
                     fields=operation.fields,
                     input=operation.input,
                     responses=tuple(
                         graph.SirenResponse(
                             status=response.status,
-                            media_type=response.media_type,
                             shape=response.shape,
                             definition=response.definition,
                             bindings=self.response_bindings(response, fields),
                             links=self.response_links(operation, response, operations, resources),
                             continuations=self.response_continuations(operation, response, operations),
+                            **(
+                                {"media_type": response.media_type}
+                                if response.supplies("media_type")
+                                else {}
+                            ),
                         )
                         for response in operation.responses
                     ),
+                    **({"media_type": operation.media_type} if operation.supplies("media_type") else {}),
                 )
                 for operation in operations.values()
             ),
@@ -538,7 +542,7 @@ class SirenBuilder:
             target = operation
         else:
             reference = link.operation_ref
-            if reference is None:
+            if not reference:
                 raise shared.SirenityError("OpenAPI response link operationRef is invalid")
             target = self.operation_by_reference(reference, operations, "response link")
         return target

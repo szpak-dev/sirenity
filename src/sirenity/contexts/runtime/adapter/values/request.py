@@ -1,5 +1,4 @@
 from collections.abc import Mapping
-from typing import Literal
 
 from pydantic import Field, JsonValue, model_validator
 
@@ -15,7 +14,7 @@ class SirenAdapterRequest(BaseValue):
     method: str = ""
     path: str = ""
     request_url: str = ""
-    media_type: Literal[""] | SirenMediaType = ""
+    media_type: SirenMediaType = Field(default_factory=SirenMediaType.default)
     path_values: Mapping[str, JsonValue] = Field(default_factory=dict)
     query: tuple[tuple[str, JsonValue], ...] = ()
     body: JsonValue = Field(default_factory=dict)

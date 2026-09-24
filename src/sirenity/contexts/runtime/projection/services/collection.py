@@ -23,13 +23,14 @@ class SirenCollectionScopeProjector(SirenScopeProjector):
         return scope == SirenScope.COLLECTION
 
     def project(self, request: SirenProjectionRequest) -> SirenDocument:
-        if not request.resource:
+        resource = request.resource.get()
+        if resource is None:
             raise SirenityError("Siren collection projection requires a resource")
         relationships = self.relationships.relationships(request.api, request.context)
         item_entities = tuple(
             self.entities.entity(
                 request.api,
-                request.resource,
+                resource,
                 item,
                 request.context.model_copy(
                     update={
@@ -55,22 +56,22 @@ class SirenCollectionScopeProjector(SirenScopeProjector):
                     embedded.append(relationship)
                 case SirenLink():
                     links.append(relationship)
-        title = request.context.title or request.resource.title
+        title = request.context.title or resource.title
         return SirenDocument(
-            class_=(SirenScope.COLLECTION, request.resource.resource_class),
+            class_=(SirenScope.COLLECTION, resource.resource_class),
             title=title,
             properties=request.context.value,
             entities=(*item_entities, *embedded),
             actions=tuple(
                 self.actions.actions(
-                    request.api, request.resource, SirenScope.COLLECTION, request.context, request.context.value
+                    request.api, resource, SirenScope.COLLECTION, request.context, request.context.value
                 )
             ),
             links=(
                 SirenLink(
                     rel=("self",),
                     title=title,
-                    href=self.hrefs.href(request.resource.collection.path, request.context, request.resource, {}, True),
+                    href=self.hrefs.href(resource.collection.path, request.context, resource, {}, True),
                 ),
                 *links,
             ),

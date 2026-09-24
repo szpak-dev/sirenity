@@ -49,6 +49,17 @@ siren_pagination = partial(django.siren_pagination, source_inputs=MappingProxyTy
 siren_follow_ups = partial(follow_up.siren_follow_ups, status=200)
 siren = partial(siren.siren, source_path="/", public_path="/")
 
+siren_adapter.__doc__ = adapter.siren_adapter.__doc__
+siren_adapter.__module__ = adapter.siren_adapter.__module__
+siren_configuration.__doc__ = configuration.siren_configuration.__doc__
+siren_configuration.__module__ = configuration.siren_configuration.__module__
+siren_pagination.__doc__ = django.siren_pagination.__doc__
+siren_pagination.__module__ = django.siren_pagination.__module__
+siren_follow_ups.__doc__ = follow_up.siren_follow_ups.__doc__
+siren_follow_ups.__module__ = django.__name__
+siren.__doc__ = siren.func.__doc__
+siren.__module__ = siren.func.__module__
+
 __all__ = [
     "SirenAction",
     "SirenAdapter",

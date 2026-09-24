@@ -1,6 +1,5 @@
 from collections.abc import Mapping
 from dataclasses import dataclass
-from typing import Literal
 from urllib.parse import quote
 
 from pydantic import JsonValue
@@ -19,7 +18,7 @@ class SirenDefaultHrefService(SirenHrefService):
         self,
         path: str,
         context: SirenContext,
-        resource: SirenResource | Literal[""],
+        resource: SirenResource | None,
         value: Mapping[str, JsonValue],
         include_query: bool,
     ) -> SirenUri:

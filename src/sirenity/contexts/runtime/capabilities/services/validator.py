@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-from typing import Literal
 
 from wireup import injectable
 
@@ -12,7 +11,7 @@ from ..contracts.validator import SirenCapabilityValidator
 @injectable(as_type=SirenCapabilityValidator)
 @dataclass(frozen=True)
 class SirenDefaultCapabilityValidator(SirenCapabilityValidator):
-    def validate(self, resource: SirenResource, context: SirenContext, scope: SirenScope | Literal[""]) -> None:
+    def validate(self, resource: SirenResource, context: SirenContext, scope: SirenScope | None) -> None:
         supported = (
             set(resource.collection_operations)
             if scope == SirenScope.COLLECTION

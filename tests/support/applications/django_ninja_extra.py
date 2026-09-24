@@ -1,5 +1,7 @@
+from typing import Annotated
+
 from django.urls import path
-from ninja import Schema
+from ninja import Query, Schema
 from ninja_extra import NinjaExtraAPI, api_controller, http_get
 
 from sirenity.api import SirenContinuation, SirenFollowUp, SirenScope, SirenSourceInput, siren_follow_ups
@@ -37,7 +39,7 @@ class ExampleExtraJobController:
     def get_example_job(
         self,
         example_job_id: str,
-        example_cursor: str,
+        example_cursor: Annotated[str, Query("example-cursor-1")],
     ) -> ExampleExtraJobState:
         if example_cursor == "example-cursor-2":
             return ExampleExtraJobState(
@@ -98,7 +100,7 @@ class ExampleExtraJobController:
     def get_example_record(
         self,
         example_record_id: str,
-        example_locale: str,
+        example_locale: Annotated[str, Query("example-en")],
     ) -> ExampleExtraRecord:
         return ExampleExtraRecord(example_record_id=example_record_id, example_title=example_locale)
 

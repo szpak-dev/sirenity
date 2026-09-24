@@ -1,6 +1,5 @@
 from abc import ABC, abstractmethod
 from collections.abc import Mapping
-from typing import Literal
 
 from pydantic import JsonValue
 
@@ -26,7 +25,7 @@ class SirenActionDocumentService(ABC):
         self,
         operation: SirenOperation,
         context: SirenContext,
-        resource: SirenResource | Literal[""],
+        resource: SirenResource | None,
         value: Mapping[str, JsonValue],
         include_query: bool,
     ) -> SirenAction:

@@ -172,7 +172,7 @@ class OpenApiOperationCompiler:
         responses = self.response_links(request, self.responses.responses(request, operation))
         if len(findings) != finding_count:
             return
-        media_type = input.media_type if input else None
+        media_type = input.media_type if input and input.supplies("media_type") else None
         resource, scope = ownership or (None, SirenScope.ROOT)
         operations.append(
             OperationDraft(
@@ -360,7 +360,7 @@ class OpenApiOperationCompiler:
             links = []
             for link in response.links:
                 reference = link.operation_ref
-                if reference is not None:
+                if reference:
                     links.append(
                         link.model_copy(update={"operation_ref": self.operation_reference(request, reference)})
                     )

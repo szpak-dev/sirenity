@@ -38,17 +38,17 @@ class SirenResponseProjectionService:
         if response.shape == "empty":
             document = self.empty(operation, resource, context)
         elif response.shape == "array":
-            if context.representation not in {None, SirenRepresentation.COLLECTION}:
+            if context.representation not in {SirenRepresentation.AUTO, SirenRepresentation.COLLECTION}:
                 raise SirenityError("OpenAPI array response requires collection representation")
             document = self.collection(api, resource, context, response)
         elif self.paginated(response):
-            if context.representation not in {None, SirenRepresentation.COLLECTION}:
+            if context.representation not in {SirenRepresentation.AUTO, SirenRepresentation.COLLECTION}:
                 raise SirenityError("OpenAPI paginated response requires collection representation")
             if resource is None:
                 raise SirenityError("OpenAPI paginated response requires a collection resource")
             document = self.page(api, resource, context, response)
         else:
-            representation = context.representation
+            representation = None if context.representation == SirenRepresentation.AUTO else context.representation
             if not representation and operation.scope == SirenScope.ROOT and operation.route == api.root.route:
                 representation = SirenRepresentation.ROOT
             if representation == SirenRepresentation.ROOT:
@@ -193,7 +193,7 @@ class SirenResponseProjectionService:
 
     def response(self, operation: graph.SirenOperation, context: SirenResponseContext) -> graph.SirenResponse:
         candidates = list(self.candidates(operation, context))
-        if not context.media_type and len(candidates) > 1:
+        if not context.supplies("media_type") and len(candidates) > 1:
             json_candidates = [response for response in candidates if response.media_type == "application/json"]
             candidates = json_candidates if len(json_candidates) == 1 else candidates
         if len(candidates) != 1:
@@ -219,7 +219,7 @@ class SirenResponseProjectionService:
         ]
         defaults = [response for response in operation.responses if response.status == "default"]
         candidates = exact or ranged or defaults
-        if context.media_type:
+        if context.supplies("media_type"):
             candidates = [response for response in candidates if response.media_type == context.media_type]
         return tuple(candidates)
 
