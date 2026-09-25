@@ -11,7 +11,7 @@ class SirenResource(BaseValue):
     name: str
     resource_class: str
     path_bindings: Mapping[str, tuple[str, ...]]
-    title: str = ""
+    title: str
     identifier: str = "id"
     collection: SirenRoute
     entity: SirenRoute = Field(default_factory=lambda: SirenRoute(path=""))
