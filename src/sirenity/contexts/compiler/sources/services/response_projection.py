@@ -312,7 +312,9 @@ class OpenApiResponseProjection:
         definition: dict[str, JsonValue],
         item_links: tuple[ResponseItemLinkDraft, ...],
     ) -> None:
-        properties = definition["properties"]
+        if not item_links:
+            return
+        properties = definition.get("properties", {})
         required = definition.get("required", ())
         for link in item_links:
             collection_name = self.item_property(link.item_collection, "collection")

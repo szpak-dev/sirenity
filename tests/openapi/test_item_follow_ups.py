@@ -5,7 +5,33 @@ from sirenity.api import SirenContractError, siren
 from ..cases import OpenApiCase
 
 
+class TestOpenApiItemFollowUps(OpenApiCase):
+    def test_free_form_object_without_item_follow_ups_is_accepted(self) -> None:
+        contract = self.contracts.operation()
+        response = contract["paths"]["/api/example_records/{example_record_id}"]["patch"]["responses"]["200"]
+        response["content"]["application/json"]["schema"] = {
+            "type": "object",
+            "title": "Response",
+            "additionalProperties": True,
+        }
+
+        siren(contract, source_path="/api", public_path="/siren")
+
+
 class TestOpenApiItemFollowUpAttacks(OpenApiCase):
+    def test_free_form_object_with_item_follow_up_is_rejected(self) -> None:
+        contract = self.contracts.item_follow_ups()
+        response = contract["paths"]["/api/example_items"]["get"]["responses"]["200"]
+        response["content"]["application/json"]["schema"] = {
+            "type": "object",
+            "title": "Response",
+            "additionalProperties": True,
+        }
+        del response["links"]["next"]
+
+        with pytest.raises(SirenContractError, match="item follow-up collection must exist and be required"):
+            siren(contract, source_path="/api", public_path="/siren")
+
     def test_unknown_target_is_rejected(self) -> None:
         contract = self.contracts.item_follow_ups()
         self.item_link(contract)["operationId"] = "missing_operation"
