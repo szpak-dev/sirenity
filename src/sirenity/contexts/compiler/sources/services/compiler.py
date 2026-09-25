@@ -86,7 +86,7 @@ class OpenApiOperationCompiler:
                 update={
                     "collection_path": self.routes.public(request, resource.collection_path),
                     "entity_path": (
-                        self.routes.public(request, resource.entity_path) if resource.entity_path else None
+                        self.routes.public(request, resource.entity_path) if resource.entity_path else ""
                     ),
                 }
             )
