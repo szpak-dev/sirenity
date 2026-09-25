@@ -473,6 +473,11 @@ class ExampleContracts:
         contract["paths"]["/api/example_records"] = {"post": create}
         return contract
 
+    def collection_command(self) -> dict[str, object]:
+        contract = self.creation_verification()
+        del contract["paths"]["/api/example_records/{example_record_id}"]
+        return contract
+
     def unsupported_verification(self) -> dict[str, object]:
         contract = self.verification()
         target = contract["paths"]["/api/example_records/{example_record_id}"]["get"]

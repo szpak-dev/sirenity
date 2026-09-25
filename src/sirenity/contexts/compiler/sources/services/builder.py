@@ -550,7 +550,7 @@ class SirenBuilder:
             )
         return tuple(values)
 
-    def resource_title(self, resource: Resource, operations: Mapping[str, OperationDraft]) -> str | None:
+    def resource_title(self, resource: Resource, operations: Mapping[str, OperationDraft]) -> str:
         candidates: list[tuple[int, int, str]] = []
         for operation in operations.values():
             if operation.resource != resource.reference:
@@ -578,7 +578,7 @@ class SirenBuilder:
                 else:
                     continue
                 candidates.append((priority, len(candidates), title))
-        return min(candidates)[2] if candidates else None
+        return min(candidates)[2] if candidates else resource.name.replace("_", " ").capitalize()
 
     def page_items(self, response: ResponseDraft) -> str:
         properties = response.definition["properties"]
