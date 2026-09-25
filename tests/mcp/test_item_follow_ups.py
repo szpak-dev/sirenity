@@ -5,6 +5,83 @@ from ..support.collaborators import ExampleExecutor
 
 
 class TestMcpItemFollowUpHappyPaths(McpCase):
+    def test_nested_collection_retains_parent_inputs_for_follow_ups_and_pagination(self) -> None:
+        executor = ExampleExecutor(
+            (
+                SirenMcpExecution(
+                    status=200,
+                    result={
+                        "example_record_id": "example-record-1",
+                        "example_title": "Example record",
+                    },
+                    base_url="https://api.example.test",
+                ),
+                SirenMcpExecution(
+                    status=200,
+                    result={
+                        "items": [{"item_id": "item-1", "expected_revision": "revision-1"}],
+                        "has_more": True,
+                        "next_offset": 2,
+                        "limit": 2,
+                    },
+                    base_url="https://api.example.test",
+                ),
+            )
+        )
+        bridge = siren_mcp(
+            siren_configuration(
+                openapi="tests.support.applications.configuration.EXAMPLE_NESTED_ITEM_FOLLOW_UPS_OPENAPI",
+                source_path="/api",
+                public_path="/siren",
+                policy="tests.support.collaborators.ExamplePolicy",
+                profiles=(),
+            ),
+            executor=executor,
+        )
+
+        parent = bridge.invoke(
+            SirenMcpInvocation(
+                operation_id="get_example_record",
+                arguments={
+                    "example_record_id": "example-record-1",
+                    "example_filter": "example-open",
+                },
+            )
+        )
+        page = bridge.invoke(parent.follow_ups[0])
+
+        assert parent.follow_ups == (
+            SirenMcpInvocation(
+                operation_id="list_example_items",
+                arguments={
+                    "example_record_id": "example-record-1",
+                    "example_filter": "example-open",
+                },
+            ),
+        )
+        assert page.follow_ups == (
+            SirenMcpInvocation(
+                operation_id="read_example_item_content",
+                arguments={
+                    "example_record_id": "example-record-1",
+                    "item_id": "item-1",
+                    "expected_revision": "revision-1",
+                },
+            ),
+        )
+        assert page.continuations == (
+            SirenMcpInvocation(
+                operation_id="list_example_items",
+                arguments={
+                    "example_record_id": "example-record-1",
+                    "example_filter": "example-open",
+                    "offset": 2,
+                    "limit": 2,
+                },
+            ),
+        )
+        assert executor.calls[1].dispatch_path == "/api/example_records/example-record-1/example_items"
+
     def test_multiple_item_follow_ups_coexist_with_next_and_one_survives_on_the_terminal_page(self) -> None:
         executor = ExampleExecutor(
             (

@@ -339,6 +339,106 @@ class ExampleContracts:
             },
         }
 
+    def nested_item_follow_ups(self) -> dict[str, object]:
+        contract = self.item_follow_ups()
+        collection = contract["paths"].pop("/api/example_items")
+        collection["parameters"] = [
+            {
+                "name": "example_record_id",
+                "in": "path",
+                "required": True,
+                "schema": {"type": "string"},
+            }
+        ]
+        operation = collection["get"]
+        operation["parameters"].insert(
+            0,
+            {
+                "name": "example_filter",
+                "in": "query",
+                "required": True,
+                "schema": {"type": "string", "title": "Example filter"},
+            },
+        )
+        links = operation["responses"]["200"]["links"]
+        links["next"]["x-sirenity"] = {
+            "sourceInputs": {
+                "path.example_record_id": "$request.path.example_record_id",
+                "query.example_filter": "$request.query.example_filter",
+            }
+        }
+        links["content"]["x-sirenity"]["sourceInputs"] = {
+            "path.example_record_id": "$request.path.example_record_id",
+        }
+        contract["paths"]["/api/example_records/{example_record_id}/example_items"] = collection
+
+        item = contract["paths"].pop("/api/example_items/{item_id}")
+        item["parameters"].insert(
+            0,
+            {
+                "name": "example_record_id",
+                "in": "path",
+                "required": True,
+                "schema": {"type": "string"},
+            },
+        )
+        contract["paths"]["/api/example_records/{example_record_id}/example_item_contents/{item_id}"] = item
+
+        contract["paths"]["/api/example_records/{example_record_id}"] = {
+            "parameters": [
+                {
+                    "name": "example_record_id",
+                    "in": "path",
+                    "required": True,
+                    "schema": {"type": "string"},
+                }
+            ],
+            "get": {
+                "operationId": "get_example_record",
+                "summary": "Read example record",
+                "description": "Read one example record.",
+                "parameters": [
+                    {
+                        "name": "example_filter",
+                        "in": "query",
+                        "required": True,
+                        "schema": {"type": "string", "title": "Example filter"},
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Example record.",
+                        "content": {"application/json": {"schema": {"$ref": "#/components/schemas/ExampleRecord"}}},
+                        "links": {
+                            "items": {
+                                "operationId": "list_example_items",
+                                "parameters": {
+                                    "path.example_record_id": "$response.body#/example_record_id",
+                                },
+                                "x-sirenity": {
+                                    "rel": "collection",
+                                    "scope": "collection",
+                                    "sourceInputs": {
+                                        "query.example_filter": "$request.query.example_filter",
+                                    },
+                                },
+                            }
+                        },
+                    }
+                },
+            },
+        }
+        contract["components"]["schemas"]["ExampleRecord"] = {
+            "type": "object",
+            "title": "Example record",
+            "required": ["example_record_id", "example_title"],
+            "properties": {
+                "example_record_id": {"type": "string"},
+                "example_title": {"type": "string"},
+            },
+        }
+        return contract
+
     def entity(self) -> dict[str, object]:
         contract = self.bounded()
         response = contract["paths"]["/api/example_jobs/{example_job_id}"]["get"]["responses"]["200"]

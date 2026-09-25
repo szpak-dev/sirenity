@@ -30,13 +30,18 @@ class OpenApiResponseProjection:
         supported = {method.lower() for method in SirenActionMethod.values()}
         for path, path_item in request.paths.items():
             shapes = set()
+            paginated = False
             for method, operation in path_item.items():
                 if method.lower() not in supported:
                     continue
-                shapes.update(
-                    response.shape for response in self.responses(request, operation) if response.status.startswith("2")
-                )
-            if "object" in shapes and "array" not in shapes:
+                for response in self.responses(request, operation):
+                    if not response.status.startswith("2"):
+                        continue
+                    shapes.add(response.shape)
+                    paginated = paginated or any(
+                        continuation.kind == SirenContinuationKind.PAGINATION for continuation in response.continuations
+                    )
+            if "object" in shapes and "array" not in shapes and not paginated:
                 selected.add(path)
         return frozenset(selected)
 
@@ -103,10 +108,7 @@ class OpenApiResponseProjection:
                         raise SirenityError("OpenAPI item follow-ups require a paginated response")
                     if pagination:
                         items = self.page_items(request, definition)
-                        if any(
-                            self.item_property(link.item_collection, "collection") != items
-                            for link in item_links
-                        ):
+                        if any(self.item_property(link.item_collection, "collection") != items for link in item_links):
                             raise SirenityError("OpenAPI item follow-up must select the paginated item collection")
                         properties = definition["properties"]
                         collection = self.components.schema(request, properties[items])
@@ -333,9 +335,7 @@ class OpenApiResponseProjection:
                 if property_name not in item_properties or property_name not in item_required:
                     raise SirenityError("OpenAPI item follow-up properties must exist and be required")
                 value = self.components.schema(request, item_properties[property_name])
-                if value.get("type") not in {"string", "integer", "number", "boolean"} or value.get(
-                    "nullable"
-                ) is True:
+                if value.get("type") not in {"string", "integer", "number", "boolean"} or value.get("nullable") is True:
                     raise SirenityError("OpenAPI item follow-up properties must be non-nullable scalars")
 
     def item_property(self, expression: str, source: str) -> str:
