@@ -51,6 +51,24 @@ class TestDjangoJourneyAttacks(DjangoCase):
 
 
 class TestDjangoJourneyHappyPaths(DjangoCase):
+    def test_framework_startup_accepts_a_nested_paginated_collection(self) -> None:
+        with override_settings(
+            ALLOWED_HOSTS=["testserver"],
+            ROOT_URLCONF="tests.support.applications.django_ninja",
+            MIDDLEWARE=["sirenity.SirenMiddleware"],
+            SIRENITY={
+                "OPENAPI": "tests.support.applications.configuration.EXAMPLE_NESTED_ITEM_FOLLOW_UPS_PROVIDER",
+                "SOURCE_PATH": "/api",
+                "PUBLIC_PATH": "/siren",
+                "POLICY": "tests.support.collaborators.ExamplePolicy",
+            },
+        ):
+            response = Client(HTTP_ACCEPT="application/json").get(
+                "/api/example_records?example_filter=example-open&example_offset=0&example_limit=2"
+            )
+
+        assert response.status_code == 200
+
     def test_framework_startup_accepts_a_collection_only_command_resource(self) -> None:
         with override_settings(
             ALLOWED_HOSTS=["testserver"],

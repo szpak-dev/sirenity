@@ -6,9 +6,16 @@ class ExampleCollectionCommandOpenApi:
         return ExampleContracts().collection_command()
 
 
+class ExampleNestedItemFollowUpsOpenApi:
+    def get_openapi_schema(self) -> dict[str, object]:
+        return ExampleContracts().nested_item_follow_ups()
+
+
 EXAMPLE_BOUNDED_OPENAPI = ExampleContracts().bounded()
 EXAMPLE_PAGINATION_OPENAPI = ExampleContracts().explicit_pagination()
 EXAMPLE_ITEM_FOLLOW_UPS_OPENAPI = ExampleContracts().item_follow_ups()
+EXAMPLE_NESTED_ITEM_FOLLOW_UPS_OPENAPI = ExampleContracts().nested_item_follow_ups()
+EXAMPLE_NESTED_ITEM_FOLLOW_UPS_PROVIDER = ExampleNestedItemFollowUpsOpenApi()
 EXAMPLE_ENTITY_OPENAPI = ExampleContracts().entity()
 EXAMPLE_OPERATION_OPENAPI = ExampleContracts().operation()
 EXAMPLE_CREATION_VERIFICATION_OPENAPI = ExampleContracts().creation_verification()
