@@ -260,7 +260,7 @@ class SirenMiddleware:
     read, and update responses need no ``openapi_extra`` declaration, ``x-sirenity`` metadata, policy
     relationship, or application-maintained operation mapping.
 
-    Use :func:`siren_follow_ups` when a successful read advertises independent safe reads. It creates
+    Use `siren_follow_ups` when a successful read advertises independent safe reads. It creates
     standard OpenAPI Link Objects from target operation identifiers and response-property bindings;
     Sirenity validates them and exposes authorized executable targets through MCP ``follow_ups``.
     Other relationships that cannot be derived from route ownership can still use Django Ninja's

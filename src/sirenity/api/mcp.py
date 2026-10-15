@@ -36,7 +36,7 @@ def siren_mcp(configuration: SirenConfiguration, *, executor: SirenMcpExecutor) 
     configuration lifecycle has a different fingerprint, register ``tools()`` again and use the
     host's native refresh mechanism. Hosts that support it emit ``tools/list_changed`` after
     registration; for hosts without a refresh notification, reconnect or restart after deployment.
-    Sirenity version ``1`` fingerprints the deterministic operation-ID order, tool name, title,
+    Catalogue contract version ``1`` fingerprints the deterministic operation-ID order, tool name, title,
     description, and normalized input schema as canonical key-sorted UTF-8 JSON hashed with SHA-256.
     A change to that meaning requires a new contract version.
 

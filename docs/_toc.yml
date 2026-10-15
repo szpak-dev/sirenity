@@ -1,0 +1,24 @@
+format: jb-book
+root: index
+chapters:
+  - file: tutorials/index
+    sections:
+      - file: tutorials/openapi-to-siren
+  - file: how-to/index
+    sections:
+      - file: how-to/siren
+      - file: how-to/configuration
+      - file: how-to/adapter
+      - file: how-to/django
+      - file: how-to/follow-up
+      - file: how-to/mcp
+  - file: explanation/index
+    sections:
+      - file: explanation/openapi-to-action-graph
+      - file: explanation/typed-navigation
+      - file: explanation/architecture
+  - file: reference/index
+    sections:
+      - file: reference/glossary
+      - file: reference/audit
+      - file: reference/api
