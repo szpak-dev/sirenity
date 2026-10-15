@@ -22,6 +22,8 @@ from .adapter import siren_adapter
 
 @dataclass(frozen=True)
 class SirenConfiguration:
+    """Hold the compiled adapter, capability policy, and MCP catalogue for one application."""
+
     adapter_value: SirenAdapter
     policy: SirenCapabilityPolicy
     catalogue_value: SirenMcpToolCatalogue

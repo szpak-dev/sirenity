@@ -23,7 +23,7 @@ def siren(openapi: Mapping[str, JsonValue], *, source_path: str, public_path: st
     negotiated Siren response. OpenAPI defines links, methods, and candidate fields; the context's
     capabilities decide which candidate actions are present in that response.
 
-    #### Example
+    ### Example
 
     ```python
     from sirenity import SirenContext, siren
@@ -80,14 +80,14 @@ def siren(openapi: Mapping[str, JsonValue], *, source_path: str, public_path: st
     }
     ```
 
-    #### OpenAPI requirements
+    ### OpenAPI requirements
 
     The final plural static segment of a route is a collection; adding one path parameter forms
     its entity route. Prefixes and nested collections are supported. Every non-root HTTP operation
     needs a unique `operationId`. Local `#/components/parameters`, `#/components/requestBodies`,
     and `#/components/schemas` references are resolved; external and path-item references are not.
 
-    #### Action field support matrix
+    ### Action field support matrix
 
     Path parameters substitute into action URLs and never become fields. Query parameters and
     properties of an `application/json` object body become fields:
@@ -126,7 +126,7 @@ def siren(openapi: Mapping[str, JsonValue], *, source_path: str, public_path: st
     unsupported string formats, and `HEAD`, `OPTIONS`, or `TRACE` operations are rejected during
     this startup call.
 
-    #### Adapter-facing operation inputs
+    ### Adapter-facing operation inputs
 
     Use `engine.operation_input(operation_id)` when an adapter needs the compiled request contract.
     It returns the selected media type, the fully resolved request-body `definition`, the names in
@@ -153,7 +153,7 @@ def siren(openapi: Mapping[str, JsonValue], *, source_path: str, public_path: st
     Call `audit(openapi)` first when a consumer needs a deterministic list of every current
     incompatibility before using this strict fail-fast entry point.
 
-    #### Response relationships
+    ### Response relationships
 
     Sirenity automatically derives an immediate nested collection relationship when the compiled
     resource and route ownership are unambiguous. A successful object response from a resource's
@@ -199,7 +199,7 @@ def siren(openapi: Mapping[str, JsonValue], *, source_path: str, public_path: st
     `SirenRelationship` for relationships that are defined by application runtime policy rather than
     the OpenAPI contract.
 
-    #### Discoverable pagination
+    ### Discoverable pagination
 
     Declare collection continuation with a standard OpenAPI response Link Object named `next`. It
     targets the same collection `GET` operation and maps one or more of that operation's query
@@ -255,7 +255,7 @@ def siren(openapi: Mapping[str, JsonValue], *, source_path: str, public_path: st
     does not evaluate its parameter expressions. Pagination needs no `x-sirenity` metadata, adapter
     profile, application policy relationship, or Siren-specific response transformation.
 
-    #### Explicit title metadata
+    ### Explicit title metadata
 
     The root document uses `info.title`, and exposes `info.version` as the official Siren
     `properties.version` value. Every operation needs a non-empty `summary`; it becomes the action
@@ -301,7 +301,7 @@ def siren(openapi: Mapping[str, JsonValue], *, source_path: str, public_path: st
     declare different schema titles, the exact GET representation takes
     precedence, followed by other operations in OpenAPI declaration order.
 
-    #### Framework integration is one startup call
+    ### Framework integration is one startup call
 
     Give the framework-generated document directly to `siren()` after routes are registered:
 
@@ -310,14 +310,14 @@ def siren(openapi: Mapping[str, JsonValue], *, source_path: str, public_path: st
     engine = siren(api.get_openapi_schema(), source_path="/", public_path="/")  # Django Ninja / Ninja Extra
     ```
 
-    #### HTTP response contract
+    ### HTTP response contract
 
     `engine.project(context)` returns a `SirenDocument`, not a dictionary. Serialize it with
     `document.model_dump(by_alias=True, mode="json", exclude_none=True)` and send that payload as
     `application/vnd.siren+json`. The document contains only official Siren members; action fields
     never include the non-standard `required` member.
 
-    #### Operation-aware response projection
+    ### Operation-aware response projection
 
     When an adapter knows the executed operation and HTTP status, pass a `SirenResponseContext`
     to `engine.project_response(...)`. The engine selects the compiled response status, media

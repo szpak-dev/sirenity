@@ -2,7 +2,7 @@
 
 ## `SirenFollowUp`
 
-Declare one safe read target for :func:`siren_follow_ups`.
+Declare one safe read target for `siren_follow_ups`.
 
 ``parameters`` maps target path or query argument names to top-level response property names.
 Prefix an argument with ``path.`` or ``query.`` when its location is not otherwise unambiguous.
@@ -15,7 +15,7 @@ inputs; response-property parameters and source inputs must target distinct argu
 Declare typed read follow-ups for a Django Ninja or Ninja Extra operation.
 
 Pass ``api.get`` for Django Ninja or ``http_get`` for Ninja Extra. Each mapping key becomes
-the OpenAPI response-link name, while its :class:`SirenFollowUp` supplies the target operation,
+the OpenAPI response-link name, while its `SirenFollowUp` supplies the target operation,
 response-property bindings, Siren relation, and target scope. Sirenity validates the generated
 links during normal startup compilation and exposes authorized safe reads as typed MCP
 invocations without parsing their rendered hrefs.

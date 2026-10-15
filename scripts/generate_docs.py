@@ -8,20 +8,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 ROOT = Path(__file__).parents[1]
-START = "<!-- generated:public-api:start -->"
-END = "<!-- generated:public-api:end -->"
 ORDER = re.compile(r"<!-- docs:order=(\d+) -->")
-PROPRIETARY_LICENSE = "LicenseRef-Proprietary"
-LICENSE_MARKERS = (
-    "All rights reserved",
-    "No license or other rights are granted",
-    "Any unauthorized use is strictly prohibited",
-)
-
-
-class AnnotationText(str):
-    def __repr__(self) -> str:
-        return str(self)
 
 
 @dataclass(frozen=True)
@@ -39,27 +26,8 @@ class DocumentationGenerator:
 
     @classmethod
     def package(cls) -> object:
-        return importlib.import_module(str(cls.project()["name"]).replace("-", "_"))
-
-    @classmethod
-    def license(cls) -> tuple[str, ...]:
-        project = cls.project()
-        license_text = (ROOT / "LICENSE").read_text()
-        if project.get("license") != PROPRIETARY_LICENSE:
-            raise ValueError(f"Project license must be {PROPRIETARY_LICENSE}")
-        if project.get("license-files") != ["LICENSE"]:
-            raise ValueError("Project license-files must contain only LICENSE")
-        missing = tuple(marker for marker in LICENSE_MARKERS if marker not in license_text)
-        if missing:
-            raise ValueError(f"Proprietary LICENSE is missing markers: {', '.join(missing)}")
-        return (
-            "## License",
-            "",
-            "Sirenity is proprietary software. No permission to use, copy, modify, or distribute it is granted "
-            "without prior express written permission. "
-            "See [LICENSE](LICENSE) for the complete terms.",
-            "",
-        )
+        package_name = str(cls.project()["name"]).replace("-", "_")
+        return importlib.import_module(f"{package_name}.api")
 
     @classmethod
     def guides(cls, package: object) -> tuple[Guide, ...]:
@@ -70,13 +38,15 @@ class DocumentationGenerator:
             match = ORDER.search(documentation)
             if match is None:
                 continue
+            stem = candidate.name.rsplit(".", 1)[-1]
+            section = "reference" if stem == "audit" else "how-to"
             title = documentation.splitlines()[0].rstrip(".")
             values.append(
                 Guide(
                     module=module.__name__,
-                    title=title or candidate.name.rsplit(".", 1)[-1].replace("_", " ").title(),
+                    title=title or stem.replace("_", " ").title(),
                     order=int(match.group(1)),
-                    path=ROOT / "docs" / f"{candidate.name.rsplit('.', 1)[-1]}.md",
+                    path=ROOT / "docs" / section / f"{stem.replace('_', '-')}.md",
                 )
             )
         return tuple(sorted(values, key=lambda guide: (guide.order, guide.module)))
@@ -98,150 +68,45 @@ class DocumentationGenerator:
         return "\n".join((f"# {guide.title}", "", *sections)).rstrip() + "\n"
 
     @classmethod
-    def reference(cls, package: object, definitions: tuple[tuple[str, object], ...]) -> str:
-        rows = []
+    def reference(cls, definitions: tuple[tuple[str, object], ...]) -> str:
+        directives = []
         for name, value in definitions:
-            rows.append(f"| `{name}` | {cls.purpose(name, value)} | {cls.operations(value)} |")
-        return "\n".join(
-            (
-                "# Public API reference",
-                "",
-                f"The supported root imports below are generated from `{package.__name__}.__all__`.",
-                "",
-                "| Symbol | Purpose | Primary API |",
-                "| --- | --- | --- |",
-                *rows,
-                "",
-            )
-        )
-
-    @staticmethod
-    def purpose(name: str, value: object) -> str:
-        if name == "__version__":
-            return "Installed distribution version."
-        documentation = inspect.getdoc(value)
-        if not documentation:
-            raise ValueError(f"Public symbol {name} must have a docstring")
-        return documentation.splitlines()[0]
-
-    @staticmethod
-    def operations(value: object) -> str:
-        if not inspect.isclass(value):
-            return "—"
-        decorators = getattr(value, "__pydantic_decorators__", None)
-        validators = decorators.model_validators if decorators is not None else {}
-        operations = []
-        for name, member in value.__dict__.items():
-            if name.startswith("_") or name in validators:
-                continue
-            match member:
-                case property() as selected:
-                    annotation = DocumentationGenerator.annotation(
-                        inspect.signature(selected.fget).return_annotation
+            directive = "autoclass" if inspect.isclass(value) else "autofunction"
+            directives.append(f".. {directive}:: {name}")
+            if inspect.isclass(value):
+                excluded = {"model_config"}
+                decorators = getattr(value, "__pydantic_decorators__", None)
+                if decorators is not None:
+                    for group in (
+                        decorators.validators,
+                        decorators.field_validators,
+                        decorators.model_validators,
+                        decorators.field_serializers,
+                        decorators.model_serializers,
+                        decorators.computed_fields,
+                    ):
+                        excluded.update(group)
+                directives.extend(
+                    (
+                        "   :members:",
+                        "   :undoc-members:",
+                        "   :member-order: bysource",
+                        f"   :exclude-members: {', '.join(sorted(excluded))}",
                     )
-                    operations.append(f"`{name}: {annotation}`")
-                    continue
-            selected = getattr(value, name)
-            if not (inspect.isroutine(selected) or inspect.ismethoddescriptor(selected)):
-                continue
-            signature = DocumentationGenerator.signature(selected)
-            parameters = tuple(signature.parameters.values())
-            if parameters and parameters[0].name in {"self", "cls"}:
-                signature = signature.replace(parameters=parameters[1:])
-            operations.append(f"`{name}{signature}`")
-        return "<br>".join(operations) or "—"
-
-    @staticmethod
-    def signature(value: object) -> inspect.Signature:
-        signature = inspect.signature(value)
-        parameters = tuple(
-            parameter.replace(
-                annotation=DocumentationGenerator.annotation(parameter.annotation),
-                default=DocumentationGenerator.default(parameter.default),
-            )
-            for parameter in signature.parameters.values()
-        )
-        return signature.replace(
-            parameters=parameters,
-            return_annotation=DocumentationGenerator.annotation(signature.return_annotation),
-        )
-
-    @staticmethod
-    def annotation(value: object) -> object:
-        if value is inspect.Signature.empty:
-            return value
-        match value:
-            case str() as text:
-                pass
-            case _:
-                text = str(value)
-        return AnnotationText(re.sub(r"(?<![.\w])Any(?![\w])", "typing.Any", text))
-
-    @staticmethod
-    def default(value: object) -> object:
-        if value is inspect.Parameter.empty:
-            return value
-        match value:
-            case str() | int() | float() | bool() | tuple() | dict() | None:
-                return value
-            case _:
-                value_class = value.__class__
-                return AnnotationText(f"<{value_class.__module__}.{value_class.__qualname__}>")
-
-    @staticmethod
-    def navigation(guides: tuple[Guide, ...], prefix: str = "") -> tuple[str, ...]:
-        return tuple(f"- [{guide.title}]({prefix}{guide.path.name})" for guide in guides)
-
-    @classmethod
-    def readme(
-        cls,
-        current: str,
-        guides: tuple[Guide, ...],
-        definitions: tuple[tuple[str, object], ...],
-    ) -> str:
-        configuration = dict(definitions)["siren_configuration"]
-        integration_guide = inspect.getdoc(configuration)
-        if not integration_guide:
-            raise ValueError("Public symbol siren_configuration must have a docstring")
-        generated = "\n".join(
-            (
-                START,
-                "## Supported integrations",
-                "",
-                "This task-oriented guide is generated from the same public source as "
-                "[`docs/configuration.md`](docs/configuration.md).",
-                "",
-                integration_guide,
-                "",
-                "## Documentation",
-                "",
-                "Guides are generated from marked public modules. Run `make docs` after changing public guidance.",
-                "",
-                *cls.navigation(guides, "docs/"),
-                "- [Current architecture](docs/architecture.md)",
-                "- [Public API reference](docs/reference.md)",
-                "",
-                *cls.license(),
-                END,
-            )
-        )
-        if START not in current or END not in current:
-            raise ValueError("Missing generated documentation markers in README.md")
-        prefix, remainder = current.split(START, 1)
-        _, suffix = remainder.split(END, 1)
-        return f"{prefix}{generated}{suffix}"
-
-    @classmethod
-    def index(cls, guides: tuple[Guide, ...]) -> str:
+                )
+            directives.append("")
         return "\n".join(
             (
-                "# Sirenity documentation",
+                "# Public API",
                 "",
-                "- [Overview](../README.md)",
-                *cls.navigation(guides),
-                "- [Current architecture](architecture.md)",
-                "- [Public API reference](reference.md)",
-                "- [License](../LICENSE)",
+                "The supported surface is generated from `sirenity.api.__all__`. Import these names from",
+                "`sirenity`; the defining modules remain implementation details.",
+                "",
+                "```{eval-rst}",
+                ".. currentmodule:: sirenity.api",
+                "",
+                *directives,
+                "```",
                 "",
             )
         )
@@ -261,15 +126,8 @@ class DocumentationGenerator:
         package = cls.package()
         guides = cls.guides(package)
         definitions = cls.definitions(package)
-        targets = [
-            (
-                ROOT / "README.md",
-                cls.readme((ROOT / "README.md").read_text(), guides, definitions),
-            )
-        ]
-        targets.append((ROOT / "docs" / "index.md", cls.index(guides)))
-        targets.append((ROOT / "docs" / "reference.md", cls.reference(package, definitions)))
-        targets.extend((guide.path, cls.guide(guide, definitions)) for guide in guides)
+        targets = [(guide.path, cls.guide(guide, definitions)) for guide in guides]
+        targets.append((ROOT / "docs" / "reference" / "api.md", cls.reference(definitions)))
         stale = [path for path, expected in targets if not cls.update(path, expected, check)]
         if check and stale:
             print("Generated documentation is stale:")
