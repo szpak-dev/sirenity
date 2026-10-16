@@ -1,4 +1,7 @@
 import re
+import subprocess
+import sys
+import tempfile
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -21,12 +24,24 @@ class MarkdownPythonExamples:
         code = compile(source, str(self.path), "exec")
         exec(code, {"__name__": "__documentation_example__"})
 
+    def execute_as_script(self, name: str, root: Path) -> None:
+        source = self.source()
+        with tempfile.TemporaryDirectory() as directory:
+            script = Path(directory) / name
+            script.write_text(source, encoding="utf-8")
+            subprocess.run((sys.executable, str(script)), cwd=root, check=True)
+
 
 def main() -> int:
     root = Path(__file__).resolve().parents[1]
-    tutorial = root / "docs" / "tutorials" / "openapi-to-siren.md"
-    MarkdownPythonExamples(tutorial).execute()
-    print(f"Documentation examples: {tutorial.relative_to(root)} passed.")
+    direct = root / "docs" / "tutorials" / "openapi-to-siren.md"
+    typed_navigation = root / "docs" / "tutorials" / "typed-mcp-navigation.md"
+    MarkdownPythonExamples(direct).execute()
+    MarkdownPythonExamples(typed_navigation).execute_as_script("typed_navigation.py", root)
+    print(
+        "Documentation examples: "
+        f"{direct.relative_to(root)} and {typed_navigation.relative_to(root)} passed."
+    )
     return 0
 
 

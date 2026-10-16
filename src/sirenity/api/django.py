@@ -28,12 +28,16 @@ class SirenDjangoSettings(TypedDict):
 class SirenContinuation[**P, R, S]:
     """Declare one typed bounded Django Ninja or Ninja Extra continuation.
 
+    ### Outcome
+
     Wrap ``api.get`` or Ninja Extra's ``http_get``. The response model must expose a required
     ``has_more`` boolean and every mapped continuation property as a required non-nullable scalar.
     Sirenity compiles the generated OpenAPI Link Object and returns one official ``next`` link plus
     one typed MCP invocation only while ``has_more`` is true.
     ``source_inputs`` explicitly retains required, non-null source path, query, or body inputs; all
     remaining source inputs are excluded from the continuation.
+
+    ### Declare the continuation
 
     ```python
     from ninja import Schema
@@ -61,6 +65,12 @@ class SirenContinuation[**P, R, S]:
             next_cursor=cursor,
         )
     ```
+
+    ### Verify and failure boundary
+
+    Intermediate results expose one `next` link and one typed continuation; terminal results expose
+    neither. Invalid target arguments, nullable continuation properties, malformed expressions, and
+    incompatible response shapes fail during startup compilation.
     """
 
     route: SirenRouteDecorator[P, R, S]
@@ -133,6 +143,8 @@ def siren_pagination[**P, R, S](
 ) -> SirenOperationDecorator[P, R]:
     """Declare one typed paginated Django Ninja or Ninja Extra operation.
 
+    ### Outcome
+
     Pass ``api.get`` for Django Ninja or ``http_get`` for Ninja Extra. The response model and
     continuation mapping produce one successful response containing a standard OpenAPI ``next``
     Link Object. The operation ID is declared once and reused as the link target. Sirenity's normal
@@ -140,6 +152,8 @@ def siren_pagination[**P, R, S](
     ``source_inputs`` explicitly retains required, non-null source path, query, or body inputs; all
     remaining source inputs are excluded from the next-page invocation.
     ``item_follow_ups`` declares safe navigation relative to every item in the page collection.
+
+    ### Declare pagination
 
     ```python
     from ninja import Schema
@@ -167,6 +181,12 @@ def siren_pagination[**P, R, S](
     def list_articles(request, offset: int = 0, limit: int = 20):
         return ArticlePage(items=[], has_more=False, next_offset=0, limit=limit)
     ```
+
+    ### Verify and failure boundary
+
+    A page with `has_more` set to true exposes one `next` link and typed continuation. A terminal
+    page exposes neither. Sirenity rejects invalid continuation fields, target inputs, item
+    follow-ups, and page response shapes while compiling the generated OpenAPI document.
     """
 
     parameters = {
@@ -247,11 +267,22 @@ def siren_pagination[**P, R, S](
 class SirenMiddleware:
     """Install Siren through Django's standard middleware loader.
 
+    ### Outcome
+
     The loader turns the current ``SIRENITY`` mapping into one immutable configuration, then installs
     middleware from that configuration. Resolved settings declarations remain fresh for each Django
     startup, autoreload process, and ``override_settings`` lifecycle. ``OPENAPI`` and ``POLICY`` are
     dotted import paths; ``PROFILES`` is an optional sequence of profile paths. A missing policy retains
     the standard allow-all behavior.
+
+    ### Install the middleware
+
+    Put `sirenity.SirenMiddleware` after Django's conditional-response middleware and supply either
+    one `SirenConfiguration` or the documented `SIRENITY` mapping. Request the public route with an
+    acceptable Siren media range to verify that the response media type is
+    `application/vnd.siren+json`; ordinary JSON requests retain the application response.
+
+    ### Relationship behavior
 
     Sirenity derives an unambiguous immediate nested collection directly from Django Ninja's
     generated resource routes and response schemas. A parent response can expose canonical ``id``
@@ -298,6 +329,12 @@ class SirenMiddleware:
     post-processing provider. Middleware construction validates the operation target, path bindings,
     runtime expression, relation, and scope while compiling that generated document. The declared
     relationship therefore needs no application Siren policy solely to appear in the representation.
+
+    ### Failure boundary
+
+    Configuration and generated OpenAPI failures stop middleware construction. Unmatched routes,
+    ineligible response types, redirects, streams, and already-Siren responses pass through without
+    projection; the middleware never guesses route ownership or re-executes the application view.
     """
 
     get_response: Callable[[object], object]

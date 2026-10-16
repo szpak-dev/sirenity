@@ -4,11 +4,13 @@
 
 Compile a complete OpenAPI 3.1 document into a reusable Siren engine.
 
+### Outcome
+
 Call this once during application startup, then call `engine.project(context)` for each
 negotiated Siren response. OpenAPI defines links, methods, and candidate fields; the context's
 capabilities decide which candidate actions are present in that response.
 
-### Example
+### Compile and project
 
 ```python
 from sirenity import SirenContext, siren
@@ -64,6 +66,19 @@ assert payload["actions"][0] == {
     "method": "GET",
 }
 ```
+
+The assertion proves the public result: the compiled operation is exposed only because the
+application supplied its operation ID as a capability. Remove `get_record` from `capabilities`
+to verify that the action disappears without changing the projected data.
+
+### Failure boundary
+
+Invalid OpenAPI, ambiguous routes, unsupported inputs, incomplete links, and missing title
+metadata fail during this startup call. Call `audit(openapi)` first when CI or a migration needs
+one deterministic report containing every current incompatibility; use `siren(openapi)` when
+startup should stop on the first invalid contract.
+
+### Contract details
 
 ### OpenAPI requirements
 
@@ -134,9 +149,6 @@ transport.request("PATCH", "/records/42", json=payload)
 
 This metadata is separate from projection. `engine.project(context)` continues to produce an
 extension-free Siren document containing only official fields.
-
-Call `audit(openapi)` first when a consumer needs a deterministic list of every current
-incompatibility before using this strict fail-fast entry point.
 
 ### Response relationships
 

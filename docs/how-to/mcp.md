@@ -4,9 +4,13 @@
 
 Expose every compiled OpenAPI operation as a correctly described MCP tool.
 
+### Outcome
+
 Derive MCP tools from a shared configuration and turn one executor result into Siren-aware MCP
 content. The caller owns the MCP SDK, server lifecycle, and application execution; this bridge
 owns neither.
+
+### Build and invoke the bridge
 
 ```python
 from sirenity import SirenMcpExecution, SirenMcpInvocation, siren_configuration, siren_mcp
@@ -26,6 +30,13 @@ example_result = example_bridge.invoke(SirenMcpInvocation(
 ))
 ```
 
+Verify `example_tools` against the host's registration contract and inspect
+`example_result.follow_ups`, `continuations`, and `verifications` for typed operations that can be
+invoked directly. The complete executable journey is in
+[Expose typed MCP navigation](../tutorials/typed-mcp-navigation.md).
+
+### Refresh the tool catalogue
+
 Keep the last registered ``catalogue_fingerprint`` in the caller-owned MCP host. When a new
 configuration lifecycle has a different fingerprint, register ``tools()`` again and use the
 host's native refresh mechanism. Hosts that support it emit ``tools/list_changed`` after
@@ -42,6 +53,8 @@ if example_current_fingerprint != example_registered_fingerprint:
     example_registered_fingerprint = example_current_fingerprint
 ```
 
+### Execution and failure boundary
+
 ``executor.execute(operation)`` receives the compiled HTTP method, an encoded source dispatch
 path, and normalized path, body, query, header, and cookie values. The relative dispatch path is
 same-origin and validated against the configured source mount at startup, so a Django or WSGI
@@ -49,3 +62,6 @@ executor dispatches it directly without searching adapter routes or rewriting mo
 executor returns one already-executed ``SirenMcpExecution`` with the application status, result,
 and base URL. Sirenity calls it exactly once, supplies the configuration policy, and never
 reparses OpenAPI or builds another graph.
+
+Invalid invocation inputs fail before the executor runs. Executor failures propagate without a
+retry, and application error results remain typed Siren-aware MCP content.
