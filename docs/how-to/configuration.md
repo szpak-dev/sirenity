@@ -8,6 +8,8 @@ Hold the compiled adapter, capability policy, and MCP catalogue for one applicat
 
 Resolve one immutable configuration for every supported integration.
 
+### Outcome
+
 Install Sirenity with `python -m pip install sirenity`. The application supplies its OpenAPI
 provider, capability policy, authentication, and already-executed operation results. Sirenity
 owns compilation, source/public mount matching, normalized input placement, and Siren/error
@@ -149,3 +151,11 @@ server, stores credentials, retries execution, or mutates projected documents.
 All three journeys use only published `sirenity` root imports. The generated public reference is
 the compatibility surface; framework- or protocol-specific behavior beyond these seams belongs in
 caller adapters and policies.
+
+### Verify and failure boundary
+
+Build the configuration once after routes are registered, then reuse that exact value across
+adapter, Django, and MCP integrations in the same lifecycle. Configuration succeeds only when
+the OpenAPI document, policy path, profile paths, route mounts, and compiled catalogue are valid.
+Resolution and compilation failures stop startup; Sirenity does not substitute a fallback policy,
+schema, or graph.

@@ -1,11 +1,13 @@
 # Sirenity
 
-Sirenity compiles an OpenAPI 3.1 document into a reusable Siren engine. At request time, the engine combines
-application data with explicit capabilities and returns a hypermedia response containing concrete links and the
-actions currently available to the caller.
+> **Your application decides what's allowed. Sirenity shows what comes next.**
 
-The application still owns authentication, authorization policy, and operation execution. Sirenity owns the
-OpenAPI compilation, route matching, input placement, and translation into Siren or typed MCP results.
+Most APIs return data and leave clients to determine the next move. Sirenity compiles OpenAPI into an action graph,
+then combines application results with explicit capabilities to produce navigable Siren responses and typed MCP
+operations.
+
+Your application retains authentication, authorization policy, and operation execution. Sirenity makes the
+permitted actions explicit and turns response-derived next operations into invocations ready to follow.
 
 ## Install
 
@@ -32,7 +34,8 @@ document = engine.project(
 ```
 
 The [first OpenAPI-to-Siren tutorial](docs/tutorials/openapi-to-siren.md) supplies a complete document and shows the
-projected result.
+projected result. Continue with [typed MCP navigation](docs/tutorials/typed-mcp-navigation.md) to expose the same
+contract as tools and follow a response-bound operation without parsing a URL.
 
 ## Documentation
 

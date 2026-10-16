@@ -4,6 +4,7 @@ chapters:
   - file: tutorials/index
     sections:
       - file: tutorials/openapi-to-siren
+      - file: tutorials/typed-mcp-navigation
   - file: how-to/index
     sections:
       - file: how-to/siren

@@ -20,14 +20,13 @@ def siren_adapter(
 ) -> SirenAdapter:
     """Compile a framework-neutral boundary for operation-aware Siren HTTP responses.
 
+    ### Outcome
+
     Call this once after framework routes are registered. The adapter compiles OpenAPI once and
     retains a route catalogue mapping both the framework's source mount and the public Siren mount
     to operation IDs. Consumers neither inspect the engine graph nor parse OpenAPI.
 
-    Matching is independent of OpenAPI declaration order. Candidates require the same segment count;
-    at each position a literal outranks a parameter, for both source and public mounts. Parameter values
-    are percent-decoded only after structural matching, so an encoded value cannot become a literal route.
-    Same-method templates with indistinguishable parameter shapes fail adapter construction explicitly.
+    ### Configure optional representation metadata
 
     Default payloads remain extension-free official Siren. Pass explicit adapter profiles to enrich a
     fresh serialized document from public normalized operation metadata. `SirenStructuredFormProfile`
@@ -44,6 +43,12 @@ def siren_adapter(
         profiles=(SirenStructuredFormProfile(),),
     )
     ```
+
+    ### Project an executed result
+
+    The result must come from an operation the application has already executed; `respond()` never
+    dispatches application code. Pass `operation_id` directly when the framework exposes it, or pass
+    `method` and `path` for catalogue resolution:
 
     ```python
     from sirenity import SirenAdapterPolicy, SirenAdapterRequest, siren_adapter
@@ -66,9 +71,17 @@ def siren_adapter(
     assert response.media_type == "application/vnd.siren+json"
     ```
 
-    The result must come from an operation the application has already executed; `respond()` never
-    dispatches application code. Pass `operation_id` directly when the framework exposes it, or pass
-    `method` and `path` for catalogue resolution. Capability sets are explicit `SirenAdapterPolicy`
+    The media-type assertion is the observable success boundary. The response body is a fresh
+    serialized Siren document; the application result and compiled graph remain unchanged.
+
+    ### Routing and failure boundary
+
+    Matching is independent of OpenAPI declaration order. Candidates require the same segment count;
+    at each position a literal outranks a parameter, for both source and public mounts. Parameter values
+    are percent-decoded only after structural matching, so an encoded value cannot become a literal route.
+    Same-method templates with indistinguishable parameter shapes fail adapter construction explicitly.
+
+    Capability sets are explicit `SirenAdapterPolicy`
     inputs and are never inferred from result identifiers. The compiled graph supplies deterministic
     defaults for an exact root entry point, collection arrays, objects on exact resource routes, and
     command objects on subcommand routes; policy `representation` overrides exceptional operations.
@@ -86,6 +99,8 @@ def siren_adapter(
     compiled OpenAPI `info.version` wins a `version` collision, and the policy title continues to
     override `info.title`. Use `representation="command"` when that operation is intentionally a
     command result.
+
+    ### Django boundary
 
     For Django Ninja and Ninja Extra, `SirenDjangoMiddleware` negotiates source routes directly. When
     source and public mounts differ, a matched public route is rewritten to its compiled source route
