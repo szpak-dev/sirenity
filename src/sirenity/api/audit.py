@@ -28,6 +28,11 @@ def audit(openapi: Mapping[str, JsonValue]) -> SirenCompatibilityReport:
     ```python
     from sirenity import audit
 
+    openapi = {
+        "openapi": "3.1.1",
+        "info": {"title": "Example API", "version": "1.0.0"},
+        "paths": {},
+    }
     report = audit(openapi)
     if not report.compatible:
         raise SystemExit(report.render())

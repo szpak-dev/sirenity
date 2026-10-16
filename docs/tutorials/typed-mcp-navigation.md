@@ -167,6 +167,8 @@ def main() -> None:
     )
     bridge = siren_mcp(configuration, executor=ApplicationExecutor())
 
+    assert [tool.name for tool in bridge.tools()] == ["get_dashboard", "get_record"]
+
     dashboard = bridge.invoke(
         SirenMcpInvocation(
             operation_id="get_dashboard",

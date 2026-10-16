@@ -13,6 +13,11 @@ or CI output; `siren(openapi)` remains the strict fail-fast compilation entry po
 ```python
 from sirenity import audit
 
+openapi = {
+    "openapi": "3.1.1",
+    "info": {"title": "Example API", "version": "1.0.0"},
+    "paths": {},
+}
 report = audit(openapi)
 if not report.compatible:
     raise SystemExit(report.render())

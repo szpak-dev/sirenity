@@ -36,11 +36,14 @@ def main() -> int:
     root = Path(__file__).resolve().parents[1]
     direct = root / "docs" / "tutorials" / "openapi-to-siren.md"
     typed_navigation = root / "docs" / "tutorials" / "typed-mcp-navigation.md"
+    audit_reference = root / "docs" / "reference" / "audit.md"
     MarkdownPythonExamples(direct).execute()
     MarkdownPythonExamples(typed_navigation).execute_as_script("typed_navigation.py", root)
+    MarkdownPythonExamples(audit_reference).execute()
     print(
         "Documentation examples: "
-        f"{direct.relative_to(root)} and {typed_navigation.relative_to(root)} passed."
+        f"{direct.relative_to(root)}, {typed_navigation.relative_to(root)}, "
+        f"and {audit_reference.relative_to(root)} passed."
     )
     return 0
 

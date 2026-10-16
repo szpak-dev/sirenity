@@ -1,13 +1,13 @@
 # Sirenity
 
-**Your application decides what's allowed. Sirenity shows what comes next.**
+> **Your application decides what's allowed. Sirenity shows what comes next.**
 
 Most APIs return data and leave clients to determine the next move. Sirenity compiles OpenAPI into an action graph,
 then combines application results with explicit capabilities to produce navigable Siren responses and typed MCP
 operations.
 
 Your application retains authentication, authorization policy, and operation execution. Sirenity makes the
-permitted actions explicit, bound, and ready to follow.
+permitted actions explicit and turns response-derived next operations into invocations ready to follow.
 
 ## Install
 
